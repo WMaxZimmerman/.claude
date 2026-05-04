@@ -1,0 +1,36 @@
+# ── Secrets — NEVER commit ──────────────────────────────
+.credentials.json
+*.credentials.json
+
+# ── Per-machine caches ──────────────────────────────────
+cache/
+backups/
+file-history/
+paste-cache/
+shell-snapshots/
+session-env/
+sessions/
+debug/
+downloads/
+ide/
+plans/
+tasks/
+todos/
+stats-cache.json
+mcp-needs-auth-cache.json
+policy-limits.json
+
+# ── Per-machine logs and history ────────────────────────
+history.jsonl
+*.log
+
+# ── Per-project session state (working-dir specific) ────
+# Includes Claude's per-project memory directories. Stays
+# local — different machines have different working dirs.
+projects/
+
+# ── Plugins (often contain machine-specific binaries) ───
+plugins/
+
+# ── Per-machine local overrides ─────────────────────────
+settings.local.json
