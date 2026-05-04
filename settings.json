@@ -1,10 +1,12 @@
 {
+  "permissions": {
+    "additionalDirectories": [
+      "~/gtd"
+    ]
+  },
+  "model": "opus[1m]",
   "enabledPlugins": {
     "csharp-lsp@claude-plugins-official": true
   },
-  "autoUpdatesChannel": "latest",
-  "model": "opus[1m]",
-  "permissions": {
-    "additionalDirectories": ["~/gtd"]
-  }
+  "autoUpdatesChannel": "latest"
 }

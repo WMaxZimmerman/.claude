@@ -44,3 +44,10 @@ I sync `~/.claude/` itself across machines as a separate git repo — so
 new central agents, settings, and hooks travel via that repo. Don't
 suggest symlinks, hardlinks, or copying agents into workspace repos to
 solve cross-machine sync — that's already handled.
+
+# Git commits
+
+When creating commits, do not mention Claude, Claude Code, or any other
+AI agent in the commit message. Do not append a `Co-Authored-By:` trailer
+for Claude or any agent. Commit messages should read as if I authored
+them myself.
