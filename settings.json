@@ -3,5 +3,8 @@
     "csharp-lsp@claude-plugins-official": true
   },
   "autoUpdatesChannel": "latest",
-  "model": "opus[1m]"
+  "model": "opus[1m]",
+  "permissions": {
+    "additionalDirectories": ["~/gtd"]
+  }
 }
