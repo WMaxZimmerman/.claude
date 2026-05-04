@@ -2,11 +2,11 @@
 
 I'm an avid Emacs user. The majority of my tasks, notes, and planning
 live in org-mode files (org-roam + GTD workflow). When suggesting file
-formats, prefer `.org` over `.md` for artifacts I'll read, except when
-tooling strictly requires markdown (e.g., Claude Code subagent
-definitions) — in those cases suggest an org → markdown export workflow
-rather than authoring in markdown directly. I'm comfortable with
-Emacs-native solutions (hooks, elisp, capture templates).
+formats, prefer `.org` over `.md` for artifacts I'll read. When tooling
+strictly requires markdown (e.g., Claude Code subagent definitions),
+author the file directly in markdown — don't set up an org → markdown
+export pipeline. I'm comfortable with Emacs-native solutions (hooks,
+elisp, capture templates).
 
 # My GTD workspace
 
