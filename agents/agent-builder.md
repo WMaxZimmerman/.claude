@@ -139,9 +139,9 @@ model: <sonnet | opus | haiku>
   - **Review-only** — Read/Glob/Grep. Never Edit/Write or Bash.
   - **Diagnostic-only** — Read/Glob/Grep + Bash for hypothesis verification (precedent: `dotnet-debugger`).
   - **Workspace-owning** — Read/Edit/Write/Glob/Grep for file management (precedent: `gtd-assistant`).
-  - **Write-without-execute** — Read/Edit/Write/Glob/Grep. Mutates files but never runs them; validation is surfaced as commands for the user. Use when the artifact's "run" is owned elsewhere (pipelines, deploy systems) or when there's no useful local execution step. Precedent: `pipeline-writer`, `runbook-manager`.
+  - **Write-without-execute** — Read/Edit/Write/Glob/Grep. Mutates files but never runs them; validation is surfaced as commands for the user. Use when the artifact's "run" is owned elsewhere (pipelines, deploy systems) or when there's no useful local execution step. Precedent: `agent-builder` (writes agent files, never runs them).
   - **Mutating with test runs** — Read/Edit/Write/Glob/Grep + Bash (precedent: `dotnet-writer`).
-- `model` — `opus` is the de facto default in this library: 17/17 current agents run on opus because the work (TDD writers, diagnostic agents, reviewers against a deep house style, persona reviewers reasoning over UX) all benefit from multi-step reasoning. Carve out `sonnet` only for agents whose surface is genuinely narrow and well-bounded — fixed-shape output with no design judgment (a strict format-converter, a single-purpose linter wrapper). Carve out `haiku` only for trivial mechanical work. When in doubt, default to opus; downgrading is cheap to do later if the agent proves over-resourced.
+- `model` — `opus` is the de facto default in this library: 9 of the current 10 agents run on opus (only `gtd-assistant` is sonnet) because the work (TDD writers, diagnostic agents, reviewers against a deep house style) benefits from multi-step reasoning. Carve out `sonnet` only for agents whose surface is genuinely narrow and well-bounded — fixed-shape output with no design judgment (a strict format-converter, a single-purpose linter wrapper). Carve out `haiku` only for trivial mechanical work. When in doubt, default to opus; downgrading is cheap to do later if the agent proves over-resourced.
 
 ## Body conventions
 
@@ -162,8 +162,8 @@ Formatting rules:
 - Fenced code blocks for templates and example output.
 
 **Section naming — `## Output shape` vs `## Findings format`.** The two contracts are distinct; use the heading that matches the role:
-- **Writers** use `## Output shape` for the cycle artifact (plan prose, test brief, implementation diff, refactor diff, post-approval validation results). The "output" is what the cycle produces. Precedent: `dotnet-writer`, `angular-writer`, `terraform-writer`, `pipeline-writer`.
-- **Reviewers** use `## Findings format` for the bullet structure of their findings list (severity, `file:line`, one-line summary, brief fix). "Output shape" is too broad — the agent's output *is* findings, and the section is specifically about how to format them. Precedent target: `csharp-reviewer`, `angular-reviewer`, `terraform-reviewer`, `pipeline-reviewer` (these currently use `## Output shape` and will be reconciled in the drift-fix pass).
+- **Writers** use `## Output shape` for the cycle artifact (plan prose, test brief, implementation diff, refactor diff, post-approval validation results). The "output" is what the cycle produces. Precedent: `dotnet-writer`, `blazor-writer`.
+- **Reviewers** use `## Findings format` for the bullet structure of their findings list (severity, `file:line`, one-line summary, brief fix). "Output shape" is too broad — the agent's output *is* findings, and the section is specifically about how to format them. Precedent: `csharp-reviewer`, `blazor-reviewer`.
 
 ## House voice
 
@@ -201,11 +201,11 @@ Pick the shape that fits the work. Stay consistent within an agent.
 
 Mutating agents follow one of three canonical gate patterns. Pick by the shape of the work, not by stack. Name the pattern in the agent's `## Working mode` heading so the contract is explicit.
 
-**TDD pair cycle** — red → green → refactor, one approval gate per cycle, paired with a dedicated test-writer agent. The writer never authors its own failing test; it hands off a test brief, resumes on the test-writer's red-confirmed return, then applies green and refactor. Use when the domain has a real test seam and the work decomposes into one-behavior-per-cycle slices. Precedent: `dotnet-writer` + `dotnet-test-writer`, `angular-writer` + `angular-test-writer`.
+**TDD pair cycle** — red → green → refactor, one approval gate per cycle, paired with a dedicated test-writer agent. The writer never authors its own failing test; it hands off a test brief, resumes on the test-writer's red-confirmed return, then applies green and refactor. Use when the domain has a real test seam and the work decomposes into one-behavior-per-cycle slices. Precedent: `dotnet-writer` + `dotnet-test-writer`, `blazor-writer` + `blazor-test-writer`.
 
-**Two-gate review-then-derive** — Gate 1 approves the source diff; the agent writes the diff and runs a derivation step (a plan, a generated migration, a compiled artifact); Gate 2 approves the derived artifact before commit or apply. Use when the source change produces a separate artifact whose shape can't be predicted from the diff alone, and where the derived artifact is the load-bearing review surface. Precedent: `terraform-writer` (diff → `terraform plan` → review), `ef-migration-writer` (entity diff → `dotnet ef migrations add` → review the generated migration).
+**Two-gate review-then-derive** — Gate 1 approves the source diff; the agent writes the diff and runs a derivation step (a plan, a generated migration, a compiled artifact); Gate 2 approves the derived artifact before commit or apply. Use when the source change produces a separate artifact whose shape can't be predicted from the diff alone, and where the derived artifact is the load-bearing review surface — e.g. an IaC change reviewed via its planned diff (`terraform plan`), or an ORM entity change reviewed via its generated migration (`dotnet ef migrations add`). No agent in the current library uses this pattern yet.
 
-**Single-gate proposed-diff** — one approval before write; no derivation step, no test pair. Use when the artifact is the source (YAML, markdown, configuration) and there is no useful local execution between diff and disk. Validation, if any, is surfaced as commands for the user to run after write. Precedent: `pipeline-writer`, `runbook-manager`.
+**Single-gate proposed-diff** — one approval before write; no derivation step, no test pair. Use when the artifact is the source (YAML, markdown, configuration) and there is no useful local execution between diff and disk. Validation, if any, is surfaced as commands for the user to run after write. Precedent: `agent-builder` (propose → approve → write), `gtd-assistant`.
 
 Don't invent a fourth. If the work doesn't fit one of these, the slice is probably wrong-sized — split it or recast.
 
