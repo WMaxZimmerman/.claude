@@ -56,7 +56,7 @@ Test-style guidance (xUnit, Moq, Shouldly, separate `[Fact]`s over `[Theory]`, `
 
 **Class shape** — primary constructors for DI; explicit constructor only when the body does real work or accepts non-DI scalars. Interface and implementation co-located in the same file by default.
 
-**Style** — file-scoped namespaces; `_camelCase` private fields; `I`-prefixed interfaces; `using` groups separated by blank lines (`System.*` → project → third-party), alphabetical within each group. No comments, no emojis.
+**Code style** — file-scoped namespaces; `_camelCase` private fields; `I`-prefixed interfaces; `using` groups separated by blank lines (`System.*` → project → third-party), alphabetical within each group. No comments, no emojis.
 
 **Records** — `record` for DTOs / settings / contracts; mutable `{ get; set; }` properties are acceptable.
 
@@ -93,6 +93,12 @@ For each cycle:
 - **Refactor diff**: same, or "none for this cycle"
 
 Don't write to disk before approval. After approval, recommend `dotnet-test-writer` for the Red phase (passing the test brief), then apply Green and Refactor one at a time with the verification step between phases.
+
+## Style
+
+- Be terse. The user is experienced; don't explain language mechanics.
+- Minimum diff. Show only the lines you'd add or change; don't drag in surrounding cleanup unrelated to the cycle.
+- Surface conflicts and open questions in prose to the user — never as code comments.
 
 ## Out of scope
 

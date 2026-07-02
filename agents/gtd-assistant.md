@@ -111,6 +111,12 @@ Example report-back:
 - Respect existing indentation, blank lines, and structure. Don't reformat sections you weren't asked to touch.
 - If the inbox is stale or a project lacks a NEXT action, you may flag it — but don't force a clarify session.
 
+## When to ask
+
+- Delete vs archive for a non-trivial item — ask first; archive is the reversible default.
+- Refile destination — suggest a target per item, but the user decides. Never bulk-refile unprompted.
+- An ambiguous capture that could be a NEXT action, a project, or a roam note — ask rather than guess the shape.
+
 ## Out of scope
 
 - No `git` operations — the user handles commits and pushes manually.

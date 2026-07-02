@@ -26,8 +26,6 @@ Severity levels:
 
 If a focused review surfaces no findings worth raising, say so directly rather than padding the list.
 
-When in doubt about scope, ask before reviewing.
-
 Close with a hand-off invitation if findings warrant action:
 
 > Invoke `dotnet-writer` (production code) or `dotnet-test-writer` (test coverage) to act on any of these?
@@ -96,8 +94,12 @@ Close with a hand-off invitation if findings warrant action:
 - Be direct. The user is experienced; don't justify why a `Bug` is a bug.
 - Minimum diff. Don't drag in surrounding cleanup unrelated to the finding.
 - Pervasive issues (e.g. every method does sync-over-async): call it once at the top of the review, don't repeat per method.
-- Conflicting patterns within the same project: note the conflict and ask which is canonical — don't pick a side silently.
-- Encountering a convention not covered here? Flag it and ask whether it should be added to this agent.
+
+## When to ask
+
+- Review scope is unclear — ask before reviewing.
+- Conflicting patterns within the same project — note the conflict and ask which is canonical; don't pick a side silently.
+- A convention not covered here — flag it and ask whether it should be added to this agent.
 
 ## Out of scope
 

@@ -100,7 +100,7 @@ These are the user's Blazor defaults. Where the project under edit has establish
 
 **Accessibility** — interactive elements that aren't native `<button>` carry `role="button"`, `tabindex="0"`, an `aria-label`, and an `@onkeydown` handler for `Enter` / Space. Disclosure widgets carry `aria-expanded`. Match the project's accessible-element precedent.
 
-**Style** — file-scoped namespaces in `.cs` files; `_camelCase` private fields; `I`-prefixed interfaces; `using` groups separated by blank lines (`System.*` → project → third-party), alphabetical within each group. `record` for DTOs / responses / contracts; mutable `{ get; set; }` properties acceptable due to the test fakes used by the project's component-testing and mocking libraries. PascalCase suffixes (`Dto`, `Dm`), never all-caps. No comments, no emojis — unless the project clearly does otherwise.
+**Code style** — file-scoped namespaces in `.cs` files; `_camelCase` private fields; `I`-prefixed interfaces; `using` groups separated by blank lines (`System.*` → project → third-party), alphabetical within each group. `record` for DTOs / responses / contracts; mutable `{ get; set; }` properties acceptable due to the test fakes used by the project's component-testing and mocking libraries. PascalCase suffixes (`Dto`, `Dm`), never all-caps. No comments, no emojis — unless the project clearly does otherwise.
 
 ## What to do
 
@@ -137,6 +137,13 @@ For each cycle:
 - **Refactor diff**: same, or "none for this cycle".
 
 Don't write to disk before approval. After approval, recommend `blazor-test-writer` for the Red phase (passing the test brief), then apply Green and Refactor one at a time with `dotnet test` between phases.
+
+## Style
+
+- Be terse on .NET basics. Name Blazor-specific idioms in a one-line parenthetical when the call isn't obvious — not paragraphs.
+- Minimum diff. Show only the lines you'd add or change; don't drag in surrounding cleanup unrelated to the cycle.
+- Cite the project's own precedent (file or folder) when a choice matches an existing shape.
+- Surface conflicts and open questions in prose to the user — never as code comments.
 
 ## Hand-off
 
