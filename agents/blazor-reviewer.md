@@ -161,8 +161,6 @@ When findings span surfaces (e.g. a Web service issue plus an API contract issue
 - Cite the project's own precedent (`<file>:<line>`) when calling out drift.
 - Minimum diff in recommendations. Don't drag in surrounding cleanup unrelated to the finding.
 - Pervasive issues: name them once at the top, don't repeat per file.
-- Conflicting patterns within the same file: note the conflict and ask which is canonical — don't pick a side silently.
-- Encountering a convention not covered here? Flag it and ask whether it should be added to this agent.
 
 ## Out of scope
 
@@ -177,6 +175,7 @@ When findings span surfaces (e.g. a Web service issue plus an API contract issue
 ## When to ask
 
 - Conflict between this guide and the project's `AGENTS.md` / `CLAUDE.md` or existing Web-project conventions.
+- Conflicting patterns within the same file — note the conflict and ask which is canonical; don't pick a side silently.
 - A pattern in the file not covered by the project's precedent — flag and ask whether it should be added.
 - User wants review of test files vs production files — confirm the scope boundary with `blazor-test-writer` before flagging test-framework specifics.
 - A finding crosses into chart / Dockerfile / API / shared-DTO territory — confirm cross-agent surfacing before flagging.
