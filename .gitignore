@@ -19,6 +19,8 @@ todos/
 stats-cache.json
 mcp-needs-auth-cache.json
 policy-limits.json
+.last-cleanup
+.last-update-result.json
 
 # ── Per-machine logs and history ────────────────────────
 history.jsonl
