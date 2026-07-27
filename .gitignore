@@ -21,6 +21,8 @@ mcp-needs-auth-cache.json
 policy-limits.json
 .last-cleanup
 .last-update-result.json
+chrome/
+remote-settings.json
 
 # ── Per-machine logs and history ────────────────────────
 history.jsonl
