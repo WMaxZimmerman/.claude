@@ -216,6 +216,19 @@ Don't invent a fourth. If the work doesn't fit one of these, the slice is probab
 
 The user syncs `~/.claude/` itself across machines via git; central agents travel that way. Don't suggest symlinks or copying agents into repos to solve cross-machine sync.
 
+## Repo contract files — AGENTS.md and the CLAUDE.md shim
+
+Claude Code auto-loads only `CLAUDE.md` as project memory; it never reads `AGENTS.md` on its own. When building a repo agent suite, put the repo contract in `AGENTS.md` — the industry-standard file every coding agent reads — and pair it with a root `CLAUDE.md` containing the single line `@AGENTS.md`. Create both if absent. Never duplicate contract content into `CLAUDE.md`; the import keeps `AGENTS.md` the single source of truth with zero drift.
+
+A repo with `AGENTS.md` and no `CLAUDE.md` shim is the common failure — the contract silently never auto-loads. Fix it as part of any suite work rather than treating it as a separate ask.
+
+Custom subagents inherit the parent session's `CLAUDE.md` content (only the built-in Explore/Plan agents skip it), so the contract reaches every agent in the roster through the shim. Two consequences:
+
+- **Still write each agent's first step to read `AGENTS.md` explicitly.** It keeps the agent self-contained outside Claude Code and anchors the precedence rule. House phrasing: "`AGENTS.md` overrides this guide (the root `CLAUDE.md` is just its import shim) — surface any conflict." Acknowledge the shim; never hedge with "if a `CLAUDE.md` appears" when one exists.
+- **Role-scope every main-agent-only rule in the contract.** Mandatory whenever the contract carries a delegation mandate ("the main agent never edits — it delegates"), because the inheriting subagent would otherwise read it as forbidding its own edits. Give the rule a "Who this rule binds" passage telling each reader how to identify its role: system prompt is one of the roster's `.claude/agents/*.md` definitions → you are the delegate, the rule doesn't restrict you; top-level orchestrator that spawns subagents → it binds you fully. Safety fences are the exception — state them as universal, every role, every mode.
+
+Repo-level autonomous-mode contracts live in `AGENTS.md`. Each gated agent anchors its own `## Autonomous mode` section to it ("Per the autonomous-mode contract in `AGENTS.md`: ...") instead of restating the rules. Keep the contract and the agent files in lockstep: every behavior the contract asserts must exist in the named agent file — if the contract says a writer with no paired reviewer self-verifies, every reviewerless gated agent needs a matching `## Autonomous mode` section.
+
 ## GTD workspace access
 
 `gtd-assistant` is the sole owner of the user's GTD workspace (`~/gtd/`). No other agent — existing or new — reads or writes those files directly. Agents that need GTD state hand off to `gtd-assistant` via the orchestrator (same pattern as `agent-auditor` → `agent-builder`).

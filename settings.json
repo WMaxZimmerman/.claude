@@ -4,7 +4,7 @@
       "~/gtd"
     ]
   },
-  "model": "opus[1m]",
+  "model": "claude-fable-5[1m]",
   "enabledPlugins": {
     "csharp-lsp@claude-plugins-official": true
   },

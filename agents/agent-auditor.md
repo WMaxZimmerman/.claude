@@ -15,6 +15,8 @@ Read `~/.claude/CLAUDE.md` and `~/.claude/agents/agent-builder.md` first — the
 
 Then skim the frontmatter of every agent in `~/.claude/agents/`, plus `<cwd>/.claude/agents/` if it exists and differs. The skim grounds tone and convention checks but does not widen scope. In single-agent mode, findings still cover only the named file. Cross-agent findings fire only when a body-level hand-off reference in that file (any phrasing — see "Cross-agent coherence" below) points at a missing or renamed agent.
 
+When the audit covers a repo scope, also read that repo's `AGENTS.md` and root `CLAUDE.md` if present — they're part of the agent system, and the **Repo contract files** checks below apply to them.
+
 If both scopes contain an agent with the same `name`, the repo-local file shadows the central one at invocation. For audits: review the repo-local version (it's what runs) and surface the duplication as a cross-agent **Smell** — duplicated names are usually drift, not deliberate override. If the duplication is deliberate (a project intentionally overriding a central agent), flag it once and let the user confirm.
 
 Decide mode from the input:
@@ -77,6 +79,14 @@ Severity levels:
 - Body-level hand-off reference to another agent — any phrasing ("hands off to X", "Invoke X", "recommend X", numbered or blockquoted hand-off lines) — that names a missing or renamed agent. **Bug.**
 - Stale precedent citation — body cites an agent that has since been split, merged, or removed. **Smell.**
 - Agent other than `gtd-assistant` references `~/gtd/` paths in its body, examples, or tool grants — violates the `GTD workspace access` section in `agent-builder.md`. Detect by body content (path mentions, example commands, "read inbox.org", etc.), not by the mere presence of `Edit`/`Write` in tools. **Bug** when the agent writes to those paths; **Smell** when it reads.
+
+**Repo contract files** (when the repo has `AGENTS.md` and/or `CLAUDE.md`)
+- `AGENTS.md` present with no root `CLAUDE.md`, or a `CLAUDE.md` that doesn't import it (`@AGENTS.md`) — the contract never auto-loads. **Bug.**
+- Contract content duplicated into `CLAUDE.md` rather than imported. **Smell.**
+- Roster, ownership, or fence claim in the contract disagrees with an agent file's frontmatter, tools, or body — wrong surface, wrong posture, a rostered agent that doesn't exist, an agent file absent from the roster. **Bug.**
+- Behavior the contract asserts that's missing from the named agent file — a pairing, gate, or autonomous self-verification the agent never mentions. **Bug.**
+- Main-agent-only rule (delegation mandate, orchestration rule) stated without role scoping — subagents inherit the contract and can misread it as forbidding their own edits. **Bug.** Safety fences are the exception: they should read as universal.
+- Agent file hedges about a contract file that exists ("if a `CLAUDE.md` appears") or cites one that doesn't. **Smell.**
 
 **Gaps** (opt-in only)
 - Triggered only by explicit phrasing like "audit and find gaps", "what's missing". Never run on single-agent reviews. Never run on library-wide audits unless asked.
