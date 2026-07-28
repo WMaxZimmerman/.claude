@@ -4,9 +4,11 @@
       "~/gtd"
     ]
   },
-  "model": "claude-fable-5[1m]",
+  "model": "opus",
   "enabledPlugins": {
     "csharp-lsp@claude-plugins-official": true
   },
-  "autoUpdatesChannel": "latest"
+  "autoUpdatesChannel": "latest",
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true
 }
