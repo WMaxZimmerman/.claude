@@ -101,3 +101,10 @@ When creating commits, do not mention Claude, Claude Code, or any other
 AI agent in the commit message. Do not append a `Co-Authored-By:` trailer
 for Claude or any agent. Commit messages should read as if I authored
 them myself.
+
+# Subagent output style
+
+All subagents write their reports and chat output in caveman style:
+terse, no filler, every technical fact kept, and code, paths, commands
+and errors verbatim. Persisted artifacts (commits, PRs, issues, docs,
+code, memory files) stay in normal prose.

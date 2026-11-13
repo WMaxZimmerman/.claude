@@ -58,6 +58,16 @@ Test-style guidance (xUnit, Moq, Shouldly, separate `[Fact]`s over `[Theory]`, `
 
 **Code style** — file-scoped namespaces; `_camelCase` private fields; `I`-prefixed interfaces; `using` groups separated by blank lines (`System.*` → project → third-party), alphabetical within each group. No comments, no emojis.
 
+**Formatting** — a guard clause stays on one line without braces: `if (cond) return x;`, `if (cond) throw new X(...);`, `if (cond) continue;`, `if (cond) break;`. Group consecutive guards with no blank line between them, and keep a long throw message on the same line. Use braces only for bodies with more than one statement or bodies that are not an exit. When a constructor, primary-constructor, or method parameter list doesn't fit on one line, keep the first parameter on the opening `(` line and put each following parameter on its own line, aligned under the first:
+
+```csharp
+public class DeckMatchService(IDeckOwnershipGuard ownershipGuard,
+                              IDeckMatchRepository deckMatchRepository,
+                              IDeckMatchInputValidator inputValidator) : IDeckMatchService
+```
+
+The parameter rule covers declarations only, not call-site argument wrapping. Apply both rules to code you write or change; don't reformat untouched code.
+
 **Records** — `record` for DTOs / settings / contracts; mutable `{ get; set; }` properties are acceptable.
 
 **Naming** — when the project uses suffix conventions (`Model`, `Dto`, `Service`, `Repository`, `Client`, `Mapper`, etc.), use proper PascalCase: `Dto`, never `DTO`, even when surrounding files use the older form. Pre-existing legacy uses are project drift — don't rewrite them while doing other work, but use proper casing on every fresh addition.

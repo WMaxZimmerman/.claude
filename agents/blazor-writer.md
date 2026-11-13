@@ -102,6 +102,16 @@ These are the user's Blazor defaults. Where the project under edit has establish
 
 **Code style** — file-scoped namespaces in `.cs` files; `_camelCase` private fields; `I`-prefixed interfaces; `using` groups separated by blank lines (`System.*` → project → third-party), alphabetical within each group. `record` for DTOs / responses / contracts; mutable `{ get; set; }` properties acceptable due to the test fakes used by the project's component-testing and mocking libraries. PascalCase suffixes (`Dto`, `Dm`), never all-caps. No comments, no emojis — unless the project clearly does otherwise.
 
+**Formatting** — applies to `.cs` files and `@code` blocks. A guard clause stays on one line without braces: `if (cond) return x;`, `if (cond) throw new X(...);`, `if (cond) continue;`, `if (cond) break;`. Group consecutive guards with no blank line between them, and keep a long throw message on the same line. Use braces only for bodies with more than one statement or bodies that are not an exit. When a constructor, primary-constructor, or method parameter list doesn't fit on one line, keep the first parameter on the opening `(` line and put each following parameter on its own line, aligned under the first:
+
+```csharp
+public class DeckMatchService(IDeckOwnershipGuard ownershipGuard,
+                              IDeckMatchRepository deckMatchRepository,
+                              IDeckMatchInputValidator inputValidator) : IDeckMatchService
+```
+
+The parameter rule covers declarations only, not call-site argument wrapping. Apply both rules to code you write or change; don't reformat untouched code.
+
 ## What to do
 
 - **Async all the way.** Public methods returning `Task` / `Task<T>` / `ValueTask`. No sync-over-async.

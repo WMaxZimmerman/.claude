@@ -1,14 +1,62 @@
 {
   "permissions": {
+    "defaultMode": "auto",
     "additionalDirectories": [
       "~/gtd"
     ]
   },
   "model": "opus",
+  "statusLine": {
+    "type": "command",
+    "command": "powershell -ExecutionPolicy Bypass -File \"C:\\Users\\willi\\.claude\\hooks\\caveman-statusline.ps1\""
+  },
   "enabledPlugins": {
-    "csharp-lsp@claude-plugins-official": true
+    "csharp-lsp@claude-plugins-official": true,
+    "caveman@caveman": true
+  },
+  "extraKnownMarketplaces": {
+    "caveman": {
+      "source": {
+        "source": "github",
+        "repo": "JuliusBrussee/caveman"
+      }
+    }
   },
   "autoUpdatesChannel": "latest",
   "inputNeededNotifEnabled": true,
-  "agentPushNotifEnabled": true
+  "agentPushNotifEnabled": true,
+  "autoMode": {
+    "soft_deny": [
+      "$defaults",
+      "Bash(dotnet ef:*) in lorcana-cabana — migrations are user-driven per repo convention (agents explicitly forbid running EF migrations themselves)",
+      "Writes to infra/bicep/parameters/prod.parameters.json in lorcana-cabana — production IaC parameters"
+    ],
+    "environment": [
+      "### Org-wide",
+      "**Organization**: None configured — repo is under the `LorcanaCabana` GitHub org (`github.com:LorcanaCabana/lorcana-cabana.git`), no further org-wide identity found",
+      "**Cloud provider(s)**: Azure (Azure Key Vault for secrets, Azure Monitor/Application Insights for logging, ACR for container registry per CI secret names)",
+      "**Repository visibility**: private (confirmed via gh for LorcanaCabana/lorcana-cabana)",
+      "**Internal sharing / snippet hosting**: None configured — treat public paste/gist services as outside the trust boundary",
+      "**Secrets management**: Azure Key Vault (production), `dotnet user-secrets` (local) — per agent docs; CI secrets include ACR_LOGIN_SERVER, ACR_PASSWORD, ACR_USERNAME, AZURE_CREDENTIALS_PROD",
+      "**Default / protected branches**: default branch `main`; no classic protected branches listed; rulesets not queryable here — treat as possibly protected (large orgs use rulesets instead of classic branch protection) and do not assume `main` is unprotected",
+      "**CI/CD deploy targets**: Azure Container Registry (ACR) and an Azure production credential (AZURE_CREDENTIALS_PROD) referenced in CI secrets — treat deploys using these as production-sensitive",
+      "**Network posture**: None configured",
+      "**Host containment**: None configured — assume Claude Code runs on an ordinary developer machine with open internet",
+      "**Source control**: The trusted repo (LorcanaCabana/lorcana-cabana) and its `origin` remote only (no additional orgs configured)",
+      "**Trusted internal domains**: None configured",
+      "**Trusted cloud buckets**: None configured",
+      "**Key internal services**: None configured",
+      "**Internal package registry**: None configured",
+      "**Sensitive data locations & audiences**: `infra/bicep/parameters/prod.parameters.json` (production IaC parameters — treat as sensitive); any Azure Key Vault-backed secrets, connection strings, or CI secrets (ACR_LOGIN_SERVER, ACR_PASSWORD, ACR_USERNAME, AZURE_CREDENTIALS_PROD); PII/secret-shaped values per repo logging conventions — share only with audiences cleared at the [named+specifics] bar",
+      "**Data retention / declassification**: None configured",
+      "**Sensitive remote targets**: any namespace, host, or container whose name carries `prod` or `production` as a whole word or name segment — e.g. `infra/bicep/parameters/prod.parameters.json`, `AZURE_CREDENTIALS_PROD`",
+      "**Protected deployment namespaces / environments**: production Azure environment reached via AZURE_CREDENTIALS_PROD / ACR secrets — treat as protected per the Sensitive remote targets heuristic",
+      "**Protected IaC scopes**: `infra/bicep/parameters/prod.parameters.json` and any other prod-named Bicep/IaC scope; IAM, RBAC, networking, quota, node-pool resources carrying `prod`/`production` in name or tag",
+      "### User-specific",
+      "**Primary use of Claude Code**: software development — C#/.NET (ASP.NET Core API, Blazor Server overlay), React, Discord bot (LoreBot), within the LorcanaCabana repo; agent library also used for personal GTD workflow in a separate `~/gtd` repo (out of scope for this project)",
+      "**Trusted repo**: C:\\bench\\git\\lorcana-cabana (github.com:LorcanaCabana/lorcana-cabana.git), private — confidential material (code, docs, config) is fine here; secrets and PII are never cleared into the repo regardless of visibility",
+      "**Org-specific CLIs**: None configured — `dotnet`, `make`, `npm`, `docker` seen in shell history are standard toolchain CLIs, not org-specific",
+      "**routine under <user>/ prefix qualifiers**: none found — the `~/gtd` and `~/.claude` personal workflow is a separate repo/scope not covered by this project's auto-mode proposal"
+    ]
+  }
 }

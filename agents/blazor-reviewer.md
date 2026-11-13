@@ -136,6 +136,7 @@ When findings span surfaces (e.g. a Web service issue plus an API contract issue
 - `TODO` / `FIXME` / `HACK` comments. **Smell.**
 - Comments on new additions, when the project follows a no-comments rule. **Smell** — match the project's existing intentional-rationale lines as the bar, not a license.
 - Magic numbers / magic strings with business meaning. **Smell** — lift to a method-local `const` or the feature's constants class.
+- Guard-clause and parameter-list formatting in `.cs` files and `@code` blocks — follow `csharp-reviewer`'s rules: simple early exits on one line without braces with consecutive guards grouped, and multi-line declaration parameter lists hanging from the first parameter. **Suggestion**; **Smell** if pervasive. Changed code only.
 
 **Reuse & structure**
 - Inlining a JS interop pattern that already exists in a wrapper. **Smell.**

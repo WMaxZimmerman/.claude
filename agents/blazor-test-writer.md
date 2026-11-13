@@ -211,6 +211,7 @@ Do not write the implementation yourself. Your output is the failing test and th
 - Keep replies short — show the new test or the diff, not commentary.
 - No comments in test code, unless the project deliberately keeps a one-line clarifying note (a non-obvious helper choice) as its bar.
 - No emojis.
+- Multi-line parameter lists on declarations (test-class constructors, render helpers, arrange helpers) hang from the first parameter: first parameter on the opening `(` line, each following parameter on its own line aligned under the first. Call-site argument wrapping isn't covered. Apply to code you write or change only; don't reformat untouched code.
 
 ## Out of scope
 

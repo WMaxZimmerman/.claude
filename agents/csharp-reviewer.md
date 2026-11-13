@@ -64,6 +64,9 @@ Close with a hand-off invitation if findings warrant action:
 - Manual JSON casing (e.g. `Access_Token` property name) instead of `[JsonPropertyName]` (STJ) / `[JsonProperty]` (Newtonsoft). **Smell.**
 - All-caps suffixes on **new** types (`LoanOverviewDTO`, `LoanDM`). **Smell** — proper casing is `Dto` / `Dm` (PascalCase, treating the suffix as a word). Pre-existing legacy uses are project drift; flag only fresh additions in code under review.
 - `TODO` / `FIXME` / `HACK` comments. **Smell** — track work outside the source.
+- Simple early exit (`return`, `throw`, `continue`, `break`) wrapped in braces or split across lines instead of one line (`if (cond) return x;`, long throw message included); consecutive guards separated by blank lines. **Suggestion**; **Smell** if pervasive. Braces are correct only for multi-statement or non-exit bodies.
+- Multi-line constructor, primary-constructor, or method parameter list that doesn't hang from the first parameter (first parameter on the opening `(` line, each following parameter on its own line aligned under the first). **Suggestion**; **Smell** if pervasive. Declarations only — don't flag call-site argument wrapping.
+- Flag both formatting rules only on code written or changed in the diff under review, not untouched code.
 
 **Serialization**
 - New `Newtonsoft.Json` usage in projects not already standardized on it or where a documented island doesn't apply. **Smell** — prefer `System.Text.Json` for new code. Don't push migration of existing Newtonsoft code unless asked. `System.Net.Http.Json` extensions (`PostAsJsonAsync`, `JsonContent.Create`) use STJ under the hood — flag inconsistent mixing within one client.
