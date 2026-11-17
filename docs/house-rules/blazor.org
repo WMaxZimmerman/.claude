@@ -1,0 +1,1291 @@
+#+title: Blazor house rules (BZ)
+
+Read with =csharp.org= and =common.org=. These are deltas on top of both. A BZ entry whose title
+names a CS id is a delta: the parent rule applies as written, and the entry records only what
+differs for Blazor. Paths are relative to the Blazor project root unless stated.
+
+* Scope
+
+Blazor WebAssembly projects in any repo: =.razor= pages and components, =_Imports.razor=,
+=App.razor=, =Program.cs=, supporting C# under =Services/=, =Clients/= and =Theme/=, and the
+project stylesheets under =wwwroot/css/=, plus their paired test projects for structure and
+coverage. Not a shared plain-.NET contracts library the Blazor project references (that is
+=csharp.org=). Not the API, charts, Dockerfiles, or pipelines.
+
+* Calibration
+
+- Uniform severity unless the repo contract names a legacy Blazor area. Calibrate against the
+  repo's established Blazor project. Where a repo has more than one, prefer the parallel file of
+  the same shape in the project under review as the baseline, and fall back to the established
+  project's file. Auth wiring is the usual exception to one-for-one transfer — one project may use
+  an OIDC provider directly and another MSAL — so calibrate each project's =Program.cs= auth
+  registration against its own auth pattern. When no project establishes a policy, apply standard
+  Blazor / MudBlazor practice.
+- Cross-cutting .NET rules (file-scoped namespaces, =_camelCase= fields, =I=-prefixed interfaces,
+  primary constructors for DI, =using= order, disposal of =IDisposable=) are *stated* in
+  =csharp.org= and *applied here by =mz-blazor-reviewer=*. Where no other reviewer runs on these
+  paths, a =csharp.org= rule with no BZ entry is this reviewer's to raise, citing the CS id. "Flag
+  here only when the smell is Blazor-specific" governs where a *new rule is written*, not which
+  rules are enforced: a BZ entry exists only where Blazor changes the parent (BZ-038 on CS-011,
+  BZ-052 on CM-003), and its absence means the parent applies unmodified — never that the parent
+  is out of scope. Applying a parent rule here is still bounded by that rule's own conditions
+  (its touched-unit clause, its carve-outs): widening which reviewer applies a rule does not widen
+  what the rule reaches, and a parent rule over a mixed baseline is not turned into a finding
+  against the established half of it.
+- A minimal =Theme/= folder is not a finding when the project does not customize MudBlazor's
+  theme.
+- bUnit-stack test conventions (=TestContext=, =JSRuntimeMode.Loose=, =TestHost= wrapper shape,
+  NSubstitute vs Moq, =Assert.*= vs Shouldly) live in the Test style group below
+  (BZ-065..BZ-076); cite those ids rather than deferring. It is NSubstitute + =Assert.*=, full
+  stop — the documented Blazor exception to the .NET Moq + Shouldly default (BZ-065).
+- Canonical references — a page component, a reusable component, a stateful service, a JSInterop
+  wrapper, a typed client, and the =Program.cs= bootstrap — are the repo's own. Where the repo
+  contract names them, calibrate against those; a canonical file that itself carries drift under
+  another rule (a separate-file interface under CS-017, for instance) is not part of the shape to
+  copy.
+- Rules lifted from =mz-blazor-writer= house conventions with no reviewer rule yet carry Smell
+  severity unless the entry states otherwise.
+
+* Framework-standard adherence
+
+** BZ-001 — CS-001 for Blazor WASM, ASP.NET Core, MSAL, System.Text.Json
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* CS-001 applies. The =AddHttpClient<I, Impl>(...)= registration rule (BZ-044) and the
+  STJ-only rule (BZ-040) are instances; flag deviations that lack a documented house reason.
+- *Not a finding:* a deviation backed by a documented house opinion.
+- *Precedent:* none yet
+
+* Razor file shape
+
+** BZ-002 — Directive order =@namespace= → =@page= → =@attribute= → =@using= → =@inject= → =@implements=
+
+- *Severity:* Smell
+- *Applies to:* all =.razor= files
+- *Rule:* Directive order other than =@namespace= (omit for =Pages/=) → =@page= (pages only) →
+  =@attribute= (=[Authorize]= and the like) → =@using= (per-file imports, one contiguous block;
+  BZ-077 orders inside it) → =@inject= (one per dependency) → =@implements=. Markup, then
+  =@code { }= at the bottom.
+- *Not a finding:* a directive the file has no need of — most components carry no =@page=,
+  =@attribute=, or =@using= at all, and the order constrains relative position rather than
+  presence. Whether a given =@using= belongs in the file at all is BZ-007's question, not this
+  rule's.
+- *Precedent:* none yet
+
+** BZ-003 — JS callback or service subscription requires =@implements IAsyncDisposable=
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* Component registering a JS callback or subscribing to a service event but missing
+  =@implements IAsyncDisposable= — leaks the subscription / =DotNetObjectReference= on every
+  navigation.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-004 — =[Parameter]= is =public= with ={ get; set; }=
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* =[Parameter]= property without ={ get; set; }= or with non-public access.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-005 — Outputs are =EventCallback= named =OnZ=
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Output named anything other than =OnZ= for =EventCallback= / =EventCallback<T>=.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-006 — Required-parameter defaults match precedent (=new()=, =string.Empty=)
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* Required-parameter default deviating from the precedent (=new()=, =string.Empty=) —
+  introducing =EditorRequired= when surrounding files don't. Surface, confirm before adopting.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-007 — Don't re-import what =_Imports.razor= provides
+
+- *Severity:* Suggestion
+- *Applies to:* all =.razor= files
+- *Rule:* Re-importing in a =.razor= file what =_Imports.razor= already provides.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-077 — A =.razor= file's =@using= block follows CS-048's order, =@using static= last
+
+- *Severity:* Smell
+- *Applies to:* new or touched =.razor= files in Blazor production projects
+- *Rule:* A per-file =@using= block ordered other than CS-048's — =System.*= → the project's own
+  namespaces → =Microsoft.*= and other third-party — alphabetical within each run, with any
+  =@using static= after all of them. The block is contiguous (no blank lines inside it) and sits
+  where BZ-002 puts it. =@using static= in a =.razor= file is established practice, as
+  =using static= is in Blazor C#, so a =.razor= one is not a novelty to question.
+- *Not a finding:* =_Imports.razor='s own order — it is the project-wide import list and is not
+  reordered incidentally. The Blazor test projects, where BZ-074 sets a different order. A file
+  with one =@using= and nothing to order it against.
+- *Precedent:* none yet
+
+* State management
+
+** BZ-008 — No redundant =StateHasChanged()=
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* =StateHasChanged()= called inside an =@onclick= / =OnInitializedAsync= /
+  =EventCallback= body — the framework re-renders for you.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-009 — =StateHasChanged()= after out-of-lifecycle mutation
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* =StateHasChanged()= missing from a =[JSInvokable]= callback or timer tick that mutates
+  state — UI won't update.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-010 — Service event handlers re-render via =InvokeAsync(StateHasChanged)=
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* =StateHasChanged()= called from a service event handler without =InvokeAsync(...)= —
+  renderer sync-context violation.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-011 — Every =OnStateChanged= subscription is unsubscribed in =DisposeAsync=
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* Component subscribing to =service.OnStateChanged= without unsubscribing in
+  =DisposeAsync= — memory leak across navigations. Subscribe in =OnInitializedAsync=, unsubscribe
+  in =DisposeAsync=.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-012 — One owner per piece of state
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Multiple components owning the same piece of state via local fields instead of routing
+  through the service.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* JSInterop
+
+** BZ-013 — Components depend on an =IXInterop= wrapper, not =IJSRuntime=
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Component injecting =IJSRuntime= directly instead of an =IXInterop= wrapper. Match the
+  project's existing interop-wrapper precedent so tests can substitute the interface.
+- *Not a finding:* the interop wrappers themselves injecting =IJSRuntime=, including an auth
+  service's localStorage or redirect interop — those are the wrappers; that's the bar, not a
+  license.
+- *Precedent:* none yet
+
+** BZ-014 — =DotNetObjectReference= is disposed
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* =DotNetObjectReference.Create(this)= without a matching =.Dispose()= in =DisposeAsync=
+  (leak).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-015 — JS unregister in =DisposeAsync= is guarded
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* JS-callback unregister in =DisposeAsync= without a surrounding =try / catch= (the
+  circuit / runtime may already be torn down). Use the guarded shape, without comments (BZ-020).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-016 — =[JSInvokable]= methods catch unexpected exceptions
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* =[JSInvokable]= method doing real work without a =try/catch= for unexpected exceptions —
+  the JS-to-.NET boundary swallows exceptions silently to JS.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-017 — JS function names are centralized in the interop wrapper
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* JS function name as a magic string at the call site (not centralized in the interop
+  wrapper).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-018 — Interop wrapper methods return =ValueTask=
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Interop wrapper method not returning =ValueTask= to mirror the JS contract.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Disposal
+
+** BZ-019 — =IAsyncDisposable= does meaningful disposal or isn't declared
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* =@implements IAsyncDisposable= declared but =DisposeAsync= is empty or does nothing
+  meaningful (no JS unregister, no event unsubscribe, no ref dispose). Either drop the implements
+  or wire the disposal.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-020 — Intentional swallow is named, not commented
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* =DisposeAsync= with an inline bare =catch { }= whose intent isn't legible from a name.
+  Extract the unregister into a =Try=-prefixed method (=TryUnregisterDropZoneAsync=) so readers
+  know the swallow is intentional; don't recommend a comment.
+- *Not a finding:* none. An existing comment explaining a swallow (such as "circuit/runtime may
+  already be torn down") is legacy drift, not a pattern to copy.
+- *Precedent:* none yet
+
+** BZ-021 — Unregister from JS before disposing the reference
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* =DisposeAsync= disposing in the wrong order (disposing the =DotNetObjectReference=
+  before unregistering it from JS — JS holds a now-dead handle).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* MudBlazor / UI
+
+** BZ-022 — MudBlazor providers live in =App.razor= only
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* Component introducing a new =MudPopoverProvider= / =MudDialogProvider= /
+  =MudSnackbarProvider= outside =App.razor= — providers are global; duplicates fight each other
+  and tests stop working without the =TestHost= wrapper.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-023 — Popover-using components are tested under =TestHost=
+
+- *Severity:* Smell
+- *Applies to:* test files reviewed alongside production
+- *Rule:* Component using =MudSelect= / =MudDialog= / =MudMenu= without confirming the paired test
+  uses =TestHost= with =MudPopoverProvider=. Flag in the test file.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-024 — MudBlazor is the only UI library
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* Alternative UI library introduced (anything not MudBlazor). Surface and ask.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-025 — Custom CSS classes match the project namespace
+
+- *Severity:* Suggestion
+- *Applies to:* new or touched code only
+- *Rule:* Custom CSS class deviating from the naming the project's existing custom classes
+  establish (a project prefix, or the existing short block names). Match the existing namespace.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-026 — Reusable inline styles become CSS classes
+
+- *Severity:* Suggestion
+- *Applies to:* new or touched code only
+- *Rule:* Inline ~style="..."~ carrying a reusable pattern that belongs in a CSS class.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-081 — A declared style rule has a consumer
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* A selector in a project stylesheet (=wwwroot/css/=) that no markup in the project can
+  match. This is live dead code, and nothing else in the registry or the toolchain catches it:
+  CM-002 reaches markup that was *commented out*, not a rule left declared and unreachable; the
+  build does not fail, no test renders it, and a later reader cannot tell a selector waiting for
+  its markup from one whose markup is gone. Establish it by searching the project for the class or
+  id name across =.razor=, =.razor.css=, =.html= and any C# that composes a class list — a class
+  can be assembled from a string, so markup grep alone is not the test. Delete the rule; git is
+  the history. A rule kept deliberately for markup that is about to land is restored with that
+  markup, not left ahead of it.
+- *Not a finding:* a selector matched by markup *MudBlazor* renders rather than the project —
+  =.mud-*= overrides, =aria-*= and =[data-*]= attribute selectors, element and reset selectors —
+  none of which the search above will find in project markup. A custom property or token consumed
+  by another rule in the same sheet. A selector whose class is composed in C# and therefore found
+  by the C# half of the search. Pre-existing unreachable rules in a stylesheet the change does not
+  touch — drift, surfaced once per CM-005 and filed.
+- *Precedent:* none yet
+
+** BZ-084 — Helper text in a value cell is an element inside the =<dd>=, carrying the project's helper-text class
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* Helper text qualifying a rendered value in a definition list — "Data unavailable" after
+  the "—" a display helper returns — is an element placed inside the =<dd>= that holds the value,
+  carrying the class the project already uses for helper text. Not a sibling of the =<dd>=, not a
+  new class. The rule fixes the class and the containment, not the element: a =<div>= carrying a
+  class that sets only font size and colour renders on its own line under the value, and that is
+  acceptable.
+- *Not a finding:* helper text under a form input — outside this rule, which covers
+  definition-list value cells only. A =<dd>= carrying no helper text. Pre-existing helper text in
+  untouched markup — drift, surfaced once per CM-005.
+- *Precedent:* none yet
+
+*Open question — whether a value rendered outside a labelled column owes a visible label.* A
+value shown bare on a detail surface (a card head showing a status word, say) where a list
+surface gives the same value a column header is a stance question, not a defect class: "every
+rendered value carries a visible label" reaches far more markup than any one instance, and
+whether a nearby heading, column, or card title already labels each bare value has to be read
+case by case. This is not an accessibility question and BZ-079 does not reach it: that rule
+grades an /interactive/ element whose accessible name disagrees with its visible one, and a
+=<span>= carrying a word is neither interactive nor misnamed — a screen reader reads exactly what
+a sighted user sees. BZ-030 / BZ-031 / BZ-032 are interactive-element rules for the same reason.
+*Until the question is decided, an unlabelled rendered value is not a finding under any rule.*
+
+* Forms and inputs
+
+** BZ-027 — =<EditForm>= with non-trivial input carries validators
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* =<EditForm>= accepting non-trivial user input without validators
+  (=DataAnnotationsValidator= + =ValidationSummary= / =ValidationMessage=).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-028 — File uploads enforce a maximum upload size
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* File upload missing enforcement of the project's maximum-upload-size constant on
+  =InputFileChangeEventArgs.GetMultipleFiles(...)= —
+  unbounded read.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-029 — Typed inputs use ~Immediate="true"~, not ~@bind-Value:event="oninput"~
+
+- *Severity:* Suggestion
+- *Applies to:* new or touched code only
+- *Rule:* =MudTextField= / =MudSelect= using ~@bind-Value:event="oninput"~ when the standard for
+  search / typed inputs is ~Immediate="true"~ (plus =DebounceInterval= when typing-driven).
+- *Not a finding:* none.
+- *Precedent:* a search =MudTextField= bound to a service's search-query property, carrying
+  ~Immediate="true"~ and =DebounceInterval=.
+
+* Accessibility
+
+** BZ-030 — Interactive non-button elements are keyboard- and screen-reader-accessible
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* Interactive non-button element (=<div>=, =<span>=) wired to =@onclick= without
+  ~role="button"~, ~tabindex="0"~, an =aria-label=, and an =@onkeydown= handler firing on Enter /
+  =" "= / =Spacebar=.
+- *Not a finding:* none.
+- *Precedent:* none yet. A row =<div>= carrying ~role="button"~, ~tabindex="0"~ and =@onkeydown=
+  but no =aria-label= is still this finding — all four are required.
+
+** BZ-031 — Disclosure widgets bind =aria-expanded=
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* Disclosure widget (collapse / expand row) missing =aria-expanded= bound to the toggled
+  state.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-032 — Icon-only buttons carry =aria-label=
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* Icon-only button missing =aria-label= (=title= alone is not sufficient for screen
+  readers).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-079 — The accessible name contains the visible label
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* An interactive element whose =aria-label= — or whose =aria-labelledby= target — does not
+  contain the element's own visible label text. The accessible name *replaces* the visible one for
+  assistive technology and is also the string speech-recognition software matches, so a user who
+  says the words they can see activates nothing: this is the WCAG 2.5.3 Label in Name failure.
+  BZ-030, BZ-031 and BZ-032 grade whether an accessible name is *present*; this rule grades whether
+  it *agrees* with what the user can see, and an element can satisfy all three of those and still
+  be this finding. Build the label around the visible text rather than beside it — start the
+  accessible name with the rendered string and append the extra context, rather than substituting
+  a different noun for it. Where the visible text comes from a display helper rather than a
+  literal, read the helper: the markup shows a call, and the string the label has to contain is
+  whatever that call can return.
+- *Not a finding:* an =aria-label= that *extends* the visible label with extra words, which is the
+  shape this rule asks for. An icon-only control with no visible text (BZ-032's subject). An
+  =aria-hidden= or decorative element. A visible label that is itself an icon or a glyph with no
+  reading.
+- *Precedent:* the remedy, generically — compute the visible string once into a local from the
+  display helper, render that local as the link text, and build the name around it:
+  ~aria-label="@($"{recordName} record #{record.Number}")"~. The defect it replaces: a label built
+  from a raw field (=record.Name=) while the visible text came from a helper that falls back to
+  "Application #<n>" when the name is blank — so the name read "record #801" where the link read
+  "Application #801", omitting the one word a voice user would say.
+
+** BZ-080 — One announcement per load outcome, and never two attributes that disagree
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* Two shapes, both about how a page tells a screen-reader user that a load failed or
+  finished. *(a) ~role="alert"~ and an explicit =aria-live= on the same element.* ~role="alert"~
+  already implies ~aria-live="assertive"~; the explicit attribute wins, so the element reads as one
+  statement and behaves as the other — an error marked ~aria-live="polite"~ is queued behind
+  whatever is currently speaking instead of interrupting, which is the opposite of what the author
+  wrote ~role="alert"~ to get. Carry one or the other: ~role="alert"~ alone for a message that
+  must interrupt, or =aria-live= alone on a region that is not an alert. *(b) A new mechanism.* A
+  page announcing the same kind of outcome by a mechanism none of the project's existing pages
+  uses, when the project already has one or more — it does not need another until someone picks
+  between them (see the open question below this group). Match one already on disk and say which
+  in the cycle report.
+- *Not a finding:* either established mechanism on its own — a conditionally-rendered alert
+  carrying ~role="alert"~ and no =aria-live=, or a permanently-present =sr-only= region carrying
+  =aria-live= and no ~role="alert"~. Which of the project's existing mechanisms a page picks, until
+  the open question is settled. =aria-live= on a region that is genuinely not an alert — a status
+  line, a result count — alongside a separate alert element. An existing contradictory pair in
+  markup the change does not touch — drift, surfaced once per CM-005 and filed.
+- *Precedent:* shape (a)'s defect — a =MudAlert= carrying both ~role="alert"~ and
+  ~aria-live="polite"~. Its remedy — the same conditionally-rendered =MudAlert= carrying
+  ~role="alert"~ and no =aria-live=, pinned by a test asserting the element has no politeness
+  attribute at all.
+
+*Open question — which announcement mechanism is the house shape.* Two are in common use: a
+conditionally-rendered =MudAlert= with ~role="alert"~, announced when the node is inserted, and a
+permanently-present =sr-only= =aria-live= region whose text changes. The second is the more
+defensive — a live region that exists before its content arrives is honoured by more assistive
+technology than a node inserted with ~role="alert"~ — and the first is less markup and keeps the
+message in one place. Until a repo picks one, BZ-080 grades only the contradictory-attribute shape
+and the introduction of a mechanism the project does not already use; a page using an existing one
+is not a finding.
+
+* Service shape
+
+** BZ-033 — Stateful services expose =OnStateChanged= + =Notify()=
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Service holding mutable state on itself (=IsLoading=, =IsSaving=, =ErrorMessage=,
+  selected item, collections) but no =event Action? OnStateChanged= + =Notify()= pair. Match the
+  project's established stateful service.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-034 — Mutating methods use the =IsSaving= =try / finally= envelope
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Mutating service method without the
+  ~{ IsSaving = true; Notify(); ... } finally { IsSaving = false; Notify(); }~ envelope (opened
+  with =try=) — UI loses the saving indicator on error paths.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-035 — No synthetic =Result<T>=
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* Synthetic =Result<T>= introduced for async state where the codebase hasn't established
+  one; state lives on the service.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-036 — Optimistic-then-rollback where the precedent applies
+
+- *Severity:* Suggestion
+- *Applies to:* new or touched code only
+- *Rule:* Service mutation that skips optimistic-then-rollback when the project's established
+  stateful service already uses it for the same kind of mutation (a status update, say). Surface,
+  confirm. The inverse case (refetch after server confirms) is made legible by method name
+  (=RefetchAfterServerConfirmsAsync=), not by a comment.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Typed HTTP clients
+
+** BZ-037 — =JsonSerializerOptions= set camelCase and =IgnoreCycles=
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* =JsonSerializerOptions= missing ~PropertyNamingPolicy = JsonNamingPolicy.CamelCase~ and
+  / or ~ReferenceHandler = ReferenceHandler.IgnoreCycles~.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-038 — CS-011 per client method
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* CS-011 applies per method — =EnsureSuccessStatusCode()= before reading the body, on
+  every call that reads a bare DTO. CS-011's enveloped-response carve-out applies here per method
+  too: a method whose body is an =ApiResponse<T>=-style success envelope reads it on a failure
+  status and takes its success decision from the envelope's =IsSuccess= (CS-091), never from the
+  status line.
+- *Not a finding:* a call whose response body is such an envelope — see CS-011 for the full
+  carve-out and what replaces the check. A client with some enveloped methods and some not is
+  graded per method, not per client; what the client hands back to its callers is BZ-063's
+  subject, not this rule's.
+- *Precedent:* none yet
+
+** BZ-039 — CS-012 for =ReadFromJsonAsync<T>()=
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* CS-012 applies — dereferencing a =ReadFromJsonAsync<T>()= result without a null-check or
+  =!=, and without a reason documented in the PR / issue.
+- *Not a finding:* a =!= with the reason in the PR / issue.
+- *Precedent:* none yet
+
+** BZ-040 — CS-032 tightened: no =Newtonsoft.Json= anywhere in the Web projects
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* =Newtonsoft.Json= referenced anywhere in a Blazor Web project — Web is STJ-only. (Any
+  Newtonsoft island CS-032 permits is API-side only.)
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-041 — CS-025 in =Clients/=
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* CS-025 applies — manual JSON property casing instead of =[JsonPropertyName]=.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* DI in =Program.cs=
+
+** BZ-042 — Auth services are =Singleton=
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* The auth service / =AuthStateProvider= (and any token service feeding the
+  bearer-attaching handler) registered as =Scoped= instead of =Singleton=. The in-memory access
+  token must be one instance shared between page components and the =HttpClientFactory=-managed
+  token handler; the factory builds its message handlers in its own internal service scope, so a
+  =Scoped= auth service resolved by the handler is a different instance — its token is never set
+  and no bearer is attached. =Singleton= is safe because a WASM app is one user in one browser tab.
+  The same reasoning applies to MSAL-backed token / auth services that feed the handler.
+- *Not a finding:* MSAL's own framework registrations (=AddMsalAuthentication=) follow the
+  library's defaults — don't flag those against a hand-rolled auth service's shape.
+- *Precedent:* none yet
+
+** BZ-043 — Per-circuit stateful services are =Scoped=
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* Stateful per-circuit service (an application-state service, an interop wrapper)
+  registered as =Singleton= — state leaks across circuits.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-044 — API typed clients attach the bearer token handler
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* New typed =HttpClient= calling the project's own API registered without
+  =AddHttpClient<IInterface, Impl>(...).AddHttpMessageHandler<AuthTokenHandler>()= (or the
+  project's equivalent bearer-attaching handler) — bearer won't attach.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-045 — Named clients for third-party endpoints never carry the API bearer
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* The bearer-attaching handler attached to a named client that calls something other than
+  the project's own API — a storage endpoint, the identity provider — which must not carry the
+  bearer.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-046 — Runtime config is committed =appsettings.{Environment}.json=, never injected
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* New deploy-time config injection or new =config.json=-style runtime config introduced for
+  environment-varying WASM config. The prescribed standard is committed
+  =appsettings.{Environment}.json= under =wwwroot/=, environment selected via the
+  =WasmApplicationEnvironmentName= MSBuild property; a WASM app has no secrets, so public config is
+  committed, not injected. New committed =appsettings*.json= carries a root =_comment= flagging it
+  as public / unencrypted.
+- *Not a finding:* the =_comment= JSON property (a property marking the file as public config, not
+  a code comment — exempt from BZ-052). An existing =config.json= / entrypoint-script injection
+  mechanism the repo contract records as a pending migration — genuinely new config still follows
+  the committed-appsettings standard, but the existing mechanism is not ripped out unless
+  explicitly tasked.
+- *Precedent:* none yet
+
+* Async / threading
+
+** BZ-047 — CS-002 in =@code=, =Services/=, =Clients/=
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* CS-002 applies — no =.Result=, =.Wait()=, =.GetAwaiter().GetResult()=; async all the way
+  (=Task= / =Task<T>= / =ValueTask=).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-048 — CS-003 for public =Task= / =ValueTask= methods
+
+- *Severity:* Smell on new code
+- *Applies to:* new or touched code only
+- *Rule:* CS-003 applies — public method returning =Task= / =Task<T>= / =ValueTask= without an
+  obvious reason to skip =CancellationToken=.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-049 — CS-004 for =Singleton= services
+
+- *Severity:* Bug on =Singleton=; Smell on =Scoped=
+- *Applies to:* all code
+- *Rule:* CS-004 applies — mutable shared state on a =Singleton=-registered service without
+  synchronization.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-082 — A response is discarded when the parameter that requested it has changed
+
+- *Severity:* Bug
+- *Applies to:* new or touched code only
+- *Rule:* An =OnParametersSetAsync=, =OnInitializedAsync=, or event handler that records the
+  parameter it is loading for, awaits a call, and then assigns the result to component state
+  *without re-reading that parameter after the await*. Blazor does not serialise the lifecycle
+  against navigation: navigating A → B before A's response lands leaves two calls in flight
+  against one component instance, and the slower one wins the assignment — so the page renders A's
+  record under B's route, with no exception, no error state, and nothing in the logs. Re-read the
+  parameter after *each* await and discard a result that no longer matches
+  (~if (_loadedId != Id) { return; }~ after the await, not only the guard before the call). That
+  discard is the whole of this rule's remedy. *Cancelling the abandoned request is a separate
+  question and deliberately not required here* — see the open question below this group; a page
+  that re-reads the parameter and discards correctly satisfies this rule whether or not it passes
+  a token, and a reviewer should not read a missing token as a BZ-082 finding. CS-003 / BZ-048
+  govern *whether a token is passed by a method that declares one*; this rule governs *what
+  happens to a result that arrives anyway*, and a page can satisfy both of those and still be this
+  finding — a token cancelled on navigation does not retract a response already on the wire.
+- *Not a finding:* a load with no parameter that can go stale — =OnInitializedAsync= on a
+  parameterless page, which runs once per component instance. A route change that disposes the
+  component rather than re-parameterising it, where the stale assignment has no component left to
+  reach. A result assigned to a local the render never reads. A guard before the call that is the
+  whole of the load (a cached value returned synchronously, no await between the read and the
+  assignment).
+- *Precedent:* the remedy, generically — hold the response in locals across the await and commit
+  them in a =finally= guarded by ~var requestedIdIsStillTheOneOnTheRoute = _loadedId == requestedId;~,
+  re-reading the field a second =OnParametersSetAsync= would have overwritten; pinned by a test
+  that holds both responses on =TaskCompletionSource= and completes them out of order. The defect
+  it replaces: setting ~_loadedId = Id~ /before/ the await and assigning the results after it with
+  no re-check.
+
+*Open question — whether a page owes a =CancellationTokenSource= so a lifecycle override has a
+token to pass.* CS-003 and BZ-048 grade a =Task=-returning method the author *declares* that
+accepts no =CancellationToken=. A Blazor lifecycle override — =OnInitializedAsync=,
+=OnParametersSetAsync=, =OnAfterRenderAsync= — has a signature the framework fixes and cannot
+declare one, so neither rule reaches a client call made from inside it where the client accepts a
+token and none is passed. Passing one means the component owning a =CancellationTokenSource=,
+cancelling it on parameter change and disposing it — which drags in =IDisposable= on a page that
+otherwise needs none, and interacts with BZ-003 / BZ-011 / BZ-019. *What the absence costs is
+settled and is not a correctness defect:* one abandoned in-flight GET per navigation, whose
+response the BZ-082 staleness guard already discards, so nothing wrong renders and nothing is
+logged — the cost is a wasted request and a wasted deserialization. Whether that is worth a
+disposable token source on every parameterised page is a design call per repo. *Until it is
+decided, a client call made from a lifecycle override with no token is not a finding under any
+rule*, and in particular not under BZ-082. This is distinct from the Test style group's
+=CancellationToken=-reach question, which is about a typed-client *test* asserting the token
+reaches the stub handler; neither question reaches or defers the other.
+
+* Style (C# deltas)
+
+- =TODO= / =FIXME= / =HACK= — CM-001.
+- Commented-out code or markup — CM-002.
+- Magic numbers / strings — CM-004; the Blazor widening target is the project's constants class.
+- A business rule written out in both a =.razor= component and an API service — CM-006; the shared
+  half belongs in the contracts library both sides already reference, and the component's extra
+  clauses stay at its call site.
+
+** BZ-050 — CS-024 with =ISnackbar= as the user-facing alternative
+
+- *Severity:* Smell
+- *Applies to:* all code, including dev / local paths
+- *Rule:* CS-024 applies — no =Console.WriteLine=; use =ILogger<T>= or =ISnackbar= (=ISnackbar=
+  for user-visible failure surfacing).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-051 — CS-026 on new Blazor types
+
+- *Severity:* Smell
+- *Applies to:* new or touched types only
+- *Rule:* CS-026 applies — =Dto= / =Dm= PascalCase, never =DTO= / =DM=.
+- *Not a finding:* pre-existing legacy casing.
+- *Precedent:* none yet
+
+** BZ-052 — CM-003 in Blazor constructs, including =@* *@= Razor comments
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only, production and test code
+- *Rule:* CM-003 applies — =///= XML doc, explanatory =//= lines, =@* *@= Razor comments, and
+  =/* */= in the project stylesheets under =wwwroot/css/=, which =common.org='s own scope line may
+  not reach. CS-027's carve-outs (the one-line data-mutation comment, EF-generated migration
+  content) carry forward here via =csharp.org=. Recommend a more descriptive name (component,
+  parameter, method, local, test method) or extracting a small well-named type / method; in a
+  stylesheet the equivalent is that a section-divider banner says nothing the selectors below it
+  do not. Rationale goes to the PR description or issue.
+- *Not a finding:* pre-existing one-line comments in code that isn't under change — legacy drift,
+  not a bar. The =_comment= JSON property in committed =appsettings*.json= (BZ-046). *A comment
+  carrying a fact recorded nowhere else* — not until that fact has somewhere else to live. This is
+  not a licence to keep it: the finding is the undocumented fact, the remedy is to move it to
+  =docs/=, the repo contract, or the PR that owns it, and only then delete the comment. Deleting
+  such a comment ahead of the move is a worse outcome than leaving it, because CM-003's whole
+  premise is that the rationale exists elsewhere, and where it does not the comment is the only
+  copy.
+- *Precedent:* a stylesheet whose comment blocks were mostly section dividers naming what the
+  selectors below already said — this rule's finding — plus a few carrying facts nothing else
+  recorded (that the sheet loads after =MudBlazor.min.css= so it can override; how a design's
+  shell maps onto =MudDrawer= / =MudAppBar= / =MudNavMenu=). The remedy moved those facts into the
+  repo contract first, then deleted every comment.
+
+** BZ-053 — CS-028 for Blazor records
+
+- *Severity:* Smell
+- *Applies to:* new or touched types only
+- *Rule:* CS-028 applies — positional / primary-constructor record
+  (=public record FooResponse(Guid Id);=) converts to class-body form; =record= for DTOs /
+  responses / contracts / view models.
+- *Not a finding:* =record= with mutable ={ get; set; }= — acceptable due to bUnit /
+  =Substitute.For<T>()= test patterns. Pre-existing positional records.
+- *Precedent:* none yet
+
+** BZ-054 — CS-029 on =[Parameter]= / =[EditorRequired]= / =[Inject]= / =[JSInvokable]= / =[JsonPropertyName]= stacks
+
+- *Severity:* Smell
+- *Applies to:* new or touched stacks only
+- *Rule:* CS-029 applies — attribute stacks in =@code= (=[Parameter]= above =[EditorRequired]=), on
+  =[JSInvokable]= callbacks, and on =[JsonPropertyName]= records are ordered by character length
+  ascending.
+- *Not a finding:* untouched stacks.
+- *Precedent:* none yet
+
+** BZ-055 — CS-030 in =Services/= / =Clients/=
+
+- *Severity:* Suggestion
+- *Applies to:* new or touched declarations only
+- *Rule:* CS-030 applies — =IJSRuntime js) : IXInterop= continues the closing-paren line.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-056 — CS-031 in =Services/= / =Clients/= / =@code=
+
+- *Severity:* Suggestion
+- *Applies to:* new or touched declarations only
+- *Rule:* CS-031 applies — continuation lines align under the first parameter; no line-length cap,
+  so "over 120" never justifies the 4-space form.
+- *Not a finding:* legacy continuations. Long lines themselves are never a finding.
+- *Precedent:* none yet
+
+* Reuse and structure
+
+** BZ-057 — Reuse the interop pattern the existing wrapper establishes
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* Inlining a JS interop pattern that already exists in the project's interop wrapper.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-058 — Business logic belongs in a service, not a page
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Page component carrying substantial business logic that belongs in a service.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-059 — CS-014 in =@code= blocks and =Services/= / =Clients/=
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* CS-014 applies — any =private= method holding logic, instance or static, including small
+  pure helpers, predicates, formatters (=FormatAmount=), and exception-message factories. Extract
+  to a public method on a focused injectable service with a co-located interface, registered in
+  =Program.cs=, with its own test class, substituted in the consumer's tests — except a
+  wire-format collaborator, which the consumer's test runs for real (BZ-076). *The injectable
+  remedy is for an extraction that holds a dependency, reads configuration, does I/O, or keeps
+  mutable static state.* Where the extracted thing is a *total function of its arguments* — a
+  display formatter, a label or colour map, a classification — the remedy is CS-018's and not this
+  one's: a =public static= class under =Services/=, called by name from the markup, with its own
+  test class. Registering it buys an interface whose only implementation is computable from the
+  call's own arguments, and a component test that substitutes it stops asserting the rendered text
+  and starts asserting whatever the substitute was told to return. Prescribing the injectable form
+  for a total function is a *CS-018 finding on the remedy*, not compliance with this rule.
+- *Not a finding:* trivial wiring whose body only calls a service / interop method or raises an
+  event — =@onclick= / =OnChange= handlers, guarded =TryUnregister*Async= disposal calls, a
+  service's one-line =Notify()=. Private fields and =const=s, lambdas, locals. *A private computed
+  property in an =@code= block or a =Services/= / =Clients/= type, whatever its return type* —
+  CS-014's carve-out applies here in full and the three checks are the same: a *single
+  expression* body, no block body and no statement list; computed from the *component's or type's
+  own state* — its fields, =const=s, =[Parameter]=s and injected dependencies — rather than from
+  values handed in; and *no selection among three or more results by branching on a value's kind*.
+  The return type does not decide it:
+  ~private string TabTitle => _record is null ? LoadingTitle : _record.Reference;~ is as exempt as
+  ~private bool _hasNotes => Item.Notes.Any();~, because a property takes no arguments, so there is
+  nothing a consumer could vary and nothing a test could exercise apart from rendering the
+  component. A one-branch ternary or a null-coalescing fallback inside the single expression stays
+  inside the carve-out. When a check fails the handoff is to a different rule, not to this one's
+  injectable remedy: a block body is a method written as a property and this rule reaches it; a
+  value handed in makes it a total function of its arguments; and three-or-more-way branching on a
+  value's kind is a classification or display map. The last two are CS-018's shape and take
+  CS-018's remedy — a =public static= display class under =Services/= with its own test class,
+  called by name — which is the same answer the total-function clause in the Rule above gives. The
+  property itself may remain, assembling the result from that call; what moves out is the mapping.
+  Production code only — private helpers inside bUnit test classes (render helpers, =TestHost=,
+  arrange / assert helpers) are not findings. A =public static= display or classification class
+  under =Services/= that meets CS-018's carve-out conditions — it is the established shape here,
+  not an extraction that stopped short.
+- *Precedent:* the static remedy — a =public static class= under =Services/= (a stage or status
+  display class) whose every member is a total function of its parameters over a =const= table,
+  with its own test class. The computed-property carve-out — a style string interpolated over the
+  component's own =[Parameter]= and a =const=, wrapped across two source lines and still one
+  expression; a sibling property that hands the colour /classification/ to the static display
+  class and keeps only the assembly.
+
+** BZ-060 — CS-015 in =@code=, =Services/=, =Clients/=
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* CS-015 applies — one =return= at the end via a local, a conditional / switch expression,
+  or an extracted injected service. Waive only when the single-return form is clearly worse, and
+  say why (writers name it in the hand-off).
+- *Not a finding:* argument-validation =throw=s.
+- *Precedent:* none yet
+
+** BZ-061 — CS-017 for =IXService= / =IXClient=
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* CS-017 applies — fresh single-implementation interface in its own =IXService.cs=; house
+  style is =IXService= above =XService= in =XService.cs=, same namespace. Same for =IXClient= /
+  =XClient= under =Clients/=.
+- *Not a finding:* genuine multi-implementation abstractions; pre-existing separate-file
+  interfaces.
+- *Precedent:* none yet
+
+** BZ-062 — CS-046 in the Web projects
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* CS-046 applies — no new =InternalsVisibleTo=, no =internal= / =*ForTesting= member whose
+  only caller is a test; expose a small public read-only property if state must be asserted.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** BZ-086 — Markup does not re-make a decision its display helper makes
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* Markup that calls a display helper and then re-tests the condition the helper already
+  tested — to show a helper line, pick a class, or toggle an element. The two copies of the check
+  drift: change what counts as unrecorded in the helper and the markup still decides by the old
+  test. Add a member to the display helper that answers the question — on the same =public static=
+  class, beside the formatter, with its own fact in that class's tests (BZ-059's static remedy) —
+  and branch on it in the markup.
+- *Not a finding:* markup branching on a condition no helper tests — a null check deciding whether
+  a section renders at all. A helper call and an =@if= reading different facts. Pre-existing
+  instances in untouched markup — drift, surfaced once per CM-005.
+- *Precedent:* the defect — =Display.TextOrDash(value)= followed by
+  ~@if (string.IsNullOrWhiteSpace(value))~, the blank test =TextOrDash= already makes.
+
+* Writer conventions (from =mz-blazor-writer=, no reviewer rule yet)
+
+** BZ-063 — Typed client returns raw responses or unwraps the payload wrapper, never both
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* =record= types for ={ "<entity>Id": "..." }= payload wrappers rather than poking at a
+  =JsonDocument=. A typed client is uniform in what it hands its callers: either every method
+  returns a raw =HttpResponseMessage= / the wrapper type and the caller unwraps, or every method
+  unwraps inside the client and returns the domain type. A client that does both forces each
+  caller to learn which convention each method follows. For this test a =Task<ApiResponse<T>>=
+  return *does* count as returning the wrapper type: the caller receives the envelope and reads
+  =Data= off it, which is precisely the mixed convention named above. The carve-out below is what
+  makes a split acceptable; it is not a claim that such a client is uniform. This rule's "payload
+  wrapper" is the ={ "<entity>Id": ... }= id wrapper; an =ApiResponse<T>=-style protocol envelope
+  is a different thing, and the two are not to be read as one.
+- *Not a finding:* methods that differ in the *wire shape they read* while returning the same kind
+  of thing. A client whose methods all return unwrapped domain types is uniform for this rule
+  whether a given body arrived as a bare DTO or inside an =ApiResponse<T>= protocol envelope — the
+  protocol is the client's own business and is invisible at the interface. *A client
+  mid-conversion to the envelope* — a condition checked against the endpoints the client calls,
+  not against a list of files. The split is exempt when the API behind the client is itself
+  part-converted, some of its endpoints emitting an =ApiResponse<T>= envelope and the rest bare
+  DTOs, and the client's return types track that split method for method: each method returns the
+  envelope exactly when its own endpoint emits one, and returns the domain type exactly when its
+  own endpoint emits a bare DTO. In that state the client cannot be made uniform from its own side
+  — giving an unconverted method an envelope return would mean synthesising =IsSuccess= and
+  =StatusCode= at the call site, which =csharp.org= CS-091 forbids outright, the envelope's status
+  being the operation's own outcome, chosen by the producer, never derived from the transport or
+  invented downstream. So the split is not drift: it is the client faithfully reporting an API
+  that is half-converted, and it resolves when the producer side does. A split that does *not*
+  track the endpoints is this rule's finding and the exemption does not reach it — an envelope
+  return invented over a bare-DTO endpoint, or two conventions spread across endpoints that emit
+  the same shape. Once the producer side converts and the endpoints emit envelopes uniformly, the
+  remedy is available and the split is a finding again. The finding is a mixed *return*
+  convention, never a mixed protocol. *What this exemption leaves open, and what a consumer of
+  such a client has to know:* the two conventions differ in *failure behaviour*, not only in
+  return type — and they differ in one specific way rather than in general. An unconverted method
+  calls =EnsureSuccessStatusCode()= and throws on any failed call. The enveloped method does not
+  throw on an *operation* failure: a response the API itself meant as a failure comes back
+  normally, with =IsSuccess: false=, =Data= possibly populated, and =Messages= carrying what the
+  user is meant to be told. It throws on everything else, and that is more than one case. The call
+  itself throws before any body exists — the =HttpClient= call ahead of the parser raises
+  =HttpRequestException= on a transport failure exactly as an unconverted method's call does — and
+  the parser behind it throws a protocol exception from three sites, named by condition in CS-092:
+  the body is not JSON; the body is JSON carrying no =isSuccess= marker; and the marker *is*
+  present while the payload does not bind to =T=. That last one is an envelope-shaped body, so an
+  enveloped method is not safe to call without =try=/=catch=. What the =try=/=catch= cannot do is
+  stand in for branching on =IsSuccess=. A caller that treats it as sufficient — as it is for an
+  unconverted method — and reads =Data= without branching, renders a failed operation as a success
+  with empty data and silently drops the messages the API deliberately sent. Branching on
+  =IsSuccess= is CS-091 and it is not optional on these methods.
+- *Precedent:* private =record= id wrappers (=OrderIdEnvelope=, =NoteIdEnvelope=) each
+  unwrapped inside the client, so a =CreateOrder= method returns =Guid=, not the wrapper.
+
+** BZ-064 — Delegating handlers are =Transient=
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* The bearer-attaching handler and other delegating handlers are registered =Transient=
+  (singletons for the auth services per BZ-042, scoped for per-circuit state per BZ-043).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Test style (from =mz-blazor-test-writer=, no reviewer rule yet)
+
+Scope: the Blazor test projects. These are deltas on =csharp.org='s Test style group
+(CS-060..CS-074) — an entry naming a CS id applies that rule as written except where stated;
+BZ-065, BZ-072, and BZ-074 *override* their CS parents rather than layering on them.
+
+Where a repo has more than one Blazor project on one stack, the usual domain difference is auth
+(one project on an OIDC provider, another on MSAL), so an auth-service test in one project
+substitutes its own auth seam rather than mirroring the other's test verbatim. When authoring in
+one project's tests, prefer that project's parallel test of the same shape as the baseline; fall
+back to the established project's test.
+
+Production rules that already reach test code — no comments including =@* *@= (BZ-052), aligned
+multi-line parameter lists (BZ-056), class-body records constructed by object initializer
+(BZ-053), no =InternalsVisibleTo= or test-only members (BZ-062), =TestHost= for popover-using
+components (BZ-023), the test-class carve-out from the no-private-methods rule (BZ-059) — are not
+restated here.
+
+*Open question — =CancellationToken= reach in typed-client tests.* Scoped to the test-side
+assertion: the production obligation on the page side is BZ-082, and this question does not reach
+it or defer it. Typed-client tests typically have a stub handler whose =SendAsync= override
+records the request, never the token, and no rule asks for the token to be asserted. Whether new
+typed-client methods need that assertion is for the repo to decide; until then its absence is not
+a finding. CS-003 still governs whether the production method passes the token down.
+
+** BZ-065 — Test stack is bUnit + xUnit =Assert.*= + NSubstitute (overrides CS-060)
+
+- *Severity:* Smell
+- *Applies to:* new or touched test code in the Blazor test projects
+- *Rule:* CS-060 does *not* apply here. The stack is xUnit (=[Fact]=, =[Theory]= + =[InlineData]=,
+  file-scoped namespaces), bUnit for component tests (=Bunit.TestContext=), NSubstitute for mocking
+  (=Substitute.For<IX>()=, =_x.Method(...).Returns(value)=, =_x.Received(1).Method(args)=,
+  =Arg.Any<T>()=, =Arg.Is<T>(predicate)=), and xUnit =Assert.*= for assertions (=Assert.Equal=,
+  =Assert.Contains=, =Assert.Empty=, =Assert.Single=, =Assert.True=, =Assert.False=,
+  =Assert.Matches=, =Assert.NotNull=). Introducing Moq, Shouldly, or FluentAssertions here is the
+  finding. This is the documented Blazor-specific exception to the .NET Moq + Shouldly default.
+- *Not a finding:* API test projects using Moq + Shouldly (CS-060) — a different scope, not drift.
+- *Precedent:* none yet
+
+** BZ-066 — Component test layout: =TestContext=, dependency-named substitutes, constructor wiring
+
+- *Severity:* Smell
+- *Applies to:* new or touched component tests
+- *Rule:* A component test class deviating from the house layout — inherit =Bunit.TestContext=;
+  declare substitutes at field level as ~private readonly IX _x = Substitute.For<IX>();~ *named
+  after the dependency* (=_appService=, =_jsInterop=), not =_mockX= as CS-061 prescribes; register
+  them in the constructor (=Services.AddSingleton(_x);=); add =Services.AddMudServices()= whenever
+  the component renders MudBlazor primitives; set ~JSInterop.Mode = JSRuntimeMode.Loose;~ whenever
+  the component invokes =IJSRuntime= directly or through a substituted wrapper. Standard render
+  shape ~RenderComponent<T>(parameters => parameters.Add(p => p.X, value))~, event callbacks via
+  ~parameters.Add(p => p.OnY, EventCallback.Factory.Create(this, () => ...))~. Page-level tests
+  read navigation from bUnit's =FakeNavigationManager=
+  (=Services.GetRequiredService<NavigationManager>()=, cast, assert on =nav.Uri=) rather than
+  substituting =NavigationManager=.
+- *Not a finding:* the rest of CS-061 (one SUT, =expected= / =actual=, constructor arrangement) — it
+  applies unchanged; only the mock-field naming differs. Private render / arrange / assert helpers
+  in the test class (BZ-059).
+- *Precedent:* none yet
+
+** BZ-067 — Service / pure-logic tests are plain classes with no render context
+
+- *Severity:* Smell
+- *Applies to:* new or touched service tests
+- *Rule:* A service or pure-logic test inheriting =TestContext= or spinning up a render context it
+  doesn't need. Plain =public class XTests=; NSubstitute for external dependencies (typed-client
+  interfaces, =IHttpClientFactory=, =IJSRuntime=, and =NavigationManager= when used outside a
+  render); common arrangement in a private helper (=BuildService()=, =BuildLoadedServiceAsync()=)
+  or inline; locals named =expected= / =actual=; one logical act per test.
+- *Not a finding:* a stateful auth-service test that substitutes =IJSRuntime= and never renders —
+  that is the shape, not a gap.
+- *Precedent:* none yet
+
+** BZ-068 — =TestHost= wrapper is copied verbatim, not re-invented
+
+- *Severity:* Smell
+- *Applies to:* new or touched component tests
+- *Rule:* A hand-rolled host component, or a provider registered some other way, where BZ-023
+  requires =MudPopoverProvider= in the render tree. Copy the nested
+  =private sealed class TestHost : ComponentBase= shape verbatim from the project's existing tests
+  and render through it, adding =builder.OpenComponent<MudDialogProvider>(...)= next to the popover
+  provider when the component opens a dialog. BZ-023 decides *when* the wrapper is required; this
+  rule is its shape.
+- *Not a finding:* a component with no popover-based primitive rendering without the wrapper.
+  Extending the wrapper for a provider no current =TestHost= includes (a new =MudThemeProvider=
+  requirement) after confirming with the user.
+- *Precedent:* none yet
+
+** BZ-069 — Semantic selectors before implementation-detail CSS
+
+- *Severity:* Smell
+- *Applies to:* new or touched component tests
+- *Rule:* A DOM query reaching for a CSS class when a semantic option exists. Preference order:
+  exact =aria-label= match (~cut.Find("button[aria-label='Remove item']")~) → =title=
+  attribute → visible button text → =cut.Find("div.item-row")= implementation-detail class, last
+  resort. Text assertions: =Assert.Contains("text", cut.Markup)= for "anywhere on the page",
+  =cut.Find(...).TextContent= for "inside this element" — prefer the scoped form when the page may
+  carry unrelated occurrences. State reads via =GetAttribute("aria-expanded")=, or
+  =cut.FindComponent<Child>().Instance.Property= when the DOM doesn't carry the value.
+- *Not a finding:* a CSS-class selector where no semantic option exists — drop overlays, row
+  containers, custom badges.
+- *Precedent:* none yet
+
+** BZ-070 — Async convergence via =InvokeAsync= / =WaitForAssertion=, never =Thread.Sleep=
+
+- *Severity:* Smell
+- *Applies to:* new or touched component tests
+- *Rule:* =Thread.Sleep= or an arbitrary delay used to let the renderer catch up. When the
+  component schedules state changes off the renderer (=[JSInvokable]= callbacks, awaited service
+  calls), wrap the act in ~cut.InvokeAsync(() => ...)~ so the renderer's sync context picks it up;
+  for genuine async convergence use bUnit's ~cut.WaitForAssertion(() => ...)~. Interactions are
+  =cut.Find(...).Click()=, ~.KeyDown(new KeyboardEventArgs { Key = "Enter" })~,
+  =cut.Find("input").Change("value")=.
+- *Not a finding:* a synchronous act that needs no wrapping.
+- *Precedent:* none yet
+
+** BZ-071 — Component tests verify a service call only when the call is the contract
+
+- *Severity:* Smell
+- *Applies to:* new or touched component tests
+- *Rule:* A component test asserting service behavior rather than the component's contract. Verify
+  a call (=await _appService.Received(1).Method(args)=, ~Arg.Is<T>(x => ...)~,
+  =_x.DidNotReceive().Method(...)=) *only* when the component's contract is "this user action calls
+  X on the service"; otherwise leave service behavior to the service tests.
+- *Not a finding:* negative assertions guarding an action that must not fire.
+- *Precedent:* none yet
+
+** BZ-072 — Component tests are present-tense snake_case; service tests keep =Method_Outcome_WhenCondition= (overrides CS-062)
+
+- *Severity:* Smell
+- *Applies to:* new or touched test methods in the Blazor test projects
+- *Rule:* CS-062 does not apply to component tests here. Component test names are present-tense
+  snake_case describing user-visible behavior: =Renders_X_when_Y=, =Omits_X_when_Y=,
+  =Clicking_X_triggers_Y=, =Keyboard_keys_toggle_X=, =Registers_drop_zone_on_first_render=.
+  Service / pure-logic tests use =Method_Outcome_WhenCondition= for behavior-of-method coverage,
+  or snake_case present tense for orchestration outcomes
+  (=GenerateExportReport_includes_header_categories_and_footer_stats=) — both styles coexist
+  across files; match the surrounding file and never switch styles inside one. JSInterop wrapper
+  tests name the JS function and arg shape: =Method_invokes_<jsNamespace>_X_with_args=.
+- *Not a finding:* either style in a file that already uses it consistently.
+- *Precedent:* none yet
+
+** BZ-073 — CS-063 in the Blazor test projects
+
+- *Severity:* Smell
+- *Applies to:* new or touched test methods
+- *Rule:* CS-063 applies — separate =[Fact]=s; =[Theory]= + =[InlineData(...)]= only when
+  scenarios are truly duplicated with one input value differing. Typical established =[Theory]=
+  uses are keyboard-key parameterization (=Enter= / =" "= / =Spacebar=), currency-formatting
+  amounts, and content-type-to-icon mapping. Anything beyond a single input value splits into
+  =[Fact]=s.
+- *Not a finding:* those established single-input parameterizations.
+- *Precedent:* none yet
+
+** BZ-074 — Test-project =using= order overrides CS-048
+
+- *Severity:* Smell
+- *Applies to:* new or touched files in the Blazor test projects
+- *Rule:* CS-048's =System.*= → project → third-party order does *not* apply in these test
+  projects. The local order is =System.*= → =AngleSharp= / =AngleSharp.Dom= → =Bunit= /
+  =Bunit.TestDoubles= → the project's own namespaces → =Microsoft.*= → =MudBlazor= /
+  =MudBlazor.Services= → =NSubstitute= → =static using= directives, blank-line separated,
+  alphabetical within each group. =System.*= is always its own first group. =Xunit= comes from
+  ~<Using Include="Xunit" />~ in the =.csproj= — never add it per-file.
+- *Not a finding:* CS-048's order in the Blazor production projects, which is unchanged.
+- *Precedent:* none yet
+
+** BZ-075 — CS-072 / CS-073 in the Blazor test projects
+
+- *Severity:* Smell
+- *Applies to:* new or touched test code in the Blazor test projects
+- *Rule:* CS-072 and CS-073 apply — cover null / empty inputs explicitly when the SUT accepts
+  reference types (=_x.Method(...).Returns((string?)null)=); never skip a test — a flaky test is
+  fixed, or deleted on the user's per-test decision, and =Skip= is never used; no reflection into
+  private state on a class the cycle is reshaping — hand back to =mz-blazor-writer= for a public
+  seam instead (BZ-062).
+- *Not a finding:* reflection against a pre-existing class not being reshaped in this cycle. A
+  test already carrying =Skip= before the change — pre-existing drift under apply-to-new, surfaced
+  once per CM-005.
+- *Precedent:* none yet
+
+** BZ-076 — CS-071 with NSubstitute
+
+- *Severity:* Smell
+- *Applies to:* new or touched test code in the Blazor test projects
+- *Rule:* CS-071 applies with NSubstitute — when the writer extracts a helper or service per
+  BZ-059, the SUT's test substitutes it (=Substitute.For<IFooHelper>()=) and asserts only that the
+  substituted output flows through; the helper gets its own test class exercising its public
+  methods directly. Component tests substitute the service the same way — never re-test service
+  logic through the component.
+- *Not a finding:* test-local render / arrange / assert helpers kept private in the bUnit test
+  class (BZ-059); promote only when shared across test classes. *A wire-format collaborator the
+  SUT's own contract is defined in terms of* — an enveloped-response parser in a typed-client test.
+  Substituting it would leave the client's test proving nothing about the body the client actually
+  receives, which is precisely what BZ-078 asks (is this a body the server can send?) and what
+  CS-092 asks (was it proved to be an envelope before it was trusted?); the real collaborator runs
+  and the arranged JSON goes through it. This rule's other half is unchanged — the collaborator
+  still keeps its own direct test class.
+- *Precedent:* the carve-out — a typed-client test constructing the client with the real parser
+  (~new ApiClient(http, new EnvelopedResponseParser())~), while the parser's own test class covers
+  it directly.
+
+** BZ-078 — A typed-client test arranges a body the server can send, and never pins an expectation to an enum's zero member
+
+- *Severity:* Smell
+- *Applies to:* new or touched typed-client tests in the Blazor test projects, and the tests of a
+  *wire-format collaborator* those clients read through (an enveloped-response parser), to the
+  extent of the payload clause in the Rule
+- *Rule:* A stub-handler response body the real API cannot emit, or an expectation pinned to an
+  enum's zero member where that member is a real business value. The two halves arrive as one
+  defect and are stated as one rule because the second is what hides the first: a body that omits
+  a non-nullable enum property the API always writes — an API that omits nulls and nothing else —
+  paired with an assertion that the deserialized value was the enum's ~= 0~ member, where that
+  member means a real value (say, "serviced by vendor A") rather than "unknown". "Field absent" and
+  the zero-member value are then indistinguishable, and the test records the indistinguishable case
+  as intended behavior. Arrange only bodies the server actually sends. The authority ranking,
+  strongest first: a response *captured* from the running API; a body *transcribed
+  property-by-property from an integration test that asserts the serialized response* of the same
+  endpoint, which ranks with a capture because that test pins the wire shape and, unlike a
+  capture, breaks again when the shape moves — a transcription names the test it came from — in
+  the fixture's own name, or once in a type that groups the fixtures sharing that source, which is
+  the better shape as soon as more than one body comes from one test because it states the
+  authority once and survives additions — and neither that name nor the test's name may claim a
+  capture that did not happen, since the name is the only record a later reader has of where the
+  body's authority came from; an *omission the API genuinely makes* (a null figure under its
+  ignore-nulls posture). Below all three, and this rule's subject, is a body composed from the
+  DTO's property list, from an OpenAPI document, or from the writer's memory of the shape. Where an
+  enum property is in play, assert a non-zero member, or assert the zero member only from a body
+  that carries it explicitly. CS-072 / BZ-075 ask for null and empty coverage; this rule asks
+  whether the arranged body is producible at all, which they do not. *A wire-format collaborator's
+  own test is reached only on the payload half.* A parser generic over =T= is legitimately
+  exercised with bodies no endpoint can send — a non-envelope body, a plain-text body, an empty or
+  =null= body — because the unproducible body /is/ the subject there; those sit under
+  =Not a finding= and this rule does not touch them. Where such a test asserts *payload field
+  values*, the payload JSON owes the same authority a typed-client fixture owes. A narrower =T=
+  than any endpoint returns is acceptable, the collaborator being generic and the endpoint's
+  payload type not its subject, *provided the payload JSON is itself transcribed from a real body*
+  — for example a nested DTO that reaches the wire only under a parent property, transcribed from
+  the parent's real body.
+- *Not a finding:* a deliberately malformed, truncated, or empty body in a test whose subject *is*
+  the client's error handling, where the name and the assertion say so. A body omitting a property
+  the API genuinely omits. An enum whose zero member is a real =Unknown= / =Unspecified= sentinel,
+  where asserting it from an absent field is the intended coverage.
+- *Precedent:* the corrected shape — transcribed bodies grouped in a nested type whose name
+  records their source once for the whole family (=<IntegrationTestName>Transcriptions=), each
+  test asserting a non-zero enum member from a body that carries the property explicitly. Where
+  the tier stops — a ProblemDetails body whose integration test pins only =status= and =title=
+  stays outside the grouping type, because its =type= URI and =traceId= are pinned nowhere and
+  grouping it would claim a transcription's authority over the half that has none.
+
+** BZ-083 — A log assertion reads the real =ILogger.Log= member off a substitute registered closed over the type under test
+
+- *Severity:* Smell
+- *Applies to:* new or touched test code in the Blazor test projects
+- *Rule:* A test that needs to prove something was logged, arranged either of the two ways that do
+  not work. *(a) Substituting =ILogger<T>= and asserting on =LogError= / =LogWarning= /
+  =LogInformation=.* NSubstitute intercepts interface members, and those are not members — they are
+  extension methods on =ILogger= over the single =Log<TState>(...)= member, so the assertion is
+  really a claim about a framework-internal =TState= instance and its equality, not about the
+  message the test means to pin. *(b) Registering a recorder for the open generic =ILogger<>=*
+  (=Services.AddSingleton(typeof(ILogger<>), typeof(RecordingLogger<>))=), which replaces *every*
+  logger the container resolves rather than the one under test, so the assertion list also
+  collects whatever MudBlazor services, the auth plumbing, and any child component logged. The
+  shape: substitute =ILogger<T>= *closed* over the component or service under test, register that
+  instance (=Services.AddSingleton(_logger);=), and read =_logger.ReceivedCalls()= filtered to the
+  real interface member — ~call.GetMethodInfo().Name == nameof(ILogger.Log)~. Shape (a)'s
+  extension call does reach the substitute, so the call *is* recorded; what (a) gets wrong is
+  asserting through the extension, and =ReceivedCalls()= is how NSubstitute reaches the member
+  underneath it. Take off =call.GetArguments()= whatever the fact needs: the level at index 0, the
+  formatted message off the state object at index 2, whose =ToString()= is what =ILogger='s own
+  default formatter returns, so reading it and calling =formatter(state, exception)= yield the same
+  string for a message-with-exception call. Filter on the member name alone when the fact is that
+  the failure path logs *at all*; filter on the level and read the message when the fact is about a
+  particular line. A test that needs a logger only so the component can resolve one keeps the same
+  closed substitute and asserts nothing against it.
+- *Not a finding:* =Substitute.For<ILogger<T>>()= in a test that never asserts on it. A
+  member-name-only =ReceivedCalls()= filter in a fact whose subject is that something was logged —
+  a fact that pins a /particular/ message and filters on nothing but the member name is the
+  under-assertion CS-084 grades, not this rule's finding. An open-generic registration in a test
+  whose subject genuinely *is* every logger in the render tree, where the test name says so. A
+  hand-written =ILogger<T>= recorder, registered closed over the type under test the same way,
+  where a substitute genuinely cannot express the assertion — an =EventId=, or a formatter call
+  over a state type that is not =FormattedLogValues=; it is the registration this rule grades,
+  never the recorder as such.
+- *Precedent:* the shape — a =LoggedErrorMessages()= helper filtering =_logger.ReceivedCalls()= to
+  =nameof(ILogger.Log)=, then to =LogLevel.Error= at argument 0, and selecting argument 2's
+  =ToString()=; the substitute is the class's =_logger= field, closed over the page under test and
+  registered with =Services.AddSingleton(_logger);= in the constructor. The member-name-only form
+  it extends: =Failed_<x>_load_logs_the_exception_and_shows_error_state=-style facts.
+
+** BZ-085 — A screen string asserted in two or more test files lives once in the shared test-constants class
+
+- *Severity:* Smell
+- *Applies to:* new or touched test code in the Blazor test projects
+- *Rule:* A string the markup renders as fixed text — a field label, a section title, a
+  placeholder such as "Data unavailable" — asserted in two or more test files is declared once, as
+  a =public const= on the project's shared test-constants class, and each file reads it from there
+  (by name or through =using static=). A =private const= re-declaring the same text in a second
+  test class is the finding: the copies drift apart, and a label change leaves one file asserting
+  the old text.
+- *Not a finding:* a screen string asserted in one test file only, which stays a =private const=
+  there. Arranged test data and expected formatted values — the rule reaches fixed text the markup
+  renders, not values a test feeds in. Pre-existing duplicates in untouched test files — drift,
+  surfaced once per CM-005.
+- *Precedent:* a shared test-constants class holding =DataUnavailable=, read by a component test
+  through =using static= and by a page test by name. The defect: the same label (="Total Amount"=)
+  declared as a =private const= in both a component test and its page test.

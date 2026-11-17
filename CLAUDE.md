@@ -39,6 +39,14 @@ I organize Claude Code agents by scope:
 `gtd-assistant` is central (lives in `~/.claude/agents/`). A future sync
 agent for `~/gtd` would be repo-specific.
 
+`mz-` agents are personal fallbacks. When a session also has an agent
+from an enabled plugin or from the repo's own `.claude/agents/` that
+does the same job, use that one instead, and follow the repo's
+`AGENTS.md` / `CLAUDE.md` wherever it names an agent for a job. Use an
+`mz-` agent only for a job nothing else in the session covers.
+Before handing work to an `mz-` agent, read `~/.claude/docs/mz-suite.org`
+and follow it for that work.
+
 I sync `~/.claude/` itself across machines as a separate git repo — so
 new central agents, settings, and hooks travel via that repo. Don't
 suggest symlinks, hardlinks, or copying agents into workspace repos to

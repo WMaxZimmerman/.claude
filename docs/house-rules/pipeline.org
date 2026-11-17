@@ -1,0 +1,669 @@
+#+title: Azure Pipelines house rules (PL)
+
+Read with =common.org=. Paths are repo-root-relative.
+
+* Scope
+
+Azure Pipelines YAML in any repo: pipeline definitions (=cicd-*.yml=, =pr-verify-*.yml= and their
+kin), repo-wide reusable step, job and stage templates, per-project pipelines and step templates,
+and any top-level pipeline file. Not Terraform (=terraform.org=), not Helm charts
+(=helm-chart.org=), not Dockerfiles (=dockerfile.org=), not standalone shell scripts a pipeline
+calls. When a path sits inside the pipeline tree but belongs to another stack — a chart values
+file, a Dockerfile, a script for another CI system — the most specific path wins and that stack's
+file governs it. YAML that is still Azure Pipelines YAML stays here, wherever it sits. What runs
+after a pipeline hands off — a GitOps controller, an event-driven workflow engine — is not in
+scope: the pipeline's job ends at the hand-off. Out-of-tree repos the pipeline depends on are
+surfaced for impact only, never reviewed for shape.
+
+* Calibration
+
+Two pipeline families can coexist in one repo. Pick by deploy target, not by stack, and calibrate
+findings inside each family against that family's conventions:
+
+- *Azure-resource* — App Service / static web app / function app deploys through the built-in
+  tasks (=AzureWebApp@1=, =AzureStaticWebApp@0=, and the like). Don't flag a working App Service
+  pipeline for "not using the cluster path".
+- *Cluster-via-GitOps* — image built with =buildctl=, pushed to a container registry (Harbor or
+  similar), a release manifest pushed with =oras=, and an event (for example Argo Events'
+  =RELEASE_READY=) firing the deploy — all through a shared build-push-deploy template; per-env
+  values may live out of tree. Don't flag a working pipeline in this family for "not using
+  =AzureWebApp@1=". PL-034..PL-054 and PL-058 apply only to this family, anchored on the shared
+  template's own parameter declarations and steps, and apply to any pipeline that consumes it.
+
+Fresh vs legacy:
+
+- *Fresh greenfield YAML violating a best practice* → Smell by default, Bug for secrets /
+  correctness / triggers that won't fire / conditions that mask production failures.
+- *Long-standing legacy patterns shared across multiple pipeline files* (stale path filters,
+  inlined steps that pre-date a template, missing =**/*.md= excludes on a few older =cicd-*.yml=)
+  → mention once at the top (CM-005), not per file.
+- *Mixing old and new in fresh code* (a brand-new =pr-verify-*.yml= with correct path filters
+  that inlines a step the rest of the repo gets via template; a new step template with typed
+  params next to siblings copied unchanged) → Smell.
+- *A targeted edit to a legacy file* that follows the file's existing style for minimum diff →
+  not a finding.
+- When in doubt whether a file is fresh or legacy — or which family it belongs to — ask before
+  reviewing.
+
+Not findings: the =<verb>-<scope>-<artifact>.yml= naming convention itself; the repo's chosen
+agent image; the repo's established service connection and deployment environment names; a tool
+version pin the repo contract records as deliberate; the =AzureCLI@2= =addSpnToEnvironment: true=
++ =setvariable ARM_*= shape in a login template (the documented pattern for handing the service
+principal to Terraform); the two-stage call pattern (dev / prod via two =template:= calls into the
+shared build-push-deploy template); mixed pools on cluster-family pipelines (verify jobs on a
+Microsoft-hosted =vmImage=, deploy stages on a self-hosted per-environment pool — deploy needs
+cluster reachability); the repo's per-environment pool, environment, and domain naming in the
+cluster family; Azure-resource and cluster-family pipelines coexisting in one tree. The
+=0.0.0.0= / =0.0.0.0= "Allow Azure services" SQL firewall rule surfacing in a pipeline-supplied
+tfvars file — leave it alone (TF-008).
+
+Confirm path-filter findings by globbing the included path against the repo before flagging — a
+"stale path" finding that matches real files is noise.
+
+Rules lifted from =mz-pipeline-writer='s house conventions with no reviewer rule yet carry Smell
+severity unless the entry states otherwise.
+
+* Secrets and exposure
+
+** PL-001 — Secrets never echoed to logs
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* Secrets echoed to logs (~echo $(SECRET_VAR)~, =Write-Host $env:SECRET=, =printenv= of a
+  secret, printing =ARM_*= values).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-002 — Secrets never passed as positional command-line args
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* Secrets passed as positional command-line args to scripts (visible in process listings
+  and logs). Pipe via stdin or env var with masking instead.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-003 — Sensitive variables are =secret: true= and Key Vault-sourced
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Sensitive variables declared without =secret: true= or sourced outside a Key
+  Vault-backed variable group (=AzureKeyVault@2=) / a login template's =ARM_*= exports /
+  =FileTransform@1= against =appsettings.json=.
+- *Not a finding:* the =AzureCLI@2= =addSpnToEnvironment: true= + =setvariable ARM_*= shape in a
+  login template.
+- *Precedent:* none yet
+
+** PL-004 — =persistCredentials: true= needs a stated reason
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* =persistCredentials: true= on a =checkout:= without an explicit reason commented or
+  surfaced. It widens the credential blast radius beyond the default.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-005 — One service connection per repo
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* A new service connection name other than the one the repo's pipelines already use.
+  Surface, don't auto-accept.
+- *Not a finding:* the repo's established service connection name itself.
+- *Precedent:* none yet
+
+* Correctness and runtime hazards
+
+** PL-006 — =pr-verify-*.yml= has a =pr:= block mirroring its Build Validation policy filter
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* =pr-verify-*.yml= with =trigger: none= and no =pr:= block, or a =pr:= block whose paths
+  do not mirror the Build Validation branch policy's path filter. On an Azure Repos Git repo the
+  YAML =pr:= trigger is not evaluated, and the policy's own path filter (leading-slash form,
+  =/src/<project>/*=) decides when the check runs — it is authoritative. The =pr:= block is the
+  in-repo record of that filter, so a missing or non-mirroring block misroutes readers and
+  reviewers about what gates the PR. A change whose PR enforcement depends on a policy states the
+  policy's path filter (new or changed) as part of the change, since the policy lives outside the
+  repo.
+- *Not a finding:* none.
+- *Precedent:* a =pr-verify-*.yml= with a top-level =pr:= block whose =pr.paths= match the
+  policy's path filter.
+
+** PL-007 — =pr-verify-*.yml= has =trigger: none=
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* =pr-verify-*.yml= with =trigger:= other than =none= — re-runs on every push to the
+  source branch on top of the PR runs. The YAML CI =trigger:= is honoured on Azure Repos Git; PR
+  runs come from the Build Validation policy (PL-006), not from =pr:=.
+- *Not a finding:* none.
+- *Precedent:* a =pr-verify-*.yml= with top-level =trigger: none=.
+
+** PL-008 — =cicd-*.yml= triggers on the integration branch with =pr: none=
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* =cicd-*.yml= without =trigger.branches.include= naming the integration branch, or with
+  =pr: none= missing on a CI/CD pipeline that should not double-fire.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-009 — =paths.include= entries exist in the repo
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* =paths.include= referencing a directory or glob that does not exist in the repo (typo,
+  leftover from a rename) — the pipeline never triggers. Glob the path to confirm before
+  flagging.
+- *Not a finding:* a path that globs to real files.
+- *Precedent:* none yet
+
+** PL-010 — Path filters not too broad
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Path filters too broad (triggering on unrelated directories).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-011 — Path filters not too narrow
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* Path filters too narrow — missing a directory the project genuinely depends on (a
+  frontend pipeline that consumes a shared library in the same repo but doesn't include that
+  library's path in =paths.include=).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-012 — =cicd-*.yml= excludes docs-only changes
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* =cicd-*.yml= missing =paths.exclude: ['**/*.md']= — wastes CI runs on docs-only
+  changes.
+- *Not a finding:* a few older =cicd-*.yml= missing the exclude — legacy drift, surface once.
+- *Precedent:* none yet
+
+** PL-013 — =dependsOn= targets exist
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* =dependsOn= referencing a stage / job that doesn't exist (typo or rename leftover).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-014 — No stage / job / step name collisions
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* Stage / job / step name collisions within the same file.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-015 — Conditions are well-formed
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* Conditions with malformed expressions — missing quotes, unbalanced parens,
+  =eq(variables.Foo, 'bar')= shape errors. Prefer explicit =condition:= over implicit ordering
+  for env-, branch-, or prior-output-specific steps.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-016 — Cleanup steps run =always()= / =succeededOrFailed()=
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Cleanup steps (artifact upload of failure output, log copy, container shutdown) that
+  should run with =condition: always()= or =succeededOrFailed()= and don't.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-017 — Variables are set before use and visible in scope
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* Variables referenced before they're set, or in scopes where they're not visible
+  (=variables:= on a job referenced from a sibling job).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-018 — No =continueOnError: true= on gating or production-deploy steps
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* =continueOnError: true= on a production-deploy step or a verify step that gates
+  downstream stages — masks real failures.
+- *Not a finding:* best-effort artifact uploads (test video publish, screenshot capture) —
+  acceptable; flag and ask intent if unclear.
+- *Precedent:* none yet
+
+* Reuse and structure
+
+** PL-019 — Reuse templates; don't inline
+
+- *Severity:* Smell for fresh code
+- *Applies to:* new or touched code
+- *Rule:* Inlined steps that already exist as a template (a repo-wide template or a per-project
+  step template). Reference via =template:= with parameters. If inlining, justify why no template
+  fits.
+- *Not a finding:* long-standing inlined steps shared across multiple pipelines that pre-date a
+  template extraction — project-level drift, surface once at the top.
+- *Precedent:* none yet
+
+** PL-020 — Step templates take parameters, not hardcoded paths
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Step templates that hardcode paths, project names, or environment names instead of
+  taking parameters.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-021 — Step template parameters are typed
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Step template parameters declared without =type:= (=type: string=, =type: object=,
+  =type: boolean=, =type: stepList=).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-022 — Required parameters have no =''= default
+
+- *Severity:* Smell
+- *Applies to:* new or touched parameter declarations
+- *Rule:* Required parameters declared with a default of =''= (silent-failure shape) when they
+  have no sensible default. Defaults only for parameters that have a sensible one; required
+  parameters listed without a default.
+- *Not a finding:* pre-existing =default: ''= declarations on untouched lines — legacy drift,
+  tracked as tech debt. A touched declaration must be fixed; a required parameter with no
+  sensible default is listed without one.
+- *Precedent:* none yet
+
+** PL-023 — Project pipelines follow the repo's per-project shape
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* A new project pipeline diverging from the per-project folder shape the repo's existing
+  pipelines use. Extend, don't restructure; a fundamentally new shape is surfaced and confirmed
+  first.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-024 — Steps carry =displayName=
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Steps without =displayName= — debugging fails on the agent log are harder to scan.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Performance and caching
+
+** PL-025 — No re-fetching dependencies a sibling step already restored
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Build steps that re-fetch dependencies a sibling step in the same job already restored.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-026 — Use the cache templates
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Missing NuGet caching or npm caching on a project when the repo has a cache template
+  for it.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-027 — =dotnet test= after =dotnet build= uses =--no-restore= (and ideally =--no-build=)
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* =dotnet build= followed by =dotnet test= without =--no-restore= (and ideally
+  =--no-build=) on the test step — re-restores or re-builds everything.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-028 — Gate unaffected work on a change-detection template
+
+- *Severity:* Suggestion
+- *Applies to:* all code
+- *Rule:* A step that runs unconditionally when a =condition:= based on the output of the repo's
+  change-detection template would skip it for unaffected PRs.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Naming and standards
+
+** PL-029 — Files follow =<verb>-<scope>-<artifact>.yml=
+
+- *Severity:* Smell
+- *Applies to:* new files
+- *Rule:* Pipeline files not following =<verb>-<scope>-<artifact>.yml=: =cicd-<project>.yml=,
+  =pr-verify-<project>-<aspect>.yml=, =verify-<project>-<aspect>.yml=,
+  =build-<project>-<aspect>.yml=, =deploy-<project>-<aspect>.yml=; infra uses =iac-= /
+  =terraform-= prefixes for per-step templates.
+- *Not a finding:* the convention itself.
+- *Precedent:* none yet
+
+** PL-030 — One VM image per repo
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* A new =vmImageName= other than the one the repo's pipelines already use (typically
+  =ubuntu-latest=). Surface, don't auto-accept. New agent pools the rest of the repo doesn't use
+  are surfaced the same way.
+- *Not a finding:* the repo's established image itself; the self-hosted per-environment pool on
+  cluster-family deploy stages (PL-048).
+- *Precedent:* none yet
+
+** PL-031 — Deployment environments match the repo's established names
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* New deployment environment names other than the per-environment names the repo's
+  pipelines already use. Surface, don't auto-accept.
+- *Not a finding:* the repo's established names; the per-environment cluster environment on
+  cluster-family deploy stages (PL-049).
+- *Precedent:* none yet
+
+** PL-032 — Tool versions don't drift across pipelines
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Inconsistent Node / .NET / tool versions across pipelines (=Node 18.x= in one verify
+  step while the npm cache template pins =22.x=). Surface the version drift; don't pick a side
+  silently.
+- *Not a finding:* a version pin the repo contract records as a deliberate decision.
+- *Precedent:* none yet
+
+* Style
+
+- Commented-out conditions / steps left in templates — CM-002.
+- =TODO= / =FIXME= / =HACK= — CM-001.
+- No comments at all — CM-003.
+
+** PL-033 — =displayName= carries signal
+
+- *Severity:* Suggestion
+- *Applies to:* all code
+- *Rule:* =displayName= that just repeats the task name (=displayName: 'AzureCLI@2'=).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Cluster-via-GitOps — template consumption
+
+Cluster family only (see Calibration).
+
+** PL-034 — Consume the shared build-push-deploy template; don't reimplement
+
+- *Severity:* Smell
+- *Applies to:* all cluster-family pipelines
+- *Rule:* Service pipeline inlining =buildctl=, =oras=, or the deploy-event POST instead of
+  consuming the repo's shared build-push-deploy template via stage parameters. Extend the shared
+  template.
+- *Not a finding:* a consumer calling the template once per environment stage (one =template:=
+  call for dev, one for prod).
+- *Precedent:* none yet
+
+** PL-035 — No orphan builds
+
+- *Severity:* Bug
+- *Applies to:* all cluster-family pipelines
+- *Rule:* Service pipeline that builds an image with =buildctl= but doesn't push it to the
+  registry.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-036 — Every registry push is followed by the =oras= release-manifest push
+
+- *Severity:* Bug
+- *Applies to:* all cluster-family pipelines
+- *Rule:* Service pipeline that pushes to the registry but skips the =oras= release-manifest push
+  — the deploy event never fires; deploy never triggers.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-037 — Timeouts and polling intervals are template parameters
+
+- *Severity:* Smell
+- *Applies to:* all cluster-family pipelines
+- *Rule:* Hardcoded image-scan timeouts / polling intervals or =MAX_ATTEMPTS= values that should
+  live as template parameters with sensible defaults.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Cluster-via-GitOps — build-secret contract
+
+** PL-038 — =buildctl --secret id=...= matches the Dockerfile's secret id
+
+- *Severity:* Bug
+- *Applies to:* all cluster-family pipelines
+- *Rule:* ~buildctl --secret id=...~ with a value other than the id the Dockerfile's secret mount
+  expects (for example ~id=feed_token~) — silent build failure (the secret won't mount; a
+  private-feed restore breaks). Renaming the id is a paired change with =mz-dockerfile-writer=
+  (DK-003).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-039 — The feed token is exposed to the =buildctl= step
+
+- *Severity:* Bug
+- *Applies to:* all cluster-family pipelines
+- *Rule:* A feed-token env var (for example =FEED_ACCESSTOKEN=) on a =buildctl= step that the
+  pipeline doesn't expose as a pipeline variable.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Cluster-via-GitOps — path filters
+
+** PL-040 — Cluster-family =cicd-*.yml= includes the service's chart
+
+- *Severity:* Bug
+- *Applies to:* all cluster-family pipelines
+- *Rule:* Cluster-family =cicd-*.yml= missing =chart/<service>/**= (or wherever the service's
+  chart lives) in =paths.include= — chart-only changes won't trigger deploy.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-041 — Cluster-family =cicd-*.yml= includes the shared build-push-deploy template
+
+- *Severity:* Bug
+- *Applies to:* all cluster-family pipelines
+- *Rule:* Cluster-family =cicd-*.yml= missing the shared build-push-deploy template's path in
+  =paths.include= — shared-template updates won't trigger redeploy.
+- *Not a finding:* a pipeline that no longer consumes the template (its deploy moved to another
+  system) — it is not a cluster-family consumer.
+- *Precedent:* none yet
+
+** PL-042 — Cluster-family =cicd-*.yml= includes the service's Dockerfiles
+
+- *Severity:* Bug
+- *Applies to:* all cluster-family pipelines
+- *Rule:* Cluster-family =cicd-*.yml= missing the service's Dockerfile folder — Dockerfile-only
+  changes won't trigger a rebuild. (The writer's full list also includes the service's own
+  =cicd*= and =verify*= pipeline files, and the service's source and test paths.)
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-043 — Cluster-family =cicd-*.yml= includes the shared root build files
+
+- *Severity:* Bug
+- *Applies to:* all cluster-family pipelines
+- *Rule:* Cluster-family =cicd-*.yml= missing shared root paths the build depends on (for a .NET
+  service: =NuGet.Config=, =Directory.Packages.props=, the solution file).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-044 — Cluster-family =cicd-*.yml= is =pr: none=
+
+- *Severity:* Bug
+- *Applies to:* all cluster-family pipelines
+- *Rule:* Cluster-family =cicd-*.yml= with a =pr:= block configured (anything other than
+  =pr: none=) — PRs would attempt a deploy.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Cluster-via-GitOps — stage shape and naming
+
+** PL-045 — Deploy stages are =deploy_<service>_<env>=
+
+- *Severity:* Smell
+- *Applies to:* all cluster-family pipelines
+- *Rule:* Stage names not matching =deploy_<service>_<env>= (=deploy_orders_dev= /
+  =deploy_orders_prod=).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-046 — Each environment's stage gates on its own branch
+
+- *Severity:* Bug
+- *Applies to:* all cluster-family pipelines
+- *Rule:* =condition:= not gating each environment's deploy stage on the branch that environment
+  deploys from (typically dev on =refs/heads/dev=, prod on the integration branch) — wrong-branch
+  deploys. Prod additionally gates on the Azure DevOps environment approval.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-047 — Deploy stages pair with a =verify_<service>= stage including helm lint
+
+- *Severity:* Smell
+- *Applies to:* all cluster-family pipelines
+- *Rule:* Cluster-family deploy stage without a paired =verify_<service>= stage (or =helm lint=
+  job missing from verify) — the helm-lint gate is the chart's CI safety net. Shape: two jobs,
+  =<service>_tests= and =<service>_helm_lint=, via =verify-<service>-tests.yml= and
+  =verify-<service>-helm-lint.yml=.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Cluster-via-GitOps — per-env identity
+
+** PL-048 — Deploy pool is the per-environment self-hosted pool
+
+- *Severity:* Smell
+- *Applies to:* all cluster-family pipelines
+- *Rule:* =pool:= on a cluster-family deploy stage not matching the per-environment self-hosted
+  pool naming the repo's other deploy stages use — pool name is a contract with infra; deploy
+  needs in-cluster reachability.
+- *Not a finding:* verify jobs on =vmImage: $(vmImageName)= (Microsoft-hosted) alongside
+  self-hosted deploy pools — both correct.
+- *Precedent:* none yet
+
+** PL-049 — Deploy environment is the per-environment cluster environment
+
+- *Severity:* Smell
+- *Applies to:* all cluster-family pipelines
+- *Rule:* =environment:= on a cluster-family deploy stage not matching the per-environment
+  naming the repo's other deploy stages use — Azure DevOps environment names are the contract
+  for approval gates.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-050 — =domain:= is =<env>.<base-domain>= (prod bare)
+
+- *Severity:* Smell
+- *Applies to:* all cluster-family pipelines
+- *Rule:* =domain:= not matching =<env>.<base-domain>= (prod bare =<base-domain>=), where the
+  base domain is the one the repo's other deploy stages use.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-058 — =envName:= disagrees with the stage's environment on a cluster-family deploy stage
+
+- *Severity:* Suggestion
+- *Applies to:* all cluster-family pipelines
+- *Rule:* A cluster-family deploy stage whose =envName:= value doesn't match the stage's
+  environment (=dev= on the dev stage, =prod= on the prod stage) and the =pool= (PL-048),
+  =environment= (PL-049) and =domain= (PL-050) it passes alongside. Where the template declares
+  =envName= but none of its stages read it, a mismatch changes nothing deployed — it misstates
+  which environment the stage targets to anyone reading the caller. Set it to agree with the
+  other three.
+- *Not a finding:* verify stages, which take no =envName=; a deploy stage that omits =envName=
+  where the template declares it required with no default, which the template already rejects
+  when it expands.
+- *Precedent:* none yet
+
+* Cluster-via-GitOps — registry / chart / namespace alignment
+
+** PL-051 — ~<service> == harborProject == chartName == namespace~
+
+- *Severity:* Smell
+- *Applies to:* all cluster-family pipelines
+- *Rule:* =harborProject= (the registry project) not matching =chartName= not matching
+  =namespace= not matching the service folder name.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-052 — Image repositories are =<service>-<workload>=
+
+- *Severity:* Smell
+- *Applies to:* all cluster-family pipelines
+- *Rule:* =apiRepository= / =webRepository= not matching =<service>-<workload>= (=orders-api=,
+  =orders-web=) — the chart's =app:= label, Dockerfile build context, and registry repo all drift
+  apart.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-053 — =harborPushSecret= is =<service>-harbor-push-secret=
+
+- *Severity:* Smell
+- *Applies to:* all cluster-family pipelines
+- *Rule:* =harborPushSecret= (the registry push secret) not matching
+  =<service>-harbor-push-secret=.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Cluster-via-GitOps — external repo coupling
+
+** PL-054 — New values keys are surfaced as a cross-repo dependency
+
+- *Severity:* Smell
+- *Applies to:* all cluster-family pipelines
+- *Rule:* In a pipeline consuming the shared build-push-deploy template, a new values key
+  referenced in the service chart's =values.yaml= (or expected by the chart) without a matching
+  update to that service's per-environment values. Where those values live out of tree, in a
+  separate charts or infrastructure repo: surface it as a cross-repo dependency and review the
+  pipeline as if the external PR lands first.
+- *Not a finding:* the external repo content itself — out of tree. Any chart whose
+  per-environment values are committed in the same repo (=chart/<service>/values.<env>.yaml=) —
+  that is HC-043's subject, not this rule's, and the two must not both be raised on one change.
+- *Precedent:* none yet
+
+* Writer conventions (from =mz-pipeline-writer=, no reviewer rule yet)
+
+** PL-055 — File-level shape: =parameters:= first, no top-level =name:= on step templates
+
+- *Severity:* Smell
+- *Applies to:* new or touched files
+- *Rule:* =parameters:= block first (with defaults), then =steps:= (or =jobs:=, =stages:=). No
+  top-level =name:= on step templates; pipeline files (=cicd-*.yml=) may carry a top-level
+  =name:= for the run name. Standard variables (=vmImageName=, =azureServiceConnection=) at the
+  top of pipeline files; per-deployment-job variables on the =deployment:= block.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-056 — Real-environment steps run in a =deployment:= job with =environment:=
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* Any step that touches a real environment runs in a =deployment:= job with an
+  =environment:= — the repo's per-environment names (Azure-resource family) or the
+  per-environment cluster environment (cluster family) — so Azure DevOps environment approvals
+  gate the run.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PL-057 — Templates are referenced by relative path
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* Templates are referenced by relative path: =template: ../../templates/<name>.yml= from
+  a project pipeline to a repo-wide template; =template: <name>-steps.yml= for siblings in the
+  same project directory.
+- *Not a finding:* none.
+- *Precedent:* none yet

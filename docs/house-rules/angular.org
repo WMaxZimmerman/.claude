@@ -1,0 +1,554 @@
+#+title: Angular house rules (NG)
+
+Read with =common.org=. These rules encode the target state (the signals-era Angular stack:
+standalone components, signals, NgRx SignalStore, typed forms, Vitest); a codebase that predates
+it carries drift, and the Calibration section decides when a rule fires.
+
+* Scope
+
+Angular / TypeScript front-end code in any repo: components and their templates, services,
+stores, routes, guards, interceptors, forms, and their specs (=*.ts=, =*.html=, =*.spec.ts=),
+in an application or a shared library. A repo may also carry an older Angular subtree
+(module-based, NgRx classic, Jest, =*ngIf= / =*ngFor=); Calibration says how it is graded.
+Stops at the API client boundary: back-end C# is =csharp.org=, Blazor is =blazor.org=.
+
+* Calibration
+
+The single most important rule for this stack — fresh vs legacy:
+
+- *Fresh greenfield code violating a best practice* → Smell by default, Bug for correctness /
+  security / leak issues. Don't soften severity because surrounding code does the same wrong thing.
+- *Long-standing legacy patterns* (an app that uses =@Input()= decorators throughout, a
+  class-based auth guard, =UntypedFormBuilder= running through several feature areas, =*ngIf= in
+  established templates) → mention once at the top as a project-level migration opportunity (the
+  =common.org= rule that pervasive drift is surfaced once at the top, not per file), not as a
+  per-file finding.
+- *Mixing old and new in fresh code* (a brand-new component using both =@Input()= and =input()=,
+  a new template with =@if= next to =*ngIf= for no reason) → Smell. Inconsistency within a single
+  fresh file is its own problem.
+- *A targeted edit to a legacy file* that follows the file's existing style for minimal diff →
+  not a finding. The writer's plan calls out the broader drift (drift call-out); the reviewer
+  doesn't repeat it per line.
+- When in doubt whether a file is fresh or legacy, ask before reviewing.
+
+*A legacy subtree.* Where the repo keeps a whole subtree on an older Angular stack on purpose
+(module-based, NgRx classic, Jest), that subtree is graded against its own local conventions, not
+the target state:
+
+- Do not flag modern-Angular drift there: =UntypedFormControl= / =UntypedFormGroup=, =*ngIf= /
+  =*ngFor=, =@Input()= / =@Output()= decorators, class-based guards, =NgModule= declarations,
+  constructor-based DI, NgRx classic actions / reducers / effects, separate =loading= / =error=
+  flags, =BehaviorSubject= for state — all expected. NG-001..NG-004, NG-007..NG-013 and NG-018 do
+  not fire there.
+- Do not flag Jest patterns there: =jest.fn()=, =jest.spyOn()=, =jest.mock(...)=,
+  =@testing-library/jest-dom= matchers, =TestBed.configureTestingModule= setups. Don't recommend
+  =vi.fn()=, the modern stack's shared testing library, or signal-driven assertions. NG-034..NG-037
+  and NG-039 do not fire there; the rest of the Test style group (NG-040..NG-047) does wherever
+  =@testing-library/angular=, =user-event= and =jest-dom= are available in the subtree.
+- Do not surface a "migrate the subtree to the modern stack" call-out on a routine review; a
+  migration assessment is asked for explicitly.
+- Do flag there: genuine correctness bugs (memory leaks, wrong API usage), violations of the
+  subtree's own local conventions, magic numbers / strings, =TODO= / =FIXME=, new comments
+  (apply-to-new means only fresh comments in the subtree are a finding; pre-existing ones are
+  legacy drift), =console.log= (NG-029), dead code, naming drift within the subtree's own style,
+  and missing test coverage for behavioral changes (NG-030). Test reviews follow the same shape:
+  =component.method()= invocation when a user-visible seam exists (NG-031), a single =it= covering
+  unrelated behaviors (NG-032), =as Type= fabrication when a builder would do (NG-033).
+
+*Not findings anywhere:* missing =ChangeDetectionStrategy.OnPush= in a zoneless app — OnPush is
+irrelevant there; never flag it either way. A =Result<T>= type the repo uses as a deliberate house
+pattern for async state — flag only misuse (NG-013). NgRx SignalStore, Vitest,
+=@testing-library/angular=, and =inject()= in modern code — all house best practices.
+
+Rules lifted from =mz-angular-writer= conventions with no reviewer rule yet carry Smell severity
+unless the entry states otherwise.
+
+* Components and templates
+
+** NG-001 — Signal inputs and outputs, not decorators
+
+- *Severity:* Smell
+- *Applies to:* newly authored components
+- *Rule:* Decorator =@Input()= / =@Output()= in newly authored components. Use =input()=,
+  =input.required()=, =output()=, =model()=.
+- *Not a finding:* matching a legacy file's decorator style when extending it — surface only if
+  the new code mixes both.
+- *Precedent:* none yet
+
+** NG-002 — New control flow, not structural directives
+
+- *Severity:* Smell
+- *Applies to:* newly authored templates
+- *Rule:* Old structural directives (=*ngIf=, =*ngFor=, =*ngSwitch=) in newly authored templates.
+  Use =@if=, =@for= (with required =track=), =@switch=, =@let=; =@defer= for non-critical UI.
+- *Not a finding:* established legacy templates.
+- *Precedent:* none yet
+
+** NG-003 — Standalone, not =NgModule=
+
+- *Severity:* Smell
+- *Applies to:* fresh components
+- *Rule:* New =NgModule= declarations or =imports: [SomeModule]= plumbing for a fresh component.
+  Standalone is the rule; =imports: []= on the component itself for what it needs.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** NG-004 — =inject()=, not constructor DI
+
+- *Severity:* Smell
+- *Applies to:* fresh code
+- *Rule:* Constructor-based DI (=constructor(private foo: Foo)=) in fresh code. Use =inject()=.
+- *Not a finding:* existing constructor-DI in legacy classes is project drift; flag only fresh
+  additions or mixed usage.
+- *Precedent:* none yet
+
+** NG-005 — =@for= carries =track=
+
+- *Severity:* Bug
+- *Applies to:* all templates
+- *Rule:* Missing =track= on =@for= (Angular requires it).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** NG-006 — =@defer= for clearly non-critical content
+
+- *Severity:* Suggestion
+- *Applies to:* new or touched templates
+- *Rule:* Large component template with no =@defer= boundaries when content is clearly
+  non-critical (below-the-fold, modal contents, heavy charts).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Routing, guards, interceptors
+
+** NG-007 — Functional guards
+
+- *Severity:* Smell
+- *Applies to:* new guards
+- *Rule:* New class-based =CanActivate= / =CanActivateChild= / =CanDeactivate= guard. Use
+  functional =CanActivateFn= etc.
+- *Not a finding:* a class-based auth guard the repo already uses is legacy — a project-level
+  migration opportunity, not a per-route finding. If a new functional path must coexist with that
+  guard's callers, the writer surfaces the migration scope.
+- *Precedent:* none yet
+
+** NG-008 — Functional interceptors
+
+- *Severity:* Smell
+- *Applies to:* new interceptors
+- *Rule:* New class-based =HttpInterceptor=. Use =HttpInterceptorFn= registered via
+  =provideHttpClient(withInterceptors([...]))=.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** NG-009 — Lazy routes for non-default features
+
+- *Severity:* Smell
+- *Applies to:* new or touched routes
+- *Rule:* Eagerly-loaded routes for non-default features. Use =loadComponent= / =loadChildren=.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** NG-010 — Bootstrapping via =provideX()= application config
+
+- *Severity:* Smell
+- *Applies to:* fresh code
+- *Rule:* Bootstrapping outside the =provideX()=-style application config — =BrowserModule=,
+  =RouterModule.forRoot=, =HttpClientModule= in fresh code. Functional guards / interceptors
+  register via =provideRouter= / =provideHttpClient(withInterceptors([...]))=.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* State and reactivity
+
+** NG-011 — Signals for component-local state, not Subjects
+
+- *Severity:* Smell
+- *Applies to:* fresh code
+- *Rule:* =BehaviorSubject= / =Subject= used for component-local state in fresh code. Use
+  =signal()=, =computed()=, =effect()=. RxJS belongs on streams (DOM events, polling, async
+  pipelines), not on state.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** NG-012 — Cross-component state lives in NgRx SignalStore
+
+- *Severity:* Smell
+- *Applies to:* fresh code
+- *Rule:* Cross-component state outside NgRx SignalStore in fresh code. SignalStore is the house
+  pattern — one =*.store.ts= per domain with =withState=, =withComputed=, =withMethods=.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** NG-013 — Async state is one result type, not separate flags
+
+- *Severity:* Smell
+- *Applies to:* fresh code
+- *Rule:* Async state managed with separate =loading= / =error= flags in fresh code. Use a single
+  result type — the repo's =Result<T>= where it has one; =withCallState()= for single-result
+  domains, a manual =Result<T>= via =withState= for multi-resource stores.
+- *Not a finding:* the =Result<T>= type itself.
+- *Precedent:* none yet
+
+** NG-015 — Subscriptions end with =takeUntilDestroyed()=
+
+- *Severity:* Bug
+- *Applies to:* fresh code (a leak is a correctness issue anywhere)
+- *Rule:* Subscribed Observables without =takeUntilDestroyed()= (or equivalent) in fresh code
+  (leak). Prefer signals to avoid the problem entirely.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** NG-016 — =async= pipe or =toSignal()= over manual =subscribe()=
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* Manual =subscribe()= in templates / components when =async= pipe or =toSignal()= would do.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** NG-017 — =effect()= is for side effects, not signal writes
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* =effect()= used to mutate other signals (writes inside an effect) without a deliberate
+  reason. Prefer =computed()=; reserve =effect()= for side effects (DOM, logging, third-party).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Forms
+
+** NG-018 — Typed reactive forms
+
+- *Severity:* Smell
+- *Applies to:* fresh code
+- *Rule:* =UntypedFormBuilder= / =UntypedFormControl= / =UntypedFormGroup= in fresh code. Use
+  typed reactive forms: =FormBuilder.group<T>()=, =FormControl<T>()=.
+- *Not a finding:* =Untyped*= in a legacy form being extended.
+- *Precedent:* none yet
+
+** NG-019 — Stay in reactive forms
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Two-way binding via =[(ngModel)]= in a reactive-forms feature.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* TypeScript
+
+** NG-020 — No =any= in fresh code
+
+- *Severity:* Smell; Bug if it bypasses a typed contract
+- *Applies to:* fresh code
+- *Rule:* =any= in fresh code. Prefer =unknown= with narrowing.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** NG-021 — No =as Type= casts that bypass real typing
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* =as Type= casts that bypass real typing (especially on inline test objects or
+  third-party responses). Use a builder, type guard, or proper schema.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** NG-022 — Strict null handling
+
+- *Severity:* Smell
+- *Applies to:* fresh code
+- *Rule:* Non-strict null handling in fresh code (optional chaining-and-pray, =!= non-null
+  assertion without justification).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Library hygiene
+
+** NG-023 — Native APIs over fresh =lodash=
+
+- *Severity:* Smell
+- *Applies to:* fresh imports
+- *Rule:* Fresh =lodash= / =lodash-es= import where a native API works (=Object.fromEntries=,
+  =Array.prototype.at=, =structuredClone=, =Object.groupBy=, etc.).
+- *Not a finding:* existing =lodash= usage in legacy files.
+- *Precedent:* none yet
+
+** NG-024 — No fresh =moment=
+
+- *Severity:* Smell
+- *Applies to:* fresh imports
+- *Rule:* Fresh =moment= import. Use =Intl=, =date-fns=, or whatever the repo has standardized on.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** NG-025 — Backend calls go through the generated API client
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* New direct REST / =HttpClient= calls bypassing the repo's generated API client for a
+  backend route that client covers. When the backend schema changed, the writer surfaces the
+  repo's client-regeneration command for Max to run — never runs it.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Readability and testability
+
+- Magic numbers / strings carrying business meaning — the =common.org= magic-values rule (a
+  feature constant or settings entry as the widening target; CSS pixel values are trivial).
+- =TODO= / =FIXME= / =HACK= — the =common.org= rule against them.
+- No comments at all — the =common.org= comments rule.
+
+** NG-026 — Components and services do one thing
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* Component or service doing several distinct things. Split.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** NG-027 — Name predicts behavior
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* Functions whose name doesn't predict their behavior, or whose behavior leaks beyond what
+  the name implies. Rename or split.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** NG-028 — Non-trivial private methods become injectable helpers
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* Non-trivial private methods (branching, business logic, external dependencies). Extract
+  to a public method on an injectable helper, register in DI, inject. (Note: unlike CS-014 in
+  =csharp.org=, Angular keeps a triviality carve-out.)
+- *Not a finding:* trivial private helpers — short pure transforms, guard clauses, formatting.
+- *Precedent:* none yet
+
+** NG-029 — No =console.log= for diagnostics
+
+- *Severity:* Smell
+- *Applies to:* all code, including a legacy subtree
+- *Rule:* =console.log= for diagnostics. Use the project logger or remove; if no logger exists,
+  the writer surfaces the gap.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Test code
+
+** NG-030 — Fresh behavioral code arrives with a covering test
+
+- *Severity:* Smell
+- *Applies to:* new or touched code, including a legacy subtree
+- *Rule:* Fresh behavioral code (new method, new component branch, new form rule, new effect)
+  without a covering test that would fail in its absence. The change should have arrived through
+  =mz-angular-test-writer= first.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** NG-031 — Test at the user-visible seam
+
+- *Severity:* Smell
+- *Applies to:* all test code, including a legacy subtree
+- *Rule:* Component behavior tested via direct =component.method()= invocation when
+  =screen.getByRole= / =getByLabelText= + =userEvent= would express the same behavior at the
+  user-visible seam.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** NG-032 — One behavior per =it=
+
+- *Severity:* Smell
+- *Applies to:* all test code, including a legacy subtree
+- *Rule:* A single =it= covering multiple unrelated behaviors (one test that types into a field
+  AND clicks submit AND asserts navigation AND asserts an error message for a separate condition).
+  Split.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** NG-033 — Builders over =as Type= fabrication in tests
+
+- *Severity:* Smell
+- *Applies to:* all test code, including a legacy subtree
+- *Rule:* Test files using =as Type= to fabricate inline objects when a test-data builder from the
+  repo's shared testing library would do.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** NG-034 — The auth library is faked via the shared testing library
+
+- *Severity:* Smell
+- *Applies to:* modern-stack test code
+- *Rule:* Tests instantiating auth-library services or providers (e.g. MSAL) directly instead of
+  using the fakes and account builders the repo's shared testing library provides.
+- *Not a finding:* a legacy subtree.
+- *Precedent:* none yet
+
+** NG-035 — Use the shared testing setup helpers
+
+- *Severity:* Smell
+- *Applies to:* modern-stack test code
+- *Rule:* Tests bypassing the repo's shared test-setup helpers (service creation, root-component
+  render, testing providers and imports) for setup those helpers cover.
+- *Not a finding:* a legacy subtree.
+- *Precedent:* none yet
+
+** NG-036 — Drive and read signals directly
+
+- *Severity:* Smell
+- *Applies to:* modern-stack test code
+- *Rule:* Tests asserting on signals via indirect means when =signal.set()= to drive and
+  =signal()= to read would be clearer.
+- *Not a finding:* a legacy subtree.
+- *Precedent:* none yet
+
+** NG-037 — =vi.fn()= in modern-stack specs
+
+- *Severity:* Smell
+- *Applies to:* modern-stack test code
+- *Rule:* Use of =jest.fn()= / =jasmine.createSpy()= instead of =vi.fn()= in a modern-stack spec —
+  likely a copied template; check the rest of the file.
+- *Not a finding:* a legacy subtree, where Jest is the local norm.
+- *Precedent:* none yet
+
+* Writer conventions (from =mz-angular-writer=, no reviewer rule yet)
+
+** NG-038 — File naming by role
+
+- *Severity:* Smell
+- *Applies to:* new files
+- *Rule:* Components =*.component.ts=, services =*.service.ts=, stores =*.store.ts=, repositories /
+  clients =*.client.ts= when calling external APIs. Features self-contained under a per-domain
+  feature folder (e.g. =src/app/features/<domain>/=, or the local equivalent) with component,
+  store, service, mappers, and route config co-located; cross-app shared code in a shared library
+  (e.g. =libs/=). Match the local feature folder's naming when extending it.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Test style (from =mz-angular-test-writer=, no reviewer rule yet)
+
+These are authoring conventions; the Test code group above (NG-030..NG-037) is what
+=mz-angular-reviewer= applies. Not restated here: a covering test for fresh behavior (NG-030), the
+user-visible seam (NG-031), one behavior per =it= (NG-032), builders over =as Type= fabrication
+(NG-033), the auth library faked via the shared testing library (NG-034), the shared testing setup
+helpers (NG-035), driving and reading signals directly (NG-036), =vi.fn()= vs =jest.fn()= (NG-037).
+
+Fresh-vs-legacy per the Calibration section. In a legacy subtree the local file's conventions win:
+Jest + =jest-preset-angular=, =jest.fn()= / =jest.spyOn()= / =jest.mock(...)=, =MockStore= +
+=provideMockStore({ initialState })= for NgRx classic, no modern shared testing library. Where
+=@testing-library/angular=, =@testing-library/user-event= and =@testing-library/jest-dom= are
+available there, the seam, interaction, and matcher rules below fire in the subtree; the stack
+rule does not.
+
+** NG-039 — Modern test stack is Vitest + =@testing-library/angular=
+
+- *Severity:* Smell
+- *Applies to:* modern-stack test code
+- *Rule:* A modern-stack spec reaching outside the house stack — Vitest as the runner,
+  =@testing-library/angular= (=render=, =screen=, =within=, =waitFor=) plus
+  =@testing-library/user-event= for component tests, Vitest's built-in =expect= with the
+  =@testing-library/jest-dom= matchers the project already exposes. No additional assertion
+  library, test framework, or mocking library is introduced without asking.
+- *Not a finding:* a legacy subtree, where Jest + =jest-preset-angular= is the local norm. Spy /
+  mock API choice is NG-037.
+- *Precedent:* none yet
+
+** NG-040 — =userEvent= over =fireEvent=
+
+- *Severity:* Smell
+- *Applies to:* all test code, including a legacy subtree
+- *Rule:* =fireEvent= used for a human-shaped interaction — typing, clicking, tabbing. Set up
+  ~const user = userEvent.setup();~ and drive through =user.type(...)= / =user.click(...)=;
+  =fireEvent= is for synthetic events =userEvent= doesn't model.
+- *Not a finding:* =fireEvent= for an event =userEvent= genuinely doesn't model.
+- *Precedent:* none yet
+
+** NG-041 — Spec layout: one =sut=, dependency-named mocks, =expected= / =actual=
+
+- *Severity:* Smell
+- *Applies to:* new or touched test code, including a legacy subtree
+- *Rule:* A spec deviating from the house layout — a single =sut= reference for the system under
+  test; mocks named after the dependency (=orderRepository=, not =mockOrderRepository=); common
+  arrangement in =beforeEach= and per-test arrangement in the test body; locals named =expected= /
+  =actual=; one logical act per test. Component inputs are driven via =componentInputs= (or a
+  signal =.set()= for direct manipulation) and the DOM is read through =screen= queries by role or
+  label (NG-031).
+- *Not a finding:* matching a legacy spec's local naming when extending it for a minimal diff —
+  existing specs that name the SUT reference after the class (=reportService=) rather than =sut=
+  are drift, not a per-file finding.
+- *Precedent:* none yet
+
+** NG-042 — =describe= names the SUT; =it= reads as a behavioral sentence
+
+- *Severity:* Smell
+- *Applies to:* new or touched test code, including a legacy subtree
+- *Rule:* A =describe= that doesn't name the SUT class or component, or an =it= that isn't a
+  readable behavioral sentence (=it('getById returns the order from the repository', ...)=). When
+  one test asserts several related effects, list them in the sentence:
+  =it('submit posts the form, sets loading, and navigates on success', ...)= — related effects
+  only; unrelated behaviors split per NG-032.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** NG-043 — Separate =it= blocks over =it.each=
+
+- *Severity:* Smell
+- *Applies to:* new or touched test code, including a legacy subtree
+- *Rule:* =describe.each= / =it.each= whose cases diverge in arrange or assert — parameterization
+  hides the divergence. Separate =it()= blocks keep each scenario greppable, independently
+  failing, and clearly named. =it.each= is correct only when scenarios are truly duplicated with
+  one input value differing.
+- *Not a finding:* an =it.each= over a single varying input value.
+- *Precedent:* none yet
+
+** NG-044 — Edge cases: null / empty inputs, never skip, awaited acts
+
+- *Severity:* Smell
+- *Applies to:* new or touched test code, including a legacy subtree
+- *Rule:* A SUT accepting null / undefined / empty inputs with no explicit coverage; any skipped
+  test (=it.skip=, =xit=, =describe.skip=, =test.skip=) — a flaky test is fixed, or deleted on
+  Max's per-test decision, and a skip is never used; an async act not awaited, or an arbitrary
+  =setTimeout= standing in for convergence. =await= the act and use =waitFor= for DOM convergence
+  after async work.
+- *Not a finding:* a test already carrying a skip before the change — pre-existing drift under
+  apply-to-new, surfaced once at the top per =common.org=.
+- *Precedent:* none yet
+
+** NG-045 — Accidental-progression fixes ship a negative-assertion regression guard
+
+- *Severity:* Smell
+- *Applies to:* new or touched test code, including a legacy subtree
+- *Rule:* A fix in the "user could navigate past required state" / accidental-progression bug
+  class landing without a property-shaped negative-assertion test authored before the fix — click
+  /Continue/ with an invalid form, then =expect(dispatch).not.toHaveBeenCalledWith(navigateNext())=.
+  Worth authoring even when the current code already satisfies the property; the value is the
+  regression guard, not the immediate red.
+- *Not a finding:* bug classes outside accidental progression, where a normal covering test
+  (NG-030) is enough.
+- *Precedent:* none yet
+
+** NG-046 — Matcher matches intent: =toBeVisible()= shown, =queryBy*= + =not.toBeInTheDocument()= absent
+
+- *Severity:* Smell
+- *Applies to:* new or touched test code, including a legacy subtree
+- *Rule:* The matcher not matching the test's intent. "The user can see X" → =toBeVisible()=, the
+  default for user-facing message assertions — it verifies the element is actually visible, which
+  is the user-truthful claim. "X is not there" → a =queryBy*= query (never =getBy*=, which throws)
+  plus =not.toBeInTheDocument()=; =toBeVisible()= cannot express absence. Presence genuinely under
+  test independent of visibility (an off-screen ARIA live region, a deliberately hidden element) →
+  =toBeInTheDocument()= stays correct.
+- *Not a finding:* =toBeInTheDocument()= where presence is the stated intent — visibility is the
+  default for user-facing assertions, not a ban on presence checks. Wherever =jest-dom= is wired
+  into a stack's test setup, =toBeVisible()= is available there.
+- *Precedent:* none yet
+
+** NG-047 — Spec import grouping: test libs → Angular → workspace
+
+- *Severity:* Smell
+- *Applies to:* new or touched test files, including a legacy subtree
+- *Rule:* Spec imports not grouped, blank-line separated, alphabetical within each group: Vitest /
+  testing-library first, then Angular framework imports, then project workspace imports (the
+  workspace path aliases and relative imports).
+- *Not a finding:* an existing spec's grouping when a targeted edit doesn't touch the import block.
+- *Precedent:* none yet

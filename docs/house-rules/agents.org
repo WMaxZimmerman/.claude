@@ -1,0 +1,270 @@
+#+title: Agent and skill file house rules (AG)
+#+startup: content
+
+Read with =~/.claude/docs/mz-suite.org=, which this file never overrides. Read only by
+=mz-agent-builder=, =mz-agent-auditor=, =mz-skill-builder=, and =mz-skill-auditor=. No stack
+writer or reviewer reads it, and =mz-devils-advocate= reads =angles.org= instead. Section id
+prefix: *=AG=*. Ids are never reused; the next free id is recorded in =README.org=.
+
+* Scope
+
+Agent files (=~/.claude/agents/mz-*.md=), skill files (every file in a =~/.claude/skills/mz-*/=
+folder), and the lines of =~/.claude/docs/agents-md-checklist.org= that ride with an agent
+change. =mz-agent-auditor= grades agent files and those checklist lines; =mz-skill-auditor=
+grades skill files. Each rule's own text says whether it reaches a skill file.
+
+The rules for code in the repo being worked on are in =common.org= and the stack files, not here.
+
+* Calibration
+
+- *Severity ladder.* Bug / Smell / Suggestion, exactly as stated in =mz-suite.org= § Severity
+  ladder. No other severity word is recognised. A Bug or Smell the change wrote blocks the gate;
+  a Suggestion carries no gate weight.
+- *Apply-to-new.* A long-standing instance is drift, surfaced once at the top of a review rather
+  than per file.
+- *Reading =Applies to=.* The files in scope are markdown prose with YAML frontmatter, so
+  =Applies to= reads =new or touched lines only=, =new or touched files only=, or =all files=,
+  and "line" means any line written in them, prose or frontmatter.
+- *Citations.* The citation convention is stated once, in =mz-suite.org= § Review scope, the
+  citations bullet. This file keeps no copy; AG-008 grades it.
+
+* Rules
+
+** AG-001 — A factual claim written without being checked against disk or a command's output
+
+- *Severity:* Bug
+- *Applies to:* new or touched lines only
+- *Rule:* Every factual claim a change writes — about the suite, a repo it is used in, or Claude
+  Code's behaviour — is checked against what is on disk or against a command's actual output
+  before it is written. A fact inherited from another agent file, a prior doc, a port from
+  another suite, or memory is not a check. Report the claim with what was read or run.
+- *Not a finding:* A false claim the change did not write — pre-existing, file it. A statement
+  explicitly framed as a plan, an intent, or a decision not yet carried out. A field carrying an
+  =INCOMPLETE= marker. A claim about another repo that names what it was checked against and when.
+- *Precedent:* none yet
+
+** AG-002 — A command written into documentation that was not run in the form written
+
+- *Severity:* Bug
+- *Applies to:* new or touched lines only
+- *Rule:* Any command a doc, an agent file, or a skill file tells a reader to run is run first, in
+  exactly the form written, and the text records only what that run showed. A command whose
+  documented flags cannot succeed is a false claim about the tool, not a typo.
+- *Not a finding:* A command the contract says an agent surfaces and never runs — dependency,
+  migration, deploy, schema-push — where the text says so. A command shown as an example of what
+  /not/ to run, labelled as such. A command run against another repo's surface where the text
+  names the repo it was run in.
+- *Precedent:* a validation command documented with a flag that turns warnings into errors, so
+  that, as written, it fails on a warning every run emits.
+
+** AG-003 — Two statements in force that cannot both be followed
+
+- *Severity:* Bug
+- *Applies to:* new or touched lines only
+- *Rule:* A change does not leave two instructions standing that a reader cannot obey at once —
+  within one file, or across =mz-suite.org=, the registry, the checklist, the agent files, and the
+  skill files. Each statement being individually true is not a defence. Reconcile them, or state
+  which governs and why.
+- *Not a finding:* Two statements that differ because they bind different audiences or scopes,
+  where the text says which is which — a rule for the main agent beside a rule for a delegate, or
+  a suite default beside the repo-contract override =mz-suite.org= § Reading order allows. A
+  deliberate restatement the contract requires, such as the severity ladder appearing in both
+  =mz-suite.org= and an agent file. A contradiction the change did not write — pre-existing,
+  file it.
+- *Precedent:* none yet
+
+** AG-004 — A command given in a form that depends on one shell
+
+- *Severity:* Smell
+- *Applies to:* new or touched lines only
+- *Rule:* A command written into a doc, an agent file, or a skill file runs in both PowerShell and
+  a POSIX shell — no variable set as a command prefix, no =&&= chaining — or both forms are given.
+  Where both are given, they stop or continue on a failed step the same way: Bash =A && B= pairs
+  with PowerShell =A; if ($?) { B }=, never =A; B=, which runs =B= after =A= fails. An agent on
+  Windows may have only PowerShell.
+- *Not a finding:* A command quoted from a repo's pipeline or workflow file, shown as that file's
+  content rather than as an instruction to run. A shell-specific form where the text names the
+  shell it requires and why.
+- *Precedent:* a local-reset step given as a Bash and PowerShell pair, where the Bash form used
+  =&&= and the PowerShell form used =;=, so only the PowerShell form ran the second step after the
+  first failed.
+
+** AG-005 — A repo fact written into a suite agent or skill file
+
+- *Severity:* Bug
+- *Applies to:* new or touched lines only
+- *Rule:* A suite file — an agent at =~/.claude/agents/mz-*.md= or a skill under
+  =~/.claude/skills/mz-*/= — names no fact about any one repo it is used in — no repo names,
+  folder layouts, GitHub owner, repository, or label values beyond the suite's own, branch names,
+  or product features — and assumes as given no technology a repo's stack section supplies
+  (=agents-md-checklist.org= § 10. Stack sections): a database engine, a container runtime, a test
+  runner, a package manager, and the like. It states the shape it needs and points at the repo
+  contract (its =AGENTS.md= or =CLAUDE.md=, per =mz-suite.org= § Reading order), with the built-in
+  default it falls back to when the contract is silent. A fact the agent or skill newly expects is
+  added to =agents-md-checklist.org= in the same diff (see AG-007).
+- *Not a finding:* The suite's own facts, which =mz-suite.org= states — the paths under
+  =~/.claude/= in § Where the suite keeps things, the =tech-debt= and =mz-follow-up= labels and
+  the follow-up repository in § Tracking. An agent or skill naming another =mz-= agent or skill.
+  The suite's own docs under =~/.claude/docs/=, which are about the suite by definition and are
+  not agent files.
+- *Precedent:* none yet
+
+** AG-006 — The =mz-= prefix used outside the suite, or missing inside it
+
+- *Severity:* Bug
+- *Applies to:* all files
+- *Rule:* Every suite agent carries an =mz-=-prefixed =name:= that matches its filename, and every
+  suite skill carries an =mz-=-prefixed =name:= that matches its folder name. No agent or skill
+  outside the suite — a repo's own =.claude/agents/= or =.claude/skills/=, or a personal agent in
+  =~/.claude/agents/= that is not part of the suite — carries the prefix, so nobody naming their
+  own has to check the suite's roster. The prefix belongs to agent and skill names, and to the
+  contract file =mz-suite.org=; a registry or other doc file is =common.org=, never
+  =mz-common.org=. This is the one rule here that applies to all files rather than touched lines,
+  because a prefix violation is a live collision whenever it was introduced.
+- *Not a finding:* An unprefixed name appearing in prose as an example of a repo or personal agent
+  or skill outside the suite, such as =dotnet-writer-local=.
+- *Precedent:* none yet
+
+** AG-007 — A rule restated in a second place instead of cross-referenced
+
+- *Severity:* Smell
+- *Applies to:* new or touched lines only
+- *Rule:* A rule stated in one agent file or skill file is not restated in another agent file or
+  skill file, nor in =agents-md-checklist.org=; the second place points at the first. Where a
+  skill file is the one copy of a text, an agent that loads it states none of it — the =skills:=
+  line is the pointer. When an agent starts or stops expecting a fact from a repo's =AGENTS.md=,
+  the matching checklist line rides in the same diff rather than arriving later.
+- *Not a finding:* The severity ladder in =mz-suite.org= § Severity ladder, restated by design
+  because agents recognise no severity word outside it. A writer and its paired reviewer each
+  stating its own side of one contract. A fence restated from =mz-suite.org= § Safety fences,
+  against which =mz-agent-auditor= grades an agent's own fence statements. The restatements the
+  suite requires by design, where the finding is a copy that /differs/ from the contract, from its
+  set, or from the behaviour it describes, never the copy itself: the review-scope rules every
+  reviewer carries in its own words (checklist item 4); a per-agent restatement of a rule
+  =mz-suite.org= already states — the plain-English rule, the review-scope rule, the attribution
+  ban; and a block the contract defines for a set of agents to copy verbatim. An agent's =skills:=
+  line, and a reference skill's =description= naming the agents that load it — pointers, not
+  restatements. What an agent does with a skill's text — when it applies it, what it reports —
+  stated in the agent's own body.
+- *Precedent:* none yet
+
+** AG-008 — A durable citation that carries a line number instead of a section heading or symbol
+
+- *Severity:* Smell
+- *Applies to:* new or touched lines only
+- *Rule:* A durable citation — one that stays in a file, as =mz-suite.org= § Review scope, the
+  citations bullet, defines it — names an agent or skill file by file and section heading, code
+  by file and symbol (class, method, test), and prose by section name; a line number written into
+  one is the finding. Fix: replace the number with the heading or symbol it points at. A citation
+  the change writes naming a heading or symbol that does not exist is a false pointer, graded Bug
+  under AG-001, not here.
+- *Not a finding:* A finding's location in a review or a gate ruling — read at once against the
+  same tree, so it keeps =file:line=. A line-number citation in a line the change did not write —
+  pre-existing, file it, per =mz-suite.org= § The =mz-devils-advocate= gate. A citation the change
+  breaks in a line it did not write, by renaming, moving, or deleting the heading or symbol it
+  names — collected as a follow-up (=mz-suite.org= § Tracking), never holds the pull request. A
+  checklist item number, which is stable.
+- *Precedent:* none yet
+
+** AG-009 — A rule stated twice inside one file instead of pointed at its first statement
+
+- *Severity:* Smell
+- *Applies to:* new or touched lines only
+- *Rule:* A rule, convention, or format stated once in a file is not stated again later in the
+  same file; the later place points at the first by section, item, or template name. This holds
+  for any file in scope. AG-007 reaches a second file or the checklist and stops there — this
+  covers the one-file case. The usual form is a second copy that has already dropped a clause the
+  first carried, and the dropped clause is the damage: only a reader who happens to read both
+  spots sees the divergence.
+- *Not a finding:* A pointer that names where the rule is stated instead of restating it — that
+  is the fix, not the defect. A slot or placeholder repeated through a file's templates where one
+  paragraph defines what the slot means. An agent's or a skill's frontmatter =description=, which
+  summarises the body by design. The restatements AG-007's =Not a finding= already carves out,
+  when they land twice in one file for the same reason. A role-required summary section that
+  =mz-agent-builder= requires of every writer and manager — such as =## What NOT to do=, the
+  attribution line under =## Style=, =## Out of scope= or the section a proposed-action writer
+  carries in its place, and =## When to ask= — restating a fence or a halt the same body states
+  earlier, where the finding is a summary line that /differs/ from the statement it summarises,
+  never the summary itself: those sections exist so an agent reading its own definition finds its
+  fences and halts gathered in one findable place. A second copy the change did not write —
+  pre-existing, file it.
+- *Precedent:* an agent file that stated the citation convention in its findings format and again,
+  shorter, under its style section; the second copy was replaced by a pointer to the first.
+
+** AG-010 — An agent-file step that needs an input its tools cannot obtain, with no hand-in named
+
+- *Severity:* Smell
+- *Applies to:* new or touched lines only
+- *Rule:* A step in an agent file needs an input — a diff, a command's output, a file outside the
+  agent's reach — that the agent's =tools:= cannot produce, and the body neither names the main
+  agent's hand-in for it nor says to stop and ask when it is missing. Fix: name who hands the
+  input in, and the one-line stop when it was not handed in.
+- *Not a finding:* A step whose hand-in the body names — such as the change-review diff the main
+  agent hands every reviewer per =mz-suite.org= § How a gated writer runs. A step the agent's own
+  tools can satisfy. A missing hand-in in a line the change did not write — pre-existing, file it.
+- *Precedent:* a manager with no shell that names the =git diff= and rename list the main agent
+  hands in, and stops with =Input incomplete= when either is missing.
+
+** AG-011 — A file in a skill folder that is not markdown
+
+- *Severity:* Bug
+- *Applies to:* new or touched files only
+- *Rule:* Every file in a skill's folder ends =.md=. A script, a data file, or any other extension
+  in a skill folder is the finding; the skill states in prose what the main agent or a named
+  agent does instead. Skill files carry no executable content.
+- *Not a finding:* A command written in a =.md= file as an instruction to run, which AG-002 and
+  AG-004 grade instead.
+- *Precedent:* a skill folder holding =SKILL.md= alone.
+
+** AG-012 — A skill that does not declare its job, or whose description disagrees with its body
+
+- *Severity:* Smell
+- *Applies to:* new or touched lines only
+- *Rule:* A skill's default job is to sequence: it tells the main agent which agents and skills to
+  run, in what order, what to hand each, and how to report. A skill that is reference text instead
+  marks itself all three ways: =user-invocable: false= in its frontmatter; a =description= that
+  opens "Reference text, not a task"; and a =description= that names every agent that loads it. A
+  reference skill missing any of the three, or a skill that neither sequences nor is marked as
+  reference text, is the finding. So is a =description= that claims something the body does not
+  cover, or a body that carries a responsibility the =description= does not name.
+- *Not a finding:* A sequencing skill that names no loading agents — it runs in the main agent. A
+  difference of wording between the =description= and the body where both say the same thing.
+- *Precedent:* a reference skill holding one shared template, with =user-invocable: false= and a
+  =description= opening "Reference text, not a task" that names the two agents that load it.
+
+** AG-013 — A skill step that has the main agent cross a fence or edit a delegated path
+
+- *Severity:* Bug
+- *Applies to:* new or touched lines only
+- *Rule:* A skill step that tells the main agent to do something a safety fence in
+  =mz-suite.org= § Safety fences forbids, or to edit a path that =mz-suite.org= § Roster and
+  delegation rule — or the repo contract, where it routes a path — gives to a named agent, is the
+  finding. Fix: route the step to the agent the delegation rule names, or remove it.
+- *Not a finding:* A step that invokes the owning agent for that path. A main-session edit,
+  commit, or filing on a path the delegation rule gives to no named agent — AG-014 and AG-015
+  grade it.
+- *Precedent:* none yet
+
+** AG-014 — A skill step that has the main agent edit, commit, or file without saying so plainly
+
+- *Severity:* Smell
+- *Applies to:* new or touched lines only
+- *Rule:* A skill step has the main session edit a file, make a commit, or file an issue on a
+  path or surface no delegation rule gives to a named agent, and does not say plainly that the
+  main session does it. Fix: say so plainly in the step, or hand the act to a named agent. Never a
+  Bug.
+- *Not a finding:* A step AG-013 grades. A step that hands the act to a named agent. The same step
+  stated plainly — AG-015 grades it.
+- *Precedent:* none yet
+
+** AG-015 — A skill step that has the main agent edit, commit, or file, stated plainly
+
+- *Severity:* Suggestion
+- *Applies to:* new or touched lines only
+- *Rule:* A skill step has the main session edit a file, make a commit, or file an issue on a path
+  or surface no delegation rule gives to a named agent, and says plainly that the main session
+  does it. Recorded with no gate weight; the fix, optional, is to hand the act to a named agent.
+  Never a Bug.
+- *Not a finding:* A step AG-013 grades. A step that hands the act to a named agent. The same step
+  not stated plainly — AG-014 grades it.
+- *Precedent:* none yet

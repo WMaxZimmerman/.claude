@@ -1,0 +1,284 @@
+#+title: Common house rules (CM)
+
+Rules that apply to every stack, read by every reviewer and writer. Read with the stack's own file
+(=csharp.org=, =blazor.org=, and the rest). Stack files reference these by id instead of restating
+them; a stack that restates or loosens one does so with its own delta entry (=csharp.org= CS-027
+and =blazor.org= BZ-052 restate CM-003 for their own constructs; =helm-chart.org= HC-042 softens it
+to Suggestion for =values.yaml=).
+
+* Scope
+
+Every file any reviewer or writer touches, in any repo and any stack: C#, Razor, TypeScript / HTML,
+Python, HCL, CI pipeline YAML, Helm templates and values, Dockerfiles and entrypoint scripts.
+
+* Calibration
+
+- Apply to new or touched code. Long-standing legacy instances are drift — surface once per CM-005,
+  never per file.
+- *"New" is measured against the remote integration branch (=origin/<integration-branch>=, read as
+  =~/.claude/docs/mz-suite.org= Source control says), never against the previous commit and never
+  against the start of the current piece of work.* A line the branch authored is new code until it
+  merges, however many commits ago it landed — so a long-lived branch cannot classify its own
+  unmerged code as pre-existing and file it as debt instead of fixing it. A reviewer or
+  =mz-devils-advocate= settling whether the wrote-this-line test reaches a line establishes that
+  against the integration branch: =git show origin/<integration-branch>:<file>= for whether the line
+  is already there, and =git log --diff-filter=A origin/<integration-branch>...HEAD= — three-dot, so
+  it is anchored on the merge base — for whether the branch created the file at all. Never against
+  =HEAD~1=, an earlier branch commit, or the commit the current work started from. *Corollary:* a
+  faithful copy of a sibling's problem is pre-existing only when the sibling is on the integration
+  branch; copied from a file this branch created, it is the branch's own. The baseline is one
+  repo-wide fact and is not a stack's to vary — a stack file's own Calibration section sets that
+  stack's severity-by-age, never the baseline that decides whose line it is.
+- Each stack file's Calibration section holds that stack's own fresh-vs-legacy rule; it governs
+  when a CM rule applies there.
+- A legacy island is graded against the file around it: a targeted edit that follows the file's
+  existing style for minimum diff is not a finding (CM-005).
+
+* Comments and dead code
+
+** CM-001 — No =TODO= / =FIXME= / =HACK= comments
+
+- *Severity:* Smell
+- *Applies to:* new or touched code, every stack
+- *Rule:* =TODO= / =FIXME= / =HACK= comments in source. Track the work outside the source — the pull
+  request, an issue — and surface open questions to the user rather than leaving them in code.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CM-002 — No commented-out code or markup
+
+- *Severity:* Smell
+- *Applies to:* new or touched code, every stack
+- *Rule:* Commented-out code, markup, conditions, or steps left in a file. Delete it; git is the
+  history. Something disabled deliberately is restored with its rationale in the pull request, not
+  left commented.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CM-003 — No comments at all, every stack
+
+- *Severity:* Smell
+- *Applies to:* new or touched code, every stack. =csharp.org= (CS-027) and =blazor.org= (BZ-052)
+  restate this for their own constructs, carrying their own carve-outs forward; =helm-chart.org=
+  (HC-042) softens =values.yaml= comments to Suggestion; =angular.org=, =terraform.org=,
+  =dockerfile.org=, and =pipeline.org= take the rule unmodified.
+- *Rule:* Any comment in source — explanatory =//= / =#= lines, =///= doc comments, block comments,
+  markup comments. Design rationale — why this default, why this deviation — belongs in the pull
+  request description, the issue, or =docs/=, not in the source. A comment is the exception a
+  reviewer flags.
+- *Not a finding:* none at the common level. The carve-outs that survive are stack-local: the
+  one-line data-mutation comment and generated migration content in =csharp.org= (CS-027, inherited
+  by =blazor.org= BZ-052), and Helm =values.yaml= comments graded Suggestion rather than Smell in
+  =helm-chart.org= (HC-042).
+- *Precedent:* none yet
+
+** CM-004 — Magic numbers and strings carrying business meaning
+
+- *Severity:* Smell
+- *Applies to:* new or touched code in C#, Razor =@code=, TypeScript, Python. Terraform, pipeline,
+  chart, and Dockerfile literals are governed by their own rules (=terraform.org= TF-016 hardcoded
+  SKUs, =helm-chart.org= HC-054 hardcoded environment names).
+- *Rule:* A literal that carries business meaning. Lift to a method-local constant by default; widen
+  to =static readonly=, a class-level constant, a feature constant, or a settings entry only when a
+  second consumer already exists. Speculative widening is itself a smell. A value whose type cannot
+  be =const= — a =TimeSpan=, a =Uri=, a =DateTime= — becomes a named method-local variable under the
+  same default and the same widening rules: =static readonly= or wider only when a second consumer
+  already exists. The method-local default applies to production code; test classes follow the
+  carve-out below.
+- *Not a finding:*
+  - Trivial literals — loop bounds, =0= / =1= / =-1=, CSS pixel values.
+  - Constant declarations at the top of an Aspire AppHost =Program.cs= for service names, ports,
+    image tags, realms — house style for AppHost resource wiring.
+  - *A display label — the words a user reads on screen that name the value beside them* — whether
+    written as markup text (~<h2>Order</h2>~, ~Label="Unit Price"~) or inlined in the interpolation
+    that renders the value (~@($"Order #{order.Number}")~). This rule's subject is a literal whose
+    *value a reader has to trace to understand what the code does* — a status string compared
+    against, a threshold, a key or identifier the code base chose — not text whose whole purpose is
+    to be read off the screen. Hoisting a label to a constant moves the page's own words away from
+    the markup that renders them and buys nothing.
+  - *Longer user-facing copy a page renders as its own paragraph* — an explanation, a recovery
+    instruction — is a different construct and this rule grades it neither way: hoisting it to a
+    constant and inlining it are both correct. Nobody is to cite this rule in either direction over
+    a string a user reads.
+  - *A test class's fixture constants declared at class level, even when used once* — the
+    method-local default is for production code, and a test class may keep its fixture values
+    together at the top of the class.
+  - *An inline structured-log message template* — the template string passed to a logger call, named
+    placeholders included — stays at the call that logs it; it is read where it is written and no
+    behaviour branches on it.
+  - *A field name a published standard defines* — an OAuth token-request form field (=grant_type=,
+    =client_id=, =client_secret=, =scope=), a standard HTTP header name — stays inline where the
+    request is built; the standard fixes the name, so it is not a key the code base chose.
+- *Precedent:* a read timeout written as a named method-local =TimeSpan= beside the method's =const=
+  locals; a logger call whose message template stays inline at the call.
+
+* Duplication
+
+** CM-006 — One business rule, one function, when the two copies sit in different projects or stacks
+
+- *Severity:* Smell
+- *Applies to:* new or touched code, every stack
+- *Rule:* The same business rule — a classification, eligibility, visibility, or status test —
+  written out in two places that live in different projects or different stacks: a C# service and a
+  Razor component, an API service and a TypeScript store, a backend guard and a front-end badge.
+  Lift the shared part into one named pure function in a library both sides already reference, and
+  leave each side's extra clauses at its own call site rather than pushing them into the shared
+  function. This is graded separately from ordinary duplication because nothing catches the drift:
+  no reviewer sees both files in one pass, no stack reviewer owns both, and no test fails when the
+  two copies disagree — the first signal is the two surfaces reporting different answers for the
+  same record.
+- *Not a finding:*
+  - Two call sites inside one project. In C# the stack's own rules are =csharp.org= CS-082 (a filter
+    that must translate to SQL) and CS-087 (a composite business match key), and nothing else —
+    plain duplication inside one project is deliberately ungraded, and an instance worth removing is
+    filed as debt rather than raised as a finding.
+  - A coincidental shape match that is not one business rule — two independent null guards that
+    happen to read alike.
+  - The extra clauses one side keeps local next to the shared call; that is the remedy, not a second
+    copy.
+  - The narrower repository case — the same filter in two or more repositories, which needs an
+    =Expression<Func<TModel, bool>>= to translate to SQL — is =csharp.org= CS-082 and is cited
+    instead of this rule there.
+- *Precedent:* an "is this order shippable" test lifted into a shared library and called both
+  by the API's mapper and by the web client's order-list badge.
+
+* Coverage
+
+** CM-007 — A load-bearing path the change depends on carries a test before the commit
+
+- *Severity:* Smell
+- *Applies to:* new or touched code, every stack
+- *Rule:* A branch, edge case, or invariant the change now depends on, surfaced by a reviewer or by
+  the change's own author, with no test exercising it. Write the test before the commit. It is not
+  deferred as a design question, not carried into the pull request description as a known gap, and
+  not traded against the change's size — the point of surfacing it is that nothing downstream can
+  tell an untested path from an unreachable one, so deferring it converts a known gap into an
+  invisible one. Where the confirming check is something a test cannot reach — a dev-stack
+  walkthrough, a browser check, a production query — the obligation is to run that check and record
+  the result, not to drop it. *Where writing the test shows the path was already correct, the
+  artifact is that passing test, recorded as a coverage closure.* A coverage finding asserts that
+  nothing proves the path, never that the path is wrong, so a test passing on its first run closes
+  it exactly as a failing-then-passing one does: the test is still written and still committed, the
+  finding is not downgraded to "no change needed", and nothing in the production code is edited to
+  manufacture a failure first. A stack's red-green expectation of a failing test before the fix is
+  about a behaviour change and has no subject here — it governs the half of a cycle that changes
+  behaviour, and a coverage closure changes none.
+- *Not a finding:*
+  - A pre-existing untested path the change neither wrote nor now depends on — drift, surfaced once
+    per CM-005 and filed.
+  - Where the test goes is decided by the stack's own rules (=csharp.org= CS-065 for the
+    unit-versus-integration seam, CS-085 for project placement, =blazor.org= BZ-065 for the stack);
+    those govern *where*, never *whether*.
+  - The required catch-all arm of a switch over a closed type hierarchy — every concrete subtype has
+    its own arm, and the throwing =_= arm exists only because the language cannot prove the
+    hierarchy closed — needs no test; the subtype arms do.
+- *Precedent:* a display-name resolver switching over an abstract customer type's two subtypes with a
+  throwing =_= arm; its tests cover both subtypes and the null guard, and carry no fact for the =_=
+  arm.
+
+** CM-008 — No assertion the fixture already satisfies without the behaviour under test
+
+- *Severity:* Smell
+- *Applies to:* new or touched test code, every stack
+- *Rule:* A test — most often a negative or omission fact — whose assertion holds for its own
+  fixture whether or not the behaviour the test name claims is present. Delete the guard, branch, or
+  filter under test and the test still passes, so it reports coverage it does not have and leaves
+  the path in the same state as an untested one, while reading as proof that it is covered.
+  - *The detection is to read the assertion against the fixture rather than against the test name*:
+    an =Assert.DoesNotContain= / =ShouldNotContain= / =expect(...).not.toContain(...)= over a string
+    the fixture never supplied in the first place, an =Assert.Null= over a member the arrange left
+    null, an =Assert.Empty= over a collection the arrange never filled.
+  - *The remedy is not "assert something else" but assert something the behaviour's removal
+    changes* — for an omission fact that usually means asserting on the label, wrapper, or element
+    the branch emits rather than on the value it would have carried, because the label exists only
+    inside the branch while the value's absence is also the fixture's default.
+  - *The way to know you have it is to remove the behaviour, run the test, and watch it fail*; that
+    mutation proof is part of the remedy, not a nicety, and the cycle report records that it was
+    run. The obligation to run it is the writer's; the reviewer's job is the cheaper half — read
+    the fixture and ask what the assertion would do without the branch.
+  - *Inputs meant to produce different outputs carry distinct values.* A fixture where every input
+    shares one value — every applicant primary, a mailing zip equal to the current zip — passes
+    against an implementation that hard-codes the output or reads the wrong source; give each input
+    a value only the correct mapping carries through.
+- *Not a finding:*
+  - An omission fact whose *fixture supplies the value* and whose subject is the system under test
+    suppressing it — that is the shape this rule asks for, not its target.
+  - An assertion over a value the *system under test produced*, including an empty or null result it
+    computed; the test's own literals are the hazard, not the output.
+  - A =ShouldNotBeNull= / =NotNull= guard placed before a dereference, which =csharp.org= CS-096
+    already carves out for the same reason.
+  - A fact that is vacuously true today only because a feature is unbuilt, where the missing feature
+    is the finding (CM-007) and not the assertion.
+  - Pre-existing tests the change neither wrote nor touched — drift, surfaced once per CM-005 and
+    filed; this rule asks for no audit of a project's existing negative assertions.
+- *Precedent:* two omission facts asserted that an id's digits were absent from a card header, over
+  fixtures that never carried those digits; with the guard deleted the page rendered the label with
+  nothing after it and both still passed. The remedy asserted the absence of the label itself, which
+  the page emits only inside the guarded branch, and the mutation proof confirmed it now fails.
+
+* Configuration
+
+** CM-009 — A config or environment value read with a fallback default
+
+- *Severity:* Bug
+- *Applies to:* new or touched code — configuration and environment reads in application code,
+  Helm charts, and CI workflows
+- *Rule:* Never read a config or environment value with a =??=, =||=, or =| default= fallback (or a
+  shell =${VAR:-…}=, or ~os.environ.get("X", "…")~). A required value fails loudly when it is
+  missing ("X is required"), following the file's existing explicit pattern: a guard that stops with
+  that message, then a bare read. A value is optional only when Max has said so; it is then read bare
+  and checked for presence where it is used, never defaulted.
+- *Not a finding:*
+  - A workflow choosing between a dispatched commit and the pushed commit (for example
+    =github.event.inputs.sha || github.sha=) where a dispatch without a full commit sha already fails
+    earlier in the workflow, so the expression picks a commit and never hides a missing value.
+  - A chart list entry's per-item setting that falls back to a house standard recorded in a stack
+    file's Calibration section.
+  - A =??= or =||= that is not a config or environment read, such as a test helper's override
+    argument.
+- *Precedent:* a deploy step that reads a required variable with =${DEPLOY_BRANCH:?DEPLOY_BRANCH is
+  required}= rather than defaulting it.
+
+* Reuse and queries
+
+** CM-010 — A local copy of something the shared layer already provides
+
+- *Severity:* Bug
+- *Applies to:* new or touched code, every stack
+- *Rule:* Before writing a dependency helper, a client, a session or after-commit hook, a fixture
+  pattern, a component, or any other plumbing, the writer uses what the repo's shared package, a
+  sibling module, or the UI's shared layer already provides. If it does not fit, the writer stops and
+  puts it to Max, showing what does not fit and the options: extend the shared piece, or a local
+  variant with the reason. A local copy Max did not agree to is the finding. A test being easier to
+  write is never the reason.
+- *Not a finding:* a local variant the writer's plan records as put to Max, with Max choosing it.
+- *Precedent:* a change hand-wrote its own after-commit listener while a shared database helper
+  providing exactly that was already used by several sibling modules.
+
+** CM-011 — =.first()= on a lookup that can only match one row
+
+- *Severity:* Bug
+- *Applies to:* new or touched code that queries a database
+- *Rule:* A query that can only have one matching row is read as one row: a get by primary key where
+  the key is known, otherwise =one_or_none()=, or =one()= when absence is an error (or the ORM's
+  equivalents, such as =SingleOrDefault= / =Single=). =.first()= on such a query hides a duplicate
+  that should have raised.
+- *Not a finding:* =.first()= on a deliberately ordered pick from many — an =order_by(...)= over more
+  than one candidate row.
+- *Precedent:* a change fetched a boundary row by its kind with =.first()= where a primary-key read
+  existed.
+
+* Reporting
+
+** CM-005 — Pervasive drift is surfaced once at the top, not per file
+
+- *Severity:* none — a reporting rule that governs how findings are emitted, not a finding itself
+- *Applies to:* every reviewer, every stack
+- *Rule:* When a review reveals broad project-level drift (every method does sync-over-async, every
+  component uses decorator inputs, every storage account is publicly addressable, every pipeline
+  inlines the same step), call it out once at the top of the review as a project-level migration
+  opportunity. Per-file findings are reserved for fresh code or recent additions. A targeted edit to
+  a legacy file that follows the file's existing style for minimum diff is not a finding; the
+  writer's plan is expected to call out the broader drift.
+- *Not a finding:* n/a
+- *Precedent:* none yet

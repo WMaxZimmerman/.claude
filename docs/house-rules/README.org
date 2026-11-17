@@ -1,0 +1,553 @@
+#+title: House-rules registry — index
+
+Generated from the files in this directory. =mz-house-rules-manager= regenerates it on every
+change; do not edit by hand. The contract for this registry is =~/.claude/docs/mz-suite.org=,
+section "The house-rules registry".
+
+* Files
+
+| File | Title | Entries |
+|-+-+-|
+| [[file:agents.org][agents.org]] | Agent and skill file house rules (AG) | 15 |
+| [[file:angles.org][angles.org]] | Attack angles (A) | 28 |
+| [[file:angular.org][angular.org]] | Angular house rules (NG) | 46 |
+| [[file:blazor.org][blazor.org]] | Blazor house rules (BZ) | 86 |
+| [[file:common.org][common.org]] | Common house rules (CM) | 11 |
+| [[file:csharp.org][csharp.org]] | C# / .NET house rules (CS) | 107 |
+| [[file:dockerfile.org][dockerfile.org]] | Dockerfile house rules (DK) | 55 |
+| [[file:helm-chart.org][helm-chart.org]] | Helm chart house rules (HC) | 59 |
+| [[file:pipeline.org][pipeline.org]] | Azure Pipelines house rules (PL) | 58 |
+| [[file:python.org][python.org]] | Python house rules (PY) | 2 |
+| [[file:terraform.org][terraform.org]] | Terraform house rules (TF) | 31 |
+| Total | | 498 |
+
+* Agent and skill file house rules (AG)
+
+- [[file:agents.org::*AG-001 — A factual claim written without being checked against disk or a command's output][AG-001]] — A factual claim written without being checked against disk or a command's output
+- [[file:agents.org::*AG-002 — A command written into documentation that was not run in the form written][AG-002]] — A command written into documentation that was not run in the form written
+- [[file:agents.org::*AG-003 — Two statements in force that cannot both be followed][AG-003]] — Two statements in force that cannot both be followed
+- [[file:agents.org::*AG-004 — A command given in a form that depends on one shell][AG-004]] — A command given in a form that depends on one shell
+- [[file:agents.org::*AG-005 — A repo fact written into a suite agent or skill file][AG-005]] — A repo fact written into a suite agent or skill file
+- [[file:agents.org::*AG-006 — The =mz-= prefix used outside the suite, or missing inside it][AG-006]] — The =mz-= prefix used outside the suite, or missing inside it
+- [[file:agents.org::*AG-007 — A rule restated in a second place instead of cross-referenced][AG-007]] — A rule restated in a second place instead of cross-referenced
+- [[file:agents.org::*AG-008 — A durable citation that carries a line number instead of a section heading or symbol][AG-008]] — A durable citation that carries a line number instead of a section heading or symbol
+- [[file:agents.org::*AG-009 — A rule stated twice inside one file instead of pointed at its first statement][AG-009]] — A rule stated twice inside one file instead of pointed at its first statement
+- [[file:agents.org::*AG-010 — An agent-file step that needs an input its tools cannot obtain, with no hand-in named][AG-010]] — An agent-file step that needs an input its tools cannot obtain, with no hand-in named
+- [[file:agents.org::*AG-011 — A file in a skill folder that is not markdown][AG-011]] — A file in a skill folder that is not markdown
+- [[file:agents.org::*AG-012 — A skill that does not declare its job, or whose description disagrees with its body][AG-012]] — A skill that does not declare its job, or whose description disagrees with its body
+- [[file:agents.org::*AG-013 — A skill step that has the main agent cross a fence or edit a delegated path][AG-013]] — A skill step that has the main agent cross a fence or edit a delegated path
+- [[file:agents.org::*AG-014 — A skill step that has the main agent edit, commit, or file without saying so plainly][AG-014]] — A skill step that has the main agent edit, commit, or file without saying so plainly
+- [[file:agents.org::*AG-015 — A skill step that has the main agent edit, commit, or file, stated plainly][AG-015]] — A skill step that has the main agent edit, commit, or file, stated plainly
+
+* Attack angles (A)
+
+- [[file:angles.org::*A-01 — Production data shape differs from dev][A-01]] — Production data shape differs from dev
+- [[file:angles.org::*A-02 — Runtime differs from spec][A-02]] — Runtime differs from spec
+- [[file:angles.org::*A-03 — Time passes][A-03]] — Time passes
+- [[file:angles.org::*A-04 — Second or overlapping call][A-04]] — Second or overlapping call
+- [[file:angles.org::*A-05 — Failure halfway through][A-05]] — Failure halfway through
+- [[file:angles.org::*A-06 — Other callers' assumptions][A-06]] — Other callers' assumptions
+- [[file:angles.org::*A-07 — Rollback][A-07]] — Rollback
+- [[file:angles.org::*A-08 — Silent-failure visibility][A-08]] — Silent-failure visibility
+- [[file:angles.org::*A-09 — Non-interactive principals still reach their endpoints][A-09]] — Non-interactive principals still reach their endpoints
+- [[file:angles.org::*A-10 — Proof the changed surface works and shows up][A-10]] — Proof the changed surface works and shows up
+- [[file:angles.org::*A-11 — Upstream cost per user action][A-11]] — Upstream cost per user action
+- [[file:angles.org::*A-12 — A failure that arrives looking like a success][A-12]] — A failure that arrives looking like a success
+- [[file:angles.org::*A-13 — A loosened policy admits callers who must not see each other's data][A-13]] — A loosened policy admits callers who must not see each other's data
+- [[file:angles.org::*A-14 — A decision that moves between layers takes its tests with it][A-14]] — A decision that moves between layers takes its tests with it
+- [[file:angles.org::*A-15 — Proof the changed instruction was actually exercised][A-15]] — Proof the changed instruction was actually exercised
+- [[file:angles.org::*A-16 — Followed literally by someone with no context, does it work?][A-16]] — Followed literally by someone with no context, does it work?
+- [[file:angles.org::*A-17 — Does this list read as complete when it is not?][A-17]] — Does this list read as complete when it is not?
+- [[file:angles.org::*A-18 — Is the claim right about the mechanism, or only plausible?][A-18]] — Is the claim right about the mechanism, or only plausible?
+- [[file:angles.org::*A-19 — Was this fact checked against disk, or inherited?][A-19]] — Was this fact checked against disk, or inherited?
+- [[file:angles.org::*A-20 — Can both of these statements be followed at once?][A-20]] — Can both of these statements be followed at once?
+- [[file:angles.org::*A-21 — Does this agent change owe a checklist line in the same diff?][A-21]] — Does this agent change owe a checklist line in the same diff?
+- [[file:angles.org::*A-22 — What does this do in a repo that is not this one?][A-22]] — What does this do in a repo that is not this one?
+- [[file:angles.org::*A-23 — Is this fence stated in a way anything can check?][A-23]] — Is this fence stated in a way anything can check?
+- [[file:angles.org::*A-24 — Does the evidence for this claim survive the change's own workflow?][A-24]] — Does the evidence for this claim survive the change's own workflow?
+- [[file:angles.org::*A-25 — Did the file write actually land, or was it only reported?][A-25]] — Did the file write actually land, or was it only reported?
+- [[file:angles.org::*A-26 — Will this sentence still name the change it points at, a month after it merges?][A-26]] — Will this sentence still name the change it points at, a month after it merges?
+- [[file:angles.org::*A-27 — Does the setup this procedure mandates disable the action it requires?][A-27]] — Does the setup this procedure mandates disable the action it requires?
+- [[file:angles.org::*A-28 — A whole-tree mechanical rewrite stays mechanical, mergeable and blameable][A-28]] — A whole-tree mechanical rewrite stays mechanical, mergeable and blameable
+
+* Angular house rules (NG)
+
+- [[file:angular.org::*NG-001 — Signal inputs and outputs, not decorators][NG-001]] — Signal inputs and outputs, not decorators
+- [[file:angular.org::*NG-002 — New control flow, not structural directives][NG-002]] — New control flow, not structural directives
+- [[file:angular.org::*NG-003 — Standalone, not =NgModule=][NG-003]] — Standalone, not =NgModule=
+- [[file:angular.org::*NG-004 — =inject()=, not constructor DI][NG-004]] — =inject()=, not constructor DI
+- [[file:angular.org::*NG-005 — =@for= carries =track=][NG-005]] — =@for= carries =track=
+- [[file:angular.org::*NG-006 — =@defer= for clearly non-critical content][NG-006]] — =@defer= for clearly non-critical content
+- [[file:angular.org::*NG-007 — Functional guards][NG-007]] — Functional guards
+- [[file:angular.org::*NG-008 — Functional interceptors][NG-008]] — Functional interceptors
+- [[file:angular.org::*NG-009 — Lazy routes for non-default features][NG-009]] — Lazy routes for non-default features
+- [[file:angular.org::*NG-010 — Bootstrapping via =provideX()= application config][NG-010]] — Bootstrapping via =provideX()= application config
+- [[file:angular.org::*NG-011 — Signals for component-local state, not Subjects][NG-011]] — Signals for component-local state, not Subjects
+- [[file:angular.org::*NG-012 — Cross-component state lives in NgRx SignalStore][NG-012]] — Cross-component state lives in NgRx SignalStore
+- [[file:angular.org::*NG-013 — Async state is one result type, not separate flags][NG-013]] — Async state is one result type, not separate flags
+- [[file:angular.org::*NG-015 — Subscriptions end with =takeUntilDestroyed()=][NG-015]] — Subscriptions end with =takeUntilDestroyed()=
+- [[file:angular.org::*NG-016 — =async= pipe or =toSignal()= over manual =subscribe()=][NG-016]] — =async= pipe or =toSignal()= over manual =subscribe()=
+- [[file:angular.org::*NG-017 — =effect()= is for side effects, not signal writes][NG-017]] — =effect()= is for side effects, not signal writes
+- [[file:angular.org::*NG-018 — Typed reactive forms][NG-018]] — Typed reactive forms
+- [[file:angular.org::*NG-019 — Stay in reactive forms][NG-019]] — Stay in reactive forms
+- [[file:angular.org::*NG-020 — No =any= in fresh code][NG-020]] — No =any= in fresh code
+- [[file:angular.org::*NG-021 — No =as Type= casts that bypass real typing][NG-021]] — No =as Type= casts that bypass real typing
+- [[file:angular.org::*NG-022 — Strict null handling][NG-022]] — Strict null handling
+- [[file:angular.org::*NG-023 — Native APIs over fresh =lodash=][NG-023]] — Native APIs over fresh =lodash=
+- [[file:angular.org::*NG-024 — No fresh =moment=][NG-024]] — No fresh =moment=
+- [[file:angular.org::*NG-025 — Backend calls go through the generated API client][NG-025]] — Backend calls go through the generated API client
+- [[file:angular.org::*NG-026 — Components and services do one thing][NG-026]] — Components and services do one thing
+- [[file:angular.org::*NG-027 — Name predicts behavior][NG-027]] — Name predicts behavior
+- [[file:angular.org::*NG-028 — Non-trivial private methods become injectable helpers][NG-028]] — Non-trivial private methods become injectable helpers
+- [[file:angular.org::*NG-029 — No =console.log= for diagnostics][NG-029]] — No =console.log= for diagnostics
+- [[file:angular.org::*NG-030 — Fresh behavioral code arrives with a covering test][NG-030]] — Fresh behavioral code arrives with a covering test
+- [[file:angular.org::*NG-031 — Test at the user-visible seam][NG-031]] — Test at the user-visible seam
+- [[file:angular.org::*NG-032 — One behavior per =it=][NG-032]] — One behavior per =it=
+- [[file:angular.org::*NG-033 — Builders over =as Type= fabrication in tests][NG-033]] — Builders over =as Type= fabrication in tests
+- [[file:angular.org::*NG-034 — The auth library is faked via the shared testing library][NG-034]] — The auth library is faked via the shared testing library
+- [[file:angular.org::*NG-035 — Use the shared testing setup helpers][NG-035]] — Use the shared testing setup helpers
+- [[file:angular.org::*NG-036 — Drive and read signals directly][NG-036]] — Drive and read signals directly
+- [[file:angular.org::*NG-037 — =vi.fn()= in modern-stack specs][NG-037]] — =vi.fn()= in modern-stack specs
+- [[file:angular.org::*NG-038 — File naming by role][NG-038]] — File naming by role
+- [[file:angular.org::*NG-039 — Modern test stack is Vitest + =@testing-library/angular=][NG-039]] — Modern test stack is Vitest + =@testing-library/angular=
+- [[file:angular.org::*NG-040 — =userEvent= over =fireEvent=][NG-040]] — =userEvent= over =fireEvent=
+- [[file:angular.org::*NG-041 — Spec layout: one =sut=, dependency-named mocks, =expected= / =actual=][NG-041]] — Spec layout: one =sut=, dependency-named mocks, =expected= / =actual=
+- [[file:angular.org::*NG-042 — =describe= names the SUT; =it= reads as a behavioral sentence][NG-042]] — =describe= names the SUT; =it= reads as a behavioral sentence
+- [[file:angular.org::*NG-043 — Separate =it= blocks over =it.each=][NG-043]] — Separate =it= blocks over =it.each=
+- [[file:angular.org::*NG-044 — Edge cases: null / empty inputs, never skip, awaited acts][NG-044]] — Edge cases: null / empty inputs, never skip, awaited acts
+- [[file:angular.org::*NG-045 — Accidental-progression fixes ship a negative-assertion regression guard][NG-045]] — Accidental-progression fixes ship a negative-assertion regression guard
+- [[file:angular.org::*NG-046 — Matcher matches intent: =toBeVisible()= shown, =queryBy*= + =not.toBeInTheDocument()= absent][NG-046]] — Matcher matches intent: =toBeVisible()= shown, =queryBy*= + =not.toBeInTheDocument()= absent
+- [[file:angular.org::*NG-047 — Spec import grouping: test libs → Angular → workspace][NG-047]] — Spec import grouping: test libs → Angular → workspace
+
+* Blazor house rules (BZ)
+
+- [[file:blazor.org::*BZ-001 — CS-001 for Blazor WASM, ASP.NET Core, MSAL, System.Text.Json][BZ-001]] — CS-001 for Blazor WASM, ASP.NET Core, MSAL, System.Text.Json
+- [[file:blazor.org::*BZ-002 — Directive order =@namespace= → =@page= → =@attribute= → =@using= → =@inject= → =@implements=][BZ-002]] — Directive order =@namespace= → =@page= → =@attribute= → =@using= → =@inject= → =@implements=
+- [[file:blazor.org::*BZ-003 — JS callback or service subscription requires =@implements IAsyncDisposable=][BZ-003]] — JS callback or service subscription requires =@implements IAsyncDisposable=
+- [[file:blazor.org::*BZ-004 — =[Parameter]= is =public= with ={ get; set; }=][BZ-004]] — =[Parameter]= is =public= with ={ get; set; }=
+- [[file:blazor.org::*BZ-005 — Outputs are =EventCallback= named =OnZ=][BZ-005]] — Outputs are =EventCallback= named =OnZ=
+- [[file:blazor.org::*BZ-006 — Required-parameter defaults match precedent (=new()=, =string.Empty=)][BZ-006]] — Required-parameter defaults match precedent (=new()=, =string.Empty=)
+- [[file:blazor.org::*BZ-007 — Don't re-import what =_Imports.razor= provides][BZ-007]] — Don't re-import what =_Imports.razor= provides
+- [[file:blazor.org::*BZ-077 — A =.razor= file's =@using= block follows CS-048's order, =@using static= last][BZ-077]] — A =.razor= file's =@using= block follows CS-048's order, =@using static= last
+- [[file:blazor.org::*BZ-008 — No redundant =StateHasChanged()=][BZ-008]] — No redundant =StateHasChanged()=
+- [[file:blazor.org::*BZ-009 — =StateHasChanged()= after out-of-lifecycle mutation][BZ-009]] — =StateHasChanged()= after out-of-lifecycle mutation
+- [[file:blazor.org::*BZ-010 — Service event handlers re-render via =InvokeAsync(StateHasChanged)=][BZ-010]] — Service event handlers re-render via =InvokeAsync(StateHasChanged)=
+- [[file:blazor.org::*BZ-011 — Every =OnStateChanged= subscription is unsubscribed in =DisposeAsync=][BZ-011]] — Every =OnStateChanged= subscription is unsubscribed in =DisposeAsync=
+- [[file:blazor.org::*BZ-012 — One owner per piece of state][BZ-012]] — One owner per piece of state
+- [[file:blazor.org::*BZ-013 — Components depend on an =IXInterop= wrapper, not =IJSRuntime=][BZ-013]] — Components depend on an =IXInterop= wrapper, not =IJSRuntime=
+- [[file:blazor.org::*BZ-014 — =DotNetObjectReference= is disposed][BZ-014]] — =DotNetObjectReference= is disposed
+- [[file:blazor.org::*BZ-015 — JS unregister in =DisposeAsync= is guarded][BZ-015]] — JS unregister in =DisposeAsync= is guarded
+- [[file:blazor.org::*BZ-016 — =[JSInvokable]= methods catch unexpected exceptions][BZ-016]] — =[JSInvokable]= methods catch unexpected exceptions
+- [[file:blazor.org::*BZ-017 — JS function names are centralized in the interop wrapper][BZ-017]] — JS function names are centralized in the interop wrapper
+- [[file:blazor.org::*BZ-018 — Interop wrapper methods return =ValueTask=][BZ-018]] — Interop wrapper methods return =ValueTask=
+- [[file:blazor.org::*BZ-019 — =IAsyncDisposable= does meaningful disposal or isn't declared][BZ-019]] — =IAsyncDisposable= does meaningful disposal or isn't declared
+- [[file:blazor.org::*BZ-020 — Intentional swallow is named, not commented][BZ-020]] — Intentional swallow is named, not commented
+- [[file:blazor.org::*BZ-021 — Unregister from JS before disposing the reference][BZ-021]] — Unregister from JS before disposing the reference
+- [[file:blazor.org::*BZ-022 — MudBlazor providers live in =App.razor= only][BZ-022]] — MudBlazor providers live in =App.razor= only
+- [[file:blazor.org::*BZ-023 — Popover-using components are tested under =TestHost=][BZ-023]] — Popover-using components are tested under =TestHost=
+- [[file:blazor.org::*BZ-024 — MudBlazor is the only UI library][BZ-024]] — MudBlazor is the only UI library
+- [[file:blazor.org::*BZ-025 — Custom CSS classes match the project namespace][BZ-025]] — Custom CSS classes match the project namespace
+- [[file:blazor.org::*BZ-026 — Reusable inline styles become CSS classes][BZ-026]] — Reusable inline styles become CSS classes
+- [[file:blazor.org::*BZ-081 — A declared style rule has a consumer][BZ-081]] — A declared style rule has a consumer
+- [[file:blazor.org::*BZ-084 — Helper text in a value cell is an element inside the =<dd>=, carrying the project's helper-text class][BZ-084]] — Helper text in a value cell is an element inside the =<dd>=, carrying the project's helper-text class
+- [[file:blazor.org::*BZ-027 — =<EditForm>= with non-trivial input carries validators][BZ-027]] — =<EditForm>= with non-trivial input carries validators
+- [[file:blazor.org::*BZ-028 — File uploads enforce a maximum upload size][BZ-028]] — File uploads enforce a maximum upload size
+- [[file:blazor.org::*BZ-029 — Typed inputs use ~Immediate="true"~, not ~@bind-Value:event="oninput"~][BZ-029]] — Typed inputs use ~Immediate="true"~, not ~@bind-Value:event="oninput"~
+- [[file:blazor.org::*BZ-030 — Interactive non-button elements are keyboard- and screen-reader-accessible][BZ-030]] — Interactive non-button elements are keyboard- and screen-reader-accessible
+- [[file:blazor.org::*BZ-031 — Disclosure widgets bind =aria-expanded=][BZ-031]] — Disclosure widgets bind =aria-expanded=
+- [[file:blazor.org::*BZ-032 — Icon-only buttons carry =aria-label=][BZ-032]] — Icon-only buttons carry =aria-label=
+- [[file:blazor.org::*BZ-079 — The accessible name contains the visible label][BZ-079]] — The accessible name contains the visible label
+- [[file:blazor.org::*BZ-080 — One announcement per load outcome, and never two attributes that disagree][BZ-080]] — One announcement per load outcome, and never two attributes that disagree
+- [[file:blazor.org::*BZ-033 — Stateful services expose =OnStateChanged= + =Notify()=][BZ-033]] — Stateful services expose =OnStateChanged= + =Notify()=
+- [[file:blazor.org::*BZ-034 — Mutating methods use the =IsSaving= =try / finally= envelope][BZ-034]] — Mutating methods use the =IsSaving= =try / finally= envelope
+- [[file:blazor.org::*BZ-035 — No synthetic =Result<T>=][BZ-035]] — No synthetic =Result<T>=
+- [[file:blazor.org::*BZ-036 — Optimistic-then-rollback where the precedent applies][BZ-036]] — Optimistic-then-rollback where the precedent applies
+- [[file:blazor.org::*BZ-037 — =JsonSerializerOptions= set camelCase and =IgnoreCycles=][BZ-037]] — =JsonSerializerOptions= set camelCase and =IgnoreCycles=
+- [[file:blazor.org::*BZ-038 — CS-011 per client method][BZ-038]] — CS-011 per client method
+- [[file:blazor.org::*BZ-039 — CS-012 for =ReadFromJsonAsync<T>()=][BZ-039]] — CS-012 for =ReadFromJsonAsync<T>()=
+- [[file:blazor.org::*BZ-040 — CS-032 tightened: no =Newtonsoft.Json= anywhere in the Web projects][BZ-040]] — CS-032 tightened: no =Newtonsoft.Json= anywhere in the Web projects
+- [[file:blazor.org::*BZ-041 — CS-025 in =Clients/=][BZ-041]] — CS-025 in =Clients/=
+- [[file:blazor.org::*BZ-042 — Auth services are =Singleton=][BZ-042]] — Auth services are =Singleton=
+- [[file:blazor.org::*BZ-043 — Per-circuit stateful services are =Scoped=][BZ-043]] — Per-circuit stateful services are =Scoped=
+- [[file:blazor.org::*BZ-044 — API typed clients attach the bearer token handler][BZ-044]] — API typed clients attach the bearer token handler
+- [[file:blazor.org::*BZ-045 — Named clients for third-party endpoints never carry the API bearer][BZ-045]] — Named clients for third-party endpoints never carry the API bearer
+- [[file:blazor.org::*BZ-046 — Runtime config is committed =appsettings.{Environment}.json=, never injected][BZ-046]] — Runtime config is committed =appsettings.{Environment}.json=, never injected
+- [[file:blazor.org::*BZ-047 — CS-002 in =@code=, =Services/=, =Clients/=][BZ-047]] — CS-002 in =@code=, =Services/=, =Clients/=
+- [[file:blazor.org::*BZ-048 — CS-003 for public =Task= / =ValueTask= methods][BZ-048]] — CS-003 for public =Task= / =ValueTask= methods
+- [[file:blazor.org::*BZ-049 — CS-004 for =Singleton= services][BZ-049]] — CS-004 for =Singleton= services
+- [[file:blazor.org::*BZ-082 — A response is discarded when the parameter that requested it has changed][BZ-082]] — A response is discarded when the parameter that requested it has changed
+- [[file:blazor.org::*BZ-050 — CS-024 with =ISnackbar= as the user-facing alternative][BZ-050]] — CS-024 with =ISnackbar= as the user-facing alternative
+- [[file:blazor.org::*BZ-051 — CS-026 on new Blazor types][BZ-051]] — CS-026 on new Blazor types
+- [[file:blazor.org::*BZ-052 — CM-003 in Blazor constructs, including =@* *@= Razor comments][BZ-052]] — CM-003 in Blazor constructs, including =@* *@= Razor comments
+- [[file:blazor.org::*BZ-053 — CS-028 for Blazor records][BZ-053]] — CS-028 for Blazor records
+- [[file:blazor.org::*BZ-054 — CS-029 on =[Parameter]= / =[EditorRequired]= / =[Inject]= / =[JSInvokable]= / =[JsonPropertyName]= stacks][BZ-054]] — CS-029 on =[Parameter]= / =[EditorRequired]= / =[Inject]= / =[JSInvokable]= / =[JsonPropertyName]= stacks
+- [[file:blazor.org::*BZ-055 — CS-030 in =Services/= / =Clients/=][BZ-055]] — CS-030 in =Services/= / =Clients/=
+- [[file:blazor.org::*BZ-056 — CS-031 in =Services/= / =Clients/= / =@code=][BZ-056]] — CS-031 in =Services/= / =Clients/= / =@code=
+- [[file:blazor.org::*BZ-057 — Reuse the interop pattern the existing wrapper establishes][BZ-057]] — Reuse the interop pattern the existing wrapper establishes
+- [[file:blazor.org::*BZ-058 — Business logic belongs in a service, not a page][BZ-058]] — Business logic belongs in a service, not a page
+- [[file:blazor.org::*BZ-059 — CS-014 in =@code= blocks and =Services/= / =Clients/=][BZ-059]] — CS-014 in =@code= blocks and =Services/= / =Clients/=
+- [[file:blazor.org::*BZ-060 — CS-015 in =@code=, =Services/=, =Clients/=][BZ-060]] — CS-015 in =@code=, =Services/=, =Clients/=
+- [[file:blazor.org::*BZ-061 — CS-017 for =IXService= / =IXClient=][BZ-061]] — CS-017 for =IXService= / =IXClient=
+- [[file:blazor.org::*BZ-062 — CS-046 in the Web projects][BZ-062]] — CS-046 in the Web projects
+- [[file:blazor.org::*BZ-086 — Markup does not re-make a decision its display helper makes][BZ-086]] — Markup does not re-make a decision its display helper makes
+- [[file:blazor.org::*BZ-063 — Typed client returns raw responses or unwraps the payload wrapper, never both][BZ-063]] — Typed client returns raw responses or unwraps the payload wrapper, never both
+- [[file:blazor.org::*BZ-064 — Delegating handlers are =Transient=][BZ-064]] — Delegating handlers are =Transient=
+- [[file:blazor.org::*BZ-065 — Test stack is bUnit + xUnit =Assert.*= + NSubstitute (overrides CS-060)][BZ-065]] — Test stack is bUnit + xUnit =Assert.*= + NSubstitute (overrides CS-060)
+- [[file:blazor.org::*BZ-066 — Component test layout: =TestContext=, dependency-named substitutes, constructor wiring][BZ-066]] — Component test layout: =TestContext=, dependency-named substitutes, constructor wiring
+- [[file:blazor.org::*BZ-067 — Service / pure-logic tests are plain classes with no render context][BZ-067]] — Service / pure-logic tests are plain classes with no render context
+- [[file:blazor.org::*BZ-068 — =TestHost= wrapper is copied verbatim, not re-invented][BZ-068]] — =TestHost= wrapper is copied verbatim, not re-invented
+- [[file:blazor.org::*BZ-069 — Semantic selectors before implementation-detail CSS][BZ-069]] — Semantic selectors before implementation-detail CSS
+- [[file:blazor.org::*BZ-070 — Async convergence via =InvokeAsync= / =WaitForAssertion=, never =Thread.Sleep=][BZ-070]] — Async convergence via =InvokeAsync= / =WaitForAssertion=, never =Thread.Sleep=
+- [[file:blazor.org::*BZ-071 — Component tests verify a service call only when the call is the contract][BZ-071]] — Component tests verify a service call only when the call is the contract
+- [[file:blazor.org::*BZ-072 — Component tests are present-tense snake_case; service tests keep =Method_Outcome_WhenCondition= (overrides CS-062)][BZ-072]] — Component tests are present-tense snake_case; service tests keep =Method_Outcome_WhenCondition= (overrides CS-062)
+- [[file:blazor.org::*BZ-073 — CS-063 in the Blazor test projects][BZ-073]] — CS-063 in the Blazor test projects
+- [[file:blazor.org::*BZ-074 — Test-project =using= order overrides CS-048][BZ-074]] — Test-project =using= order overrides CS-048
+- [[file:blazor.org::*BZ-075 — CS-072 / CS-073 in the Blazor test projects][BZ-075]] — CS-072 / CS-073 in the Blazor test projects
+- [[file:blazor.org::*BZ-076 — CS-071 with NSubstitute][BZ-076]] — CS-071 with NSubstitute
+- [[file:blazor.org::*BZ-078 — A typed-client test arranges a body the server can send, and never pins an expectation to an enum's zero member][BZ-078]] — A typed-client test arranges a body the server can send, and never pins an expectation to an enum's zero member
+- [[file:blazor.org::*BZ-083 — A log assertion reads the real =ILogger.Log= member off a substitute registered closed over the type under test][BZ-083]] — A log assertion reads the real =ILogger.Log= member off a substitute registered closed over the type under test
+- [[file:blazor.org::*BZ-085 — A screen string asserted in two or more test files lives once in the shared test-constants class][BZ-085]] — A screen string asserted in two or more test files lives once in the shared test-constants class
+
+* Common house rules (CM)
+
+- [[file:common.org::*CM-001 — No =TODO= / =FIXME= / =HACK= comments][CM-001]] — No =TODO= / =FIXME= / =HACK= comments
+- [[file:common.org::*CM-002 — No commented-out code or markup][CM-002]] — No commented-out code or markup
+- [[file:common.org::*CM-003 — No comments at all, every stack][CM-003]] — No comments at all, every stack
+- [[file:common.org::*CM-004 — Magic numbers and strings carrying business meaning][CM-004]] — Magic numbers and strings carrying business meaning
+- [[file:common.org::*CM-006 — One business rule, one function, when the two copies sit in different projects or stacks][CM-006]] — One business rule, one function, when the two copies sit in different projects or stacks
+- [[file:common.org::*CM-007 — A load-bearing path the change depends on carries a test before the commit][CM-007]] — A load-bearing path the change depends on carries a test before the commit
+- [[file:common.org::*CM-008 — No assertion the fixture already satisfies without the behaviour under test][CM-008]] — No assertion the fixture already satisfies without the behaviour under test
+- [[file:common.org::*CM-009 — A config or environment value read with a fallback default][CM-009]] — A config or environment value read with a fallback default
+- [[file:common.org::*CM-010 — A local copy of something the shared layer already provides][CM-010]] — A local copy of something the shared layer already provides
+- [[file:common.org::*CM-011 — =.first()= on a lookup that can only match one row][CM-011]] — =.first()= on a lookup that can only match one row
+- [[file:common.org::*CM-005 — Pervasive drift is surfaced once at the top, not per file][CM-005]] — Pervasive drift is surfaced once at the top, not per file
+
+* C# / .NET house rules (CS)
+
+- [[file:csharp.org::*CS-001 — Bespoke plumbing where a documented framework mechanism exists][CS-001]] — Bespoke plumbing where a documented framework mechanism exists
+- [[file:csharp.org::*CS-002 — No sync-over-async][CS-002]] — No sync-over-async
+- [[file:csharp.org::*CS-003 — Missing =CancellationToken= on async public methods][CS-003]] — Missing =CancellationToken= on async public methods
+- [[file:csharp.org::*CS-004 — Mutable shared state on a =Singleton= without synchronization][CS-004]] — Mutable shared state on a =Singleton= without synchronization
+- [[file:csharp.org::*CS-005 — =DbContext= shared across concurrent tasks][CS-005]] — =DbContext= shared across concurrent tasks
+- [[file:csharp.org::*CS-079 — A non-=async= Task-returning member returns its failures on the task][CS-079]] — A non-=async= Task-returning member returns its failures on the task
+- [[file:csharp.org::*CS-090 — A =CancellationToken= accepted at the end of the call chain and never honoured][CS-090]] — A =CancellationToken= accepted at the end of the call chain and never honoured
+- [[file:csharp.org::*CS-006 — =IDisposable= not disposed][CS-006]] — =IDisposable= not disposed
+- [[file:csharp.org::*CS-007 — =HttpClient= instantiated outside =IHttpClientFactory=][CS-007]] — =HttpClient= instantiated outside =IHttpClientFactory=
+- [[file:csharp.org::*CS-008 — Mutating =DefaultRequestHeaders= on a factory-returned =HttpClient=][CS-008]] — Mutating =DefaultRequestHeaders= on a factory-returned =HttpClient=
+- [[file:csharp.org::*CS-009 — Controllers return results, not =BadRequest(...)=][CS-009]] — Controllers return results, not =BadRequest(...)=
+- [[file:csharp.org::*CS-010 — Swallowed exceptions returning =default(T)= / =null=][CS-010]] — Swallowed exceptions returning =default(T)= / =null=
+- [[file:csharp.org::*CS-011 — Status code unchecked before reading the body][CS-011]] — Status code unchecked before reading the body
+- [[file:csharp.org::*CS-012 — Deserialized response dereferenced without null-check][CS-012]] — Deserialized response dereferenced without null-check
+- [[file:csharp.org::*CS-081 — A wrapped exception keeps the caught one as =InnerException=][CS-081]] — A wrapped exception keeps the caught one as =InnerException=
+- [[file:csharp.org::*CS-086 — A parse of stored or untrusted text uses =TryParse= and throws the feature's typed exception][CS-086]] — A parse of stored or untrusted text uses =TryParse= and throws the feature's typed exception
+- [[file:csharp.org::*CS-091 — Never infer success from the HTTP status on an enveloped response][CS-091]] — Never infer success from the HTTP status on an enveloped response
+- [[file:csharp.org::*CS-092 — An enveloped response is proved to be one before it is trusted][CS-092]] — An enveloped response is proved to be one before it is trusted
+- [[file:csharp.org::*CS-094 — An adapter converting a vendor's failures converts every typed failure its terminus can throw][CS-094]] — An adapter converting a vendor's failures converts every typed failure its terminus can throw
+- [[file:csharp.org::*CS-102 — No handling, message, or arranged test failure for a failure the called code cannot produce][CS-102]] — No handling, message, or arranged test failure for a failure the called code cannot produce
+- [[file:csharp.org::*CS-097 — A deserialized payload's non-nullable member is guarded, not trusted][CS-097]] — A deserialized payload's non-nullable member is guarded, not trusted
+- [[file:csharp.org::*CS-098 — A query's no-row case throws the feature's typed failure, not the framework's][CS-098]] — A query's no-row case throws the feature's typed failure, not the framework's
+- [[file:csharp.org::*CS-013 — Functions doing multiple things][CS-013]] — Functions doing multiple things
+- [[file:csharp.org::*CS-014 — No private methods in production code][CS-014]] — No private methods in production code
+- [[file:csharp.org::*CS-015 — Single =return= per method][CS-015]] — Single =return= per method
+- [[file:csharp.org::*CS-016 — Name predicts behavior — methods, locals, and parameters alike][CS-016]] — Name predicts behavior — methods, locals, and parameters alike
+- [[file:csharp.org::*CS-017 — Single-implementation interface is co-located in its impl file][CS-017]] — Single-implementation interface is co-located in its impl file
+- [[file:csharp.org::*CS-018 — No static class / extension method wrapping mockable logic][CS-018]] — No static class / extension method wrapping mockable logic
+- [[file:csharp.org::*CS-019 — New controller or service with zero test coverage][CS-019]] — New controller or service with zero test coverage
+- [[file:csharp.org::*CS-020 — New repository methods return =Dm=, not =Model= — and the =Dm= carries no entity][CS-020]] — New repository methods return =Dm=, not =Model= — and the =Dm= carries no entity
+- [[file:csharp.org::*CS-021 — Model→Dm / Dto shaping lives in mappers, never in repositories][CS-021]] — Model→Dm / Dto shaping lives in mappers, never in repositories
+- [[file:csharp.org::*CS-103 — Every producer of a domain-model property writes the same meaning into it][CS-103]] — Every producer of a domain-model property writes the same meaning into it
+- [[file:csharp.org::*CS-104 — A wide domain model is not returned mostly unfilled where its defaults read as real data][CS-104]] — A wide domain model is not returned mostly unfilled where its defaults read as real data
+- [[file:csharp.org::*CS-022 — Data mutations happen inside repositories][CS-022]] — Data mutations happen inside repositories
+- [[file:csharp.org::*CS-023 — DI wiring lives in the feature's =ServiceRegister=][CS-023]] — DI wiring lives in the feature's =ServiceRegister=
+- [[file:csharp.org::*CS-082 — A query predicate shared by 2+ repositories lives in one injectable expression provider][CS-082]] — A query predicate shared by 2+ repositories lives in one injectable expression provider
+- [[file:csharp.org::*CS-087 — A composite business match key is written out once, not per call site][CS-087]] — A composite business match key is written out once, not per call site
+- [[file:csharp.org::*CS-105 — A business comparison made in both SQL and C# agrees on case][CS-105]] — A business comparison made in both SQL and C# agrees on case
+- [[file:csharp.org::*CS-024 — No =Console.WriteLine= for logging][CS-024]] — No =Console.WriteLine= for logging
+- [[file:csharp.org::*CS-025 — JSON casing via attributes, not property names][CS-025]] — JSON casing via attributes, not property names
+- [[file:csharp.org::*CS-026 — PascalCase type suffixes (=Dto=, =Dm=), never all-caps][CS-026]] — PascalCase type suffixes (=Dto=, =Dm=), never all-caps
+- [[file:csharp.org::*CS-027 — CM-003 in C# / .NET constructs][CS-027]] — CM-003 in C# / .NET constructs
+- [[file:csharp.org::*CS-028 — Records are class-body, never positional][CS-028]] — Records are class-body, never positional
+- [[file:csharp.org::*CS-029 — Attribute stacks are ordered shortest-first (pyramid)][CS-029]] — Attribute stacks are ordered shortest-first (pyramid)
+- [[file:csharp.org::*CS-030 — Multi-line primary constructor: base list continues the closing-paren line][CS-030]] — Multi-line primary constructor: base list continues the closing-paren line
+- [[file:csharp.org::*CS-031 — Multi-line parameter lists align under the first parameter][CS-031]] — Multi-line parameter lists align under the first parameter
+- [[file:csharp.org::*CS-093 — =[Obsolete]= goes where the warning is wanted, and its message says which deprecation it is][CS-093]] — =[Obsolete]= goes where the warning is wanted, and its message says which deprecation it is
+- [[file:csharp.org::*CS-032 — STJ for new code; Newtonsoft only in documented islands][CS-032]] — STJ for new code; Newtonsoft only in documented islands
+- [[file:csharp.org::*CS-078 — Third-party payload strings parse with =CultureInfo.InvariantCulture=][CS-078]] — Third-party payload strings parse with =CultureInfo.InvariantCulture=
+- [[file:csharp.org::*CS-033 — Every controller endpoint carries a registered ~[Authorize(Policy = "...")]~][CS-033]] — Every controller endpoint carries a registered ~[Authorize(Policy = "...")]~
+- [[file:csharp.org::*CS-034 — Scheme specified on endpoints reachable from service-to-service callers][CS-034]] — Scheme specified on endpoints reachable from service-to-service callers
+- [[file:csharp.org::*CS-077 — No class-level =[Authorize]= above an action a different principal must reach][CS-077]] — No class-level =[Authorize]= above an action a different principal must reach
+- [[file:csharp.org::*CS-035 — No lifetime mismatches][CS-035]] — No lifetime mismatches
+- [[file:csharp.org::*CS-076 — =IDbContextFactory<TContext>= is registered alongside the scoped context][CS-076]] — =IDbContextFactory<TContext>= is registered alongside the scoped context
+- [[file:csharp.org::*CS-080 — No =new= of a DI-registered dependency inside a consumer][CS-080]] — No =new= of a DI-registered dependency inside a consumer
+- [[file:csharp.org::*CS-036 — =WithReference(...)= pairs with =WaitFor(...)= for startup dependencies][CS-036]] — =WithReference(...)= pairs with =WaitFor(...)= for startup dependencies
+- [[file:csharp.org::*CS-037 — No unused =WithReference(...)=][CS-037]] — No unused =WithReference(...)=
+- [[file:csharp.org::*CS-038 — Sensitive =AddParameter= is =secret: true=][CS-038]] — Sensitive =AddParameter= is =secret: true=
+- [[file:csharp.org::*CS-039 — Stateful containers are =Persistent= with a data volume][CS-039]] — Stateful containers are =Persistent= with a data volume
+- [[file:csharp.org::*CS-040 — No =latest= image tag in AppHost][CS-040]] — No =latest= image tag in AppHost
+- [[file:csharp.org::*CS-041 — No business logic in AppHost][CS-041]] — No business logic in AppHost
+- [[file:csharp.org::*CS-042 — No new AppHost helpers rendering runtime config files][CS-042]] — No new AppHost helpers rendering runtime config files
+- [[file:csharp.org::*CS-075 — Cross-resource URLs compose via =GetEndpoint(...)=, deferred or eager by call site][CS-075]] — Cross-resource URLs compose via =GetEndpoint(...)=, deferred or eager by call site
+- [[file:csharp.org::*CS-043 — Project-file diffs are reviewed as changes, never treated as noise][CS-043]] — Project-file diffs are reviewed as changes, never treated as noise
+- [[file:csharp.org::*CS-044 — New =PackageReference= needs a stated reason and a central pin][CS-044]] — New =PackageReference= needs a stated reason and a central pin
+- [[file:csharp.org::*CS-045 — =Aspire.Hosting.*= packages live only in =*.AppHost.csproj=][CS-045]] — =Aspire.Hosting.*= packages live only in =*.AppHost.csproj=
+- [[file:csharp.org::*CS-046 — No =InternalsVisibleTo= or test-only =internal= members][CS-046]] — No =InternalsVisibleTo= or test-only =internal= members
+- [[file:csharp.org::*CS-047 — TFM, =Nullable=, =ImplicitUsings= don't drift from sibling projects][CS-047]] — TFM, =Nullable=, =ImplicitUsings= don't drift from sibling projects
+- [[file:csharp.org::*CS-048 — =using= groups: =System.*= → project → third-party][CS-048]] — =using= groups: =System.*= → project → third-party
+- [[file:csharp.org::*CS-099 — A =using= the change left unused, in a file the change touched][CS-099]] — A =using= the change left unused, in a file the change touched
+- [[file:csharp.org::*CS-049 — Primary constructors for DI-only classes][CS-049]] — Primary constructors for DI-only classes
+- [[file:csharp.org::*CS-050 — File-scoped namespaces, =_camelCase= private fields, =I=-prefixed interfaces][CS-050]] — File-scoped namespaces, =_camelCase= private fields, =I=-prefixed interfaces
+- [[file:csharp.org::*CS-051 — EF read hygiene: =AsNoTracking()=, =AsSplitQuery()=, =SaveChangesAsync(cancellationToken)=][CS-051]] — EF read hygiene: =AsNoTracking()=, =AsSplitQuery()=, =SaveChangesAsync(cancellationToken)=
+- [[file:csharp.org::*CS-052 — =record= is the default for data-holding types][CS-052]] — =record= is the default for data-holding types
+- [[file:csharp.org::*CS-053 — Migration names carry the house prefix][CS-053]] — Migration names carry the house prefix
+- [[file:csharp.org::*CS-054 — Fluent config lives on the entity via =IEntityTypeConfiguration<TSelf>=][CS-054]] — Fluent config lives on the entity via =IEntityTypeConfiguration<TSelf>=
+- [[file:csharp.org::*CS-055 — Enums are stored as strings][CS-055]] — Enums are stored as strings
+- [[file:csharp.org::*CS-056 — =DateOnly= for dates, =DateTimeOffset= elsewhere][CS-056]] — =DateOnly= for dates, =DateTimeOffset= elsewhere
+- [[file:csharp.org::*CS-057 — Generated migration artifacts are never hand-edited][CS-057]] — Generated migration artifacts are never hand-edited
+- [[file:csharp.org::*CS-058 — Hand-written migration SQL uses the house helpers and dialect][CS-058]] — Hand-written migration SQL uses the house helpers and dialect
+- [[file:csharp.org::*CS-059 — Applied migrations are immutable][CS-059]] — Applied migrations are immutable
+- [[file:csharp.org::*CS-060 — Test stack is xUnit + Moq + Shouldly][CS-060]] — Test stack is xUnit + Moq + Shouldly
+- [[file:csharp.org::*CS-061 — Test class layout: one =_sut=, =_mockX= dependencies, =expected= / =actual=][CS-061]] — Test class layout: one =_sut=, =_mockX= dependencies, =expected= / =actual=
+- [[file:csharp.org::*CS-062 — Test names are =Method_ExpectedOutcome_WhenCondition=][CS-062]] — Test names are =Method_ExpectedOutcome_WhenCondition=
+- [[file:csharp.org::*CS-063 — Separate =[Fact]= methods over =[Theory]=][CS-063]] — Separate =[Fact]= methods over =[Theory]=
+- [[file:csharp.org::*CS-064 — Test base-class helpers over hand-rolled fakes][CS-064]] — Test base-class helpers over hand-rolled fakes
+- [[file:csharp.org::*CS-065 — The unit project with the data-test base is the default seam][CS-065]] — The unit project with the data-test base is the default seam
+- [[file:csharp.org::*CS-066 — Repository tests seed through the data-test base's dataset helper][CS-066]] — Repository tests seed through the data-test base's dataset helper
+- [[file:csharp.org::*CS-067 — Service tests mock the repository and external clients, and assert =Dm= shapes][CS-067]] — Service tests mock the repository and external clients, and assert =Dm= shapes
+- [[file:csharp.org::*CS-068 — Controller coverage is integration-first; typed exceptions are asserted at the service][CS-068]] — Controller coverage is integration-first; typed exceptions are asserted at the service
+- [[file:csharp.org::*CS-069 — HTTP-client tests mock =HttpMessageHandler= with =MockBehavior.Strict=][CS-069]] — HTTP-client tests mock =HttpMessageHandler= with =MockBehavior.Strict=
+- [[file:csharp.org::*CS-070 — Auth / policy tests vary the JWT identity in the integration project][CS-070]] — Auth / policy tests vary the JWT identity in the integration project
+- [[file:csharp.org::*CS-071 — CS-014 helpers are mocked in the SUT's tests and tested directly in their own class][CS-071]] — CS-014 helpers are mocked in the SUT's tests and tested directly in their own class
+- [[file:csharp.org::*CS-072 — Null inputs are covered; flaky tests are fixed, never skipped][CS-072]] — Null inputs are covered; flaky tests are fixed, never skipped
+- [[file:csharp.org::*CS-073 — No reflection into private state on a class under active TDD][CS-073]] — No reflection into private state on a class under active TDD
+- [[file:csharp.org::*CS-074 — No hand-picked literal id inside the random-id helper's range][CS-074]] — No hand-picked literal id inside the random-id helper's range
+- [[file:csharp.org::*CS-083 — Culture is pinned with the project's scoped culture helper, not a hand-rolled swap][CS-083]] — Culture is pinned with the project's scoped culture helper, not a hand-rolled swap
+- [[file:csharp.org::*CS-084 — A hand-written fake replacing a dependency in an integration host records its arguments][CS-084]] — A hand-written fake replacing a dependency in an integration host records its arguments
+- [[file:csharp.org::*CS-095 — A mocked collaborator's arguments are captured into a named field, not asserted through =It.Is=][CS-095]] — A mocked collaborator's arguments are captured into a named field, not asserted through =It.Is=
+- [[file:csharp.org::*CS-085 — A type from a project with no test project of its own is tested in the house unit-test project, in a folder named for its source project][CS-085]] — A type from a project with no test project of its own is tested in the house unit-test project, in a folder named for its source project
+- [[file:csharp.org::*CS-088 — Separate =[Fact]= methods differ in something an assertion reads][CS-088]] — Separate =[Fact]= methods differ in something an assertion reads
+- [[file:csharp.org::*CS-096 — Within one fact, no assertion that cannot fail independently of another][CS-096]] — Within one fact, no assertion that cannot fail independently of another
+- [[file:csharp.org::*CS-089 — No reflection test asserting a route template a request already exercises][CS-089]] — No reflection test asserting a route template a request already exercises
+- [[file:csharp.org::*CS-100 — A test-helper parameter every caller passes the same value for becomes a value inside the helper][CS-100]] — A test-helper parameter every caller passes the same value for becomes a value inside the helper
+- [[file:csharp.org::*CS-101 — Within one test class, each fact seeds distinct identifying values][CS-101]] — Within one test class, each fact seeds distinct identifying values
+- [[file:csharp.org::*CS-106 — Where case matters, a Shouldly substring assertion is case-sensitive][CS-106]] — Where case matters, a Shouldly substring assertion is case-sensitive
+- [[file:csharp.org::*CS-107 — An absence assertion for something never on the integration branch is red-step scaffolding][CS-107]] — An absence assertion for something never on the integration branch is red-step scaffolding
+
+* Dockerfile house rules (DK)
+
+- [[file:dockerfile.org::*DK-001 — No hardcoded credentials][DK-001]] — No hardcoded credentials
+- [[file:dockerfile.org::*DK-002 — BuildKit secrets are read from =/run/secrets/<id>=][DK-002]] — BuildKit secrets are read from =/run/secrets/<id>=
+- [[file:dockerfile.org::*DK-003 — The BuildKit secret id matches what the pipeline passes][DK-003]] — The BuildKit secret id matches what the pipeline passes
+- [[file:dockerfile.org::*DK-004 — A feed token is never baked at build time][DK-004]] — A feed token is never baked at build time
+- [[file:dockerfile.org::*DK-005 — Dev images use runtime env injection, not BuildKit secrets][DK-005]] — Dev images use runtime env injection, not BuildKit secrets
+- [[file:dockerfile.org::*DK-006 — Restore before =COPY . .=][DK-006]] — Restore before =COPY . .=
+- [[file:dockerfile.org::*DK-007 — Restore, build, and publish use the package cache mount][DK-007]] — Restore, build, and publish use the package cache mount
+- [[file:dockerfile.org::*DK-008 — Build steps don't re-run restore][DK-008]] — Build steps don't re-run restore
+- [[file:dockerfile.org::*DK-009 — =dotnet publish= is =--no-restore= after an explicit restore][DK-009]] — =dotnet publish= is =--no-restore= after an explicit restore
+- [[file:dockerfile.org::*DK-010 — Only restore inputs in the restore-cache COPY layer][DK-010]] — Only restore inputs in the restore-cache COPY layer
+- [[file:dockerfile.org::*DK-011 — Targeted =.csproj= COPY][DK-011]] — Targeted =.csproj= COPY
+- [[file:dockerfile.org::*DK-012 — No =:latest=][DK-012]] — No =:latest=
+- [[file:dockerfile.org::*DK-013 — Base tags are pinned to sibling specificity][DK-013]] — Base tags are pinned to sibling specificity
+- [[file:dockerfile.org::*DK-014 — Runtime stages on =aspnet:*= / =sdk:*= / Debian bases set =USER=][DK-014]] — Runtime stages on =aspnet:*= / =sdk:*= / Debian bases set =USER=
+- [[file:dockerfile.org::*DK-015 — No =USER root= in a production runtime stage][DK-015]] — No =USER root= in a production runtime stage
+- [[file:dockerfile.org::*DK-016 — No =USER= on =nginx-unprivileged:*=][DK-016]] — No =USER= on =nginx-unprivileged:*=
+- [[file:dockerfile.org::*DK-017 — =EXPOSE= matches the listening port][DK-017]] — =EXPOSE= matches the listening port
+- [[file:dockerfile.org::*DK-018 — =EXPOSE= matches the chart's Service =targetPort=][DK-018]] — =EXPOSE= matches the chart's Service =targetPort=
+- [[file:dockerfile.org::*DK-019 — =apt-get install --no-install-recommends=][DK-019]] — =apt-get install --no-install-recommends=
+- [[file:dockerfile.org::*DK-020 — apt lists cleaned in the same =RUN=][DK-020]] — apt lists cleaned in the same =RUN=
+- [[file:dockerfile.org::*DK-021 — No dev tooling in a production stage][DK-021]] — No dev tooling in a production stage
+- [[file:dockerfile.org::*DK-022 — =HEALTHCHECK= is opt-in on Kubernetes-deployed images][DK-022]] — =HEALTHCHECK= is opt-in on Kubernetes-deployed images
+- [[file:dockerfile.org::*DK-023 — ~# syntax=docker/dockerfile:1.7~ whenever mounts are used][DK-023]] — ~# syntax=docker/dockerfile:1.7~ whenever mounts are used
+- [[file:dockerfile.org::*DK-024 — No unused =# syntax= directive][DK-024]] — No unused =# syntax= directive
+- [[file:dockerfile.org::*DK-025 — =# syntax= pinned to =1.7= or newer][DK-025]] — =# syntax= pinned to =1.7= or newer
+- [[file:dockerfile.org::*DK-026 — Production images are multi-stage][DK-026]] — Production images are multi-stage
+- [[file:dockerfile.org::*DK-027 — Runtime stage COPYs =/publish=][DK-027]] — Runtime stage COPYs =/publish=
+- [[file:dockerfile.org::*DK-028 — ~COPY --from=<stage>~ targets exist][DK-028]] — ~COPY --from=<stage>~ targets exist
+- [[file:dockerfile.org::*DK-029 — Dev images stay single-stage][DK-029]] — Dev images stay single-stage
+- [[file:dockerfile.org::*DK-030 — Exec-form =ENTRYPOINT= and =CMD=][DK-030]] — Exec-form =ENTRYPOINT= and =CMD=
+- [[file:dockerfile.org::*DK-031 — Entrypoint scripts are COPYed ~--chmod=0755~][DK-031]] — Entrypoint scripts are COPYed ~--chmod=0755~
+- [[file:dockerfile.org::*DK-032 — Entrypoint scripts live beside their Dockerfile][DK-032]] — Entrypoint scripts live beside their Dockerfile
+- [[file:dockerfile.org::*DK-033 — =CMD= targets exist in the final image][DK-033]] — =CMD= targets exist in the final image
+- [[file:dockerfile.org::*DK-034 — nginx runtime config renders from =/docker-entrypoint.d/=][DK-034]] — nginx runtime config renders from =/docker-entrypoint.d/=
+- [[file:dockerfile.org::*DK-035 — Migration entrypoints validate required env vars][DK-035]] — Migration entrypoints validate required env vars
+- [[file:dockerfile.org::*DK-036 — A build =ARG= stays while the pipeline passes it][DK-036]] — A build =ARG= stays while the pipeline passes it
+- [[file:dockerfile.org::*DK-037 — =ARG= defaults aren't removed silently][DK-037]] — =ARG= defaults aren't removed silently
+- [[file:dockerfile.org::*DK-038 — Entrypoint moves travel with the chart Job][DK-038]] — Entrypoint moves travel with the chart Job
+- [[file:dockerfile.org::*DK-039 — The EF bundle output path is fixed][DK-039]] — The EF bundle output path is fixed
+- [[file:dockerfile.org::*DK-040 — Build context matches what the pipeline passes][DK-040]] — Build context matches what the pipeline passes
+- [[file:dockerfile.org::*DK-041 — Web images use =nginxinc/nginx-unprivileged:*=][DK-041]] — Web images use =nginxinc/nginx-unprivileged:*=
+- [[file:dockerfile.org::*DK-042 — Web images needing runtime config ship the render-config script][DK-042]] — Web images needing runtime config ship the render-config script
+- [[file:dockerfile.org::*DK-043 — Web images COPY =nginx.conf= to =/etc/nginx/conf.d/default.conf=][DK-043]] — Web images COPY =nginx.conf= to =/etc/nginx/conf.d/default.conf=
+- [[file:dockerfile.org::*DK-044 — =EXPOSE 8080= on =nginx-unprivileged:*=][DK-044]] — =EXPOSE 8080= on =nginx-unprivileged:*=
+- [[file:dockerfile.org::*DK-045 — Dev images are never pushed or referenced by the deploy][DK-045]] — Dev images are never pushed or referenced by the deploy
+- [[file:dockerfile.org::*DK-046 — Dev images translate the feed token to the credential provider's env at start][DK-046]] — Dev images translate the feed token to the credential provider's env at start
+- [[file:dockerfile.org::*DK-047 — Dev entrypoint validates the feed token][DK-047]] — Dev entrypoint validates the feed token
+- [[file:dockerfile.org::*DK-048 — Patterns repeated across 3+ services want a shared shape][DK-048]] — Patterns repeated across 3+ services want a shared shape
+- [[file:dockerfile.org::*DK-049 — Per-workload Dockerfile split][DK-049]] — Per-workload Dockerfile split
+- [[file:dockerfile.org::*DK-050 — Tool installs are version-pinned][DK-050]] — Tool installs are version-pinned
+- [[file:dockerfile.org::*DK-051 — One concern per =RUN=][DK-051]] — One concern per =RUN=
+- [[file:dockerfile.org::*DK-052 — Long =VSS_NUGET_EXTERNAL_FEED_ENDPOINTS= JSON uses escape-newline continuation][DK-052]] — Long =VSS_NUGET_EXTERNAL_FEED_ENDPOINTS= JSON uses escape-newline continuation
+- [[file:dockerfile.org::*DK-053 — =COPY --link= is consistent within a file][DK-053]] — =COPY --link= is consistent within a file
+- [[file:dockerfile.org::*DK-054 — =.dockerignore= at the build-context root][DK-054]] — =.dockerignore= at the build-context root
+- [[file:dockerfile.org::*DK-055 — Base-image versions are =ARG=-parameterized on multi-stage images][DK-055]] — Base-image versions are =ARG=-parameterized on multi-stage images
+
+* Helm chart house rules (HC)
+
+- [[file:helm-chart.org::*HC-001 — No hardcoded secrets in =values.yaml= or templates][HC-001]] — No hardcoded secrets in =values.yaml= or templates
+- [[file:helm-chart.org::*HC-002 — Sensitive values live in a Secret, not a ConfigMap][HC-002]] — Sensitive values live in a Secret, not a ConfigMap
+- [[file:helm-chart.org::*HC-003 — Every Secret template has the =existingSecret= escape hatch][HC-003]] — Every Secret template has the =existingSecret= escape hatch
+- [[file:helm-chart.org::*HC-004 — =envFrom= Secrets can be swapped for an external one][HC-004]] — =envFrom= Secrets can be swapped for an external one
+- [[file:helm-chart.org::*HC-005 — =secrets.*= values default to =""=][HC-005]] — =secrets.*= values default to =""=
+- [[file:helm-chart.org::*HC-006 — AAD-backed services use Workload Identity on the ServiceAccount][HC-006]] — AAD-backed services use Workload Identity on the ServiceAccount
+- [[file:helm-chart.org::*HC-007 — Workload Identity pods carry the =use= label][HC-007]] — Workload Identity pods carry the =use= label
+- [[file:helm-chart.org::*HC-008 — No new static Secret where Workload Identity fits][HC-008]] — No new static Secret where Workload Identity fits
+- [[file:helm-chart.org::*HC-009 — No =:latest=][HC-009]] — No =:latest=
+- [[file:helm-chart.org::*HC-010 — Tags are pinned or CI-supplied][HC-010]] — Tags are pinned or CI-supplied
+- [[file:helm-chart.org::*HC-011 — =pullPolicy: IfNotPresent=][HC-011]] — =pullPolicy: IfNotPresent=
+- [[file:helm-chart.org::*HC-012 — Images come from the repo's image registry][HC-012]] — Images come from the repo's image registry
+- [[file:helm-chart.org::*HC-013 — Private-registry images need =imagePullSecrets=][HC-013]] — Private-registry images need =imagePullSecrets=
+- [[file:helm-chart.org::*HC-014 — Workloads set =serviceAccountName=][HC-014]] — Workloads set =serviceAccountName=
+- [[file:helm-chart.org::*HC-015 — =securityContext.runAsNonRoot: true=][HC-015]] — =securityContext.runAsNonRoot: true=
+- [[file:helm-chart.org::*HC-016 — No root or privileged containers without an explicit gate][HC-016]] — No root or privileged containers without an explicit gate
+- [[file:helm-chart.org::*HC-017 — No host namespaces][HC-017]] — No host namespaces
+- [[file:helm-chart.org::*HC-018 — Every container has a =readinessProbe=][HC-018]] — Every container has a =readinessProbe=
+- [[file:helm-chart.org::*HC-019 — Every container has a =livenessProbe=][HC-019]] — Every container has a =livenessProbe=
+- [[file:helm-chart.org::*HC-020 — Every container declares requests and limits][HC-020]] — Every container declares requests and limits
+- [[file:helm-chart.org::*HC-021 — Requests never exceed limits; limits imply requests][HC-021]] — Requests never exceed limits; limits imply requests
+- [[file:helm-chart.org::*HC-022 — Container ports are named][HC-022]] — Container ports are named
+- [[file:helm-chart.org::*HC-023 — Service =targetPort= references a port name][HC-023]] — Service =targetPort= references a port name
+- [[file:helm-chart.org::*HC-024 — Every resource sets =metadata.namespace: {{ .Release.Namespace }}=][HC-024]] — Every resource sets =metadata.namespace: {{ .Release.Namespace }}=
+- [[file:helm-chart.org::*HC-025 — Labels agree across metadata, selector, and pod template][HC-025]] — Labels agree across metadata, selector, and pod template
+- [[file:helm-chart.org::*HC-026 — Label key is =app: <service>-<workload>=][HC-026]] — Label key is =app: <service>-<workload>=
+- [[file:helm-chart.org::*HC-027 — =HTTPRoute=, not =Ingress=][HC-027]] — =HTTPRoute=, not =Ingress=
+- [[file:helm-chart.org::*HC-028 — =HTTPRoute= is =gateway.networking.k8s.io/v1=][HC-028]] — =HTTPRoute= is =gateway.networking.k8s.io/v1=
+- [[file:helm-chart.org::*HC-029 — =parentRefs= point at the repo's gateway][HC-029]] — =parentRefs= point at the repo's gateway
+- [[file:helm-chart.org::*HC-030 — =PathPrefix= matches, longer prefixes first][HC-030]] — =PathPrefix= matches, longer prefixes first
+- [[file:helm-chart.org::*HC-031 — =HTTPRoute= sets =hostnames=][HC-031]] — =HTTPRoute= sets =hostnames=
+- [[file:helm-chart.org::*HC-032 — Charts whose API runs EF migrations have a migrate hook-Job][HC-032]] — Charts whose API runs EF migrations have a migrate hook-Job
+- [[file:helm-chart.org::*HC-033 — Migration Job is =helm.sh/hook: pre-install,pre-upgrade=][HC-033]] — Migration Job is =helm.sh/hook: pre-install,pre-upgrade=
+- [[file:helm-chart.org::*HC-034 — Migration Job has a negative =hook-weight=][HC-034]] — Migration Job has a negative =hook-weight=
+- [[file:helm-chart.org::*HC-035 — Migration Job has =hook-delete-policy: before-hook-creation,hook-succeeded=][HC-035]] — Migration Job has =hook-delete-policy: before-hook-creation,hook-succeeded=
+- [[file:helm-chart.org::*HC-036 — Migration Job fails fast: =backoffLimit: 0=, =restartPolicy: Never=][HC-036]] — Migration Job fails fast: =backoffLimit: 0=, =restartPolicy: Never=
+- [[file:helm-chart.org::*HC-037 — Migration Job carries the API's =imagePullSecrets=][HC-037]] — Migration Job carries the API's =imagePullSecrets=
+- [[file:helm-chart.org::*HC-038 — Every referenced values key exists in =values.yaml=][HC-038]] — Every referenced values key exists in =values.yaml=
+- [[file:helm-chart.org::*HC-039 — No unreferenced values keys][HC-039]] — No unreferenced values keys
+- [[file:helm-chart.org::*HC-040 — Per-workload values blocks are isolated][HC-040]] — Per-workload values blocks are isolated
+- [[file:helm-chart.org::*HC-041 — Scheduling escape hatches default to ={}= / =[]=][HC-041]] — Scheduling escape hatches default to ={}= / =[]=
+- [[file:helm-chart.org::*HC-042 — CM-003 in =values.yaml= is Suggestion][HC-042]] — CM-003 in =values.yaml= is Suggestion
+- [[file:helm-chart.org::*HC-043 — Values key changes are matched in the per-environment values files][HC-043]] — Values key changes are matched in the per-environment values files
+- [[file:helm-chart.org::*HC-044 — =Chart.yaml= name matches the deploy's chart name][HC-044]] — =Chart.yaml= name matches the deploy's chart name
+- [[file:helm-chart.org::*HC-045 — Image =repository= matches the images the build pushes][HC-045]] — Image =repository= matches the images the build pushes
+- [[file:helm-chart.org::*HC-046 — Deploy namespace matches what the chart expects][HC-046]] — Deploy namespace matches what the chart expects
+- [[file:helm-chart.org::*HC-047 — Mirror the reference chart's template rather than inlining a variant][HC-047]] — Mirror the reference chart's template rather than inlining a variant
+- [[file:helm-chart.org::*HC-048 — Template names follow =<workload>-<kind>.yaml=][HC-048]] — Template names follow =<workload>-<kind>.yaml=
+- [[file:helm-chart.org::*HC-049 — No cluster-scoped resources in a service chart][HC-049]] — No cluster-scoped resources in a service chart
+- [[file:helm-chart.org::*HC-050 — New hook shapes need explanation][HC-050]] — New hook shapes need explanation
+- [[file:helm-chart.org::*HC-051 — CRDs are confirmed installed out-of-band][HC-051]] — CRDs are confirmed installed out-of-band
+- [[file:helm-chart.org::*HC-052 — Whitespace control on helpers and partials][HC-052]] — Whitespace control on helpers and partials
+- [[file:helm-chart.org::*HC-053 — String values with special characters are =| quote=d][HC-053]] — String values with special characters are =| quote=d
+- [[file:helm-chart.org::*HC-054 — No hardcoded environment names in templates][HC-054]] — No hardcoded environment names in templates
+- [[file:helm-chart.org::*HC-055 — =values.yaml= ordering and =camelCase= keys][HC-055]] — =values.yaml= ordering and =camelCase= keys
+- [[file:helm-chart.org::*HC-056 — Env vars are =<APP>__<SECTION>__<KEY>=][HC-056]] — Env vars are =<APP>__<SECTION>__<KEY>=
+- [[file:helm-chart.org::*HC-057 — =envFrom= order: =configMapRef= then =secretRef=][HC-057]] — =envFrom= order: =configMapRef= then =secretRef=
+- [[file:helm-chart.org::*HC-058 — Probe shape: TCP by default, =httpGet= for a known static path][HC-058]] — Probe shape: TCP by default, =httpGet= for a known static path
+- [[file:helm-chart.org::*HC-059 — Resource names are =<service>-<workload>=][HC-059]] — Resource names are =<service>-<workload>=
+
+* Azure Pipelines house rules (PL)
+
+- [[file:pipeline.org::*PL-001 — Secrets never echoed to logs][PL-001]] — Secrets never echoed to logs
+- [[file:pipeline.org::*PL-002 — Secrets never passed as positional command-line args][PL-002]] — Secrets never passed as positional command-line args
+- [[file:pipeline.org::*PL-003 — Sensitive variables are =secret: true= and Key Vault-sourced][PL-003]] — Sensitive variables are =secret: true= and Key Vault-sourced
+- [[file:pipeline.org::*PL-004 — =persistCredentials: true= needs a stated reason][PL-004]] — =persistCredentials: true= needs a stated reason
+- [[file:pipeline.org::*PL-005 — One service connection per repo][PL-005]] — One service connection per repo
+- [[file:pipeline.org::*PL-006 — =pr-verify-*.yml= has a =pr:= block mirroring its Build Validation policy filter][PL-006]] — =pr-verify-*.yml= has a =pr:= block mirroring its Build Validation policy filter
+- [[file:pipeline.org::*PL-007 — =pr-verify-*.yml= has =trigger: none=][PL-007]] — =pr-verify-*.yml= has =trigger: none=
+- [[file:pipeline.org::*PL-008 — =cicd-*.yml= triggers on the integration branch with =pr: none=][PL-008]] — =cicd-*.yml= triggers on the integration branch with =pr: none=
+- [[file:pipeline.org::*PL-009 — =paths.include= entries exist in the repo][PL-009]] — =paths.include= entries exist in the repo
+- [[file:pipeline.org::*PL-010 — Path filters not too broad][PL-010]] — Path filters not too broad
+- [[file:pipeline.org::*PL-011 — Path filters not too narrow][PL-011]] — Path filters not too narrow
+- [[file:pipeline.org::*PL-012 — =cicd-*.yml= excludes docs-only changes][PL-012]] — =cicd-*.yml= excludes docs-only changes
+- [[file:pipeline.org::*PL-013 — =dependsOn= targets exist][PL-013]] — =dependsOn= targets exist
+- [[file:pipeline.org::*PL-014 — No stage / job / step name collisions][PL-014]] — No stage / job / step name collisions
+- [[file:pipeline.org::*PL-015 — Conditions are well-formed][PL-015]] — Conditions are well-formed
+- [[file:pipeline.org::*PL-016 — Cleanup steps run =always()= / =succeededOrFailed()=][PL-016]] — Cleanup steps run =always()= / =succeededOrFailed()=
+- [[file:pipeline.org::*PL-017 — Variables are set before use and visible in scope][PL-017]] — Variables are set before use and visible in scope
+- [[file:pipeline.org::*PL-018 — No =continueOnError: true= on gating or production-deploy steps][PL-018]] — No =continueOnError: true= on gating or production-deploy steps
+- [[file:pipeline.org::*PL-019 — Reuse templates; don't inline][PL-019]] — Reuse templates; don't inline
+- [[file:pipeline.org::*PL-020 — Step templates take parameters, not hardcoded paths][PL-020]] — Step templates take parameters, not hardcoded paths
+- [[file:pipeline.org::*PL-021 — Step template parameters are typed][PL-021]] — Step template parameters are typed
+- [[file:pipeline.org::*PL-022 — Required parameters have no =''= default][PL-022]] — Required parameters have no =''= default
+- [[file:pipeline.org::*PL-023 — Project pipelines follow the repo's per-project shape][PL-023]] — Project pipelines follow the repo's per-project shape
+- [[file:pipeline.org::*PL-024 — Steps carry =displayName=][PL-024]] — Steps carry =displayName=
+- [[file:pipeline.org::*PL-025 — No re-fetching dependencies a sibling step already restored][PL-025]] — No re-fetching dependencies a sibling step already restored
+- [[file:pipeline.org::*PL-026 — Use the cache templates][PL-026]] — Use the cache templates
+- [[file:pipeline.org::*PL-027 — =dotnet test= after =dotnet build= uses =--no-restore= (and ideally =--no-build=)][PL-027]] — =dotnet test= after =dotnet build= uses =--no-restore= (and ideally =--no-build=)
+- [[file:pipeline.org::*PL-028 — Gate unaffected work on a change-detection template][PL-028]] — Gate unaffected work on a change-detection template
+- [[file:pipeline.org::*PL-029 — Files follow =<verb>-<scope>-<artifact>.yml=][PL-029]] — Files follow =<verb>-<scope>-<artifact>.yml=
+- [[file:pipeline.org::*PL-030 — One VM image per repo][PL-030]] — One VM image per repo
+- [[file:pipeline.org::*PL-031 — Deployment environments match the repo's established names][PL-031]] — Deployment environments match the repo's established names
+- [[file:pipeline.org::*PL-032 — Tool versions don't drift across pipelines][PL-032]] — Tool versions don't drift across pipelines
+- [[file:pipeline.org::*PL-033 — =displayName= carries signal][PL-033]] — =displayName= carries signal
+- [[file:pipeline.org::*PL-034 — Consume the shared build-push-deploy template; don't reimplement][PL-034]] — Consume the shared build-push-deploy template; don't reimplement
+- [[file:pipeline.org::*PL-035 — No orphan builds][PL-035]] — No orphan builds
+- [[file:pipeline.org::*PL-036 — Every registry push is followed by the =oras= release-manifest push][PL-036]] — Every registry push is followed by the =oras= release-manifest push
+- [[file:pipeline.org::*PL-037 — Timeouts and polling intervals are template parameters][PL-037]] — Timeouts and polling intervals are template parameters
+- [[file:pipeline.org::*PL-038 — =buildctl --secret id=...= matches the Dockerfile's secret id][PL-038]] — =buildctl --secret id=...= matches the Dockerfile's secret id
+- [[file:pipeline.org::*PL-039 — The feed token is exposed to the =buildctl= step][PL-039]] — The feed token is exposed to the =buildctl= step
+- [[file:pipeline.org::*PL-040 — Cluster-family =cicd-*.yml= includes the service's chart][PL-040]] — Cluster-family =cicd-*.yml= includes the service's chart
+- [[file:pipeline.org::*PL-041 — Cluster-family =cicd-*.yml= includes the shared build-push-deploy template][PL-041]] — Cluster-family =cicd-*.yml= includes the shared build-push-deploy template
+- [[file:pipeline.org::*PL-042 — Cluster-family =cicd-*.yml= includes the service's Dockerfiles][PL-042]] — Cluster-family =cicd-*.yml= includes the service's Dockerfiles
+- [[file:pipeline.org::*PL-043 — Cluster-family =cicd-*.yml= includes the shared root build files][PL-043]] — Cluster-family =cicd-*.yml= includes the shared root build files
+- [[file:pipeline.org::*PL-044 — Cluster-family =cicd-*.yml= is =pr: none=][PL-044]] — Cluster-family =cicd-*.yml= is =pr: none=
+- [[file:pipeline.org::*PL-045 — Deploy stages are =deploy_<service>_<env>=][PL-045]] — Deploy stages are =deploy_<service>_<env>=
+- [[file:pipeline.org::*PL-046 — Each environment's stage gates on its own branch][PL-046]] — Each environment's stage gates on its own branch
+- [[file:pipeline.org::*PL-047 — Deploy stages pair with a =verify_<service>= stage including helm lint][PL-047]] — Deploy stages pair with a =verify_<service>= stage including helm lint
+- [[file:pipeline.org::*PL-048 — Deploy pool is the per-environment self-hosted pool][PL-048]] — Deploy pool is the per-environment self-hosted pool
+- [[file:pipeline.org::*PL-049 — Deploy environment is the per-environment cluster environment][PL-049]] — Deploy environment is the per-environment cluster environment
+- [[file:pipeline.org::*PL-050 — =domain:= is =<env>.<base-domain>= (prod bare)][PL-050]] — =domain:= is =<env>.<base-domain>= (prod bare)
+- [[file:pipeline.org::*PL-058 — =envName:= disagrees with the stage's environment on a cluster-family deploy stage][PL-058]] — =envName:= disagrees with the stage's environment on a cluster-family deploy stage
+- [[file:pipeline.org::*PL-051 — ~<service> == harborProject == chartName == namespace~][PL-051]] — ~<service> == harborProject == chartName == namespace~
+- [[file:pipeline.org::*PL-052 — Image repositories are =<service>-<workload>=][PL-052]] — Image repositories are =<service>-<workload>=
+- [[file:pipeline.org::*PL-053 — =harborPushSecret= is =<service>-harbor-push-secret=][PL-053]] — =harborPushSecret= is =<service>-harbor-push-secret=
+- [[file:pipeline.org::*PL-054 — New values keys are surfaced as a cross-repo dependency][PL-054]] — New values keys are surfaced as a cross-repo dependency
+- [[file:pipeline.org::*PL-055 — File-level shape: =parameters:= first, no top-level =name:= on step templates][PL-055]] — File-level shape: =parameters:= first, no top-level =name:= on step templates
+- [[file:pipeline.org::*PL-056 — Real-environment steps run in a =deployment:= job with =environment:=][PL-056]] — Real-environment steps run in a =deployment:= job with =environment:=
+- [[file:pipeline.org::*PL-057 — Templates are referenced by relative path][PL-057]] — Templates are referenced by relative path
+
+* Python house rules (PY)
+
+- [[file:python.org::*PY-001 — A request or response model defined inside a =services/= package][PY-001]] — A request or response model defined inside a =services/= package
+- [[file:python.org::*PY-002 — A PATCH update written field by field instead of the shared update helper][PY-002]] — A PATCH update written field by field instead of the shared update helper
+
+* Terraform house rules (TF)
+
+- [[file:terraform.org::*TF-001 — No hardcoded secrets in tf][TF-001]] — No hardcoded secrets in tf
+- [[file:terraform.org::*TF-002 — Sensitive-shaped variables are ~sensitive = true~][TF-002]] — Sensitive-shaped variables are ~sensitive = true~
+- [[file:terraform.org::*TF-003 — Sensitive module outputs are ~sensitive = true~][TF-003]] — Sensitive module outputs are ~sensitive = true~
+- [[file:terraform.org::*TF-004 — Least-privilege role assignments and KV access policies][TF-004]] — Least-privilege role assignments and KV access policies
+- [[file:terraform.org::*TF-005 — Role assignments scoped as narrowly as possible][TF-005]] — Role assignments scoped as narrowly as possible
+- [[file:terraform.org::*TF-006 — Storage accounts restrict public network access][TF-006]] — Storage accounts restrict public network access
+- [[file:terraform.org::*TF-007 — App Service, Function App, SQL Server, Key Vault not publicly addressable without justification][TF-007]] — App Service, Function App, SQL Server, Key Vault not publicly addressable without justification
+- [[file:terraform.org::*TF-008 — No broad =azurerm_mssql_firewall_rule= source ranges][TF-008]] — No broad =azurerm_mssql_firewall_rule= source ranges
+- [[file:terraform.org::*TF-009 — No wildcard inbound NSG rules on non-public-facing resources][TF-009]] — No wildcard inbound NSG rules on non-public-facing resources
+- [[file:terraform.org::*TF-010 — Stateful production resources carry =prevent_destroy=][TF-010]] — Stateful production resources carry =prevent_destroy=
+- [[file:terraform.org::*TF-011 — Removing =prevent_destroy= needs a written rationale][TF-011]] — Removing =prevent_destroy= needs a written rationale
+- [[file:terraform.org::*TF-012 — =moved {}= / =removed {}= blocks are coherent][TF-012]] — =moved {}= / =removed {}= blocks are coherent
+- [[file:terraform.org::*TF-013 — No stale =import= blocks][TF-013]] — No stale =import= blocks
+- [[file:terraform.org::*TF-014 — Module variables are typed][TF-014]] — Module variables are typed
+- [[file:terraform.org::*TF-015 — Non-trivial variables carry =description=][TF-015]] — Non-trivial variables carry =description=
+- [[file:terraform.org::*TF-016 — SKUs, sizes, regions are variables, not module literals][TF-016]] — SKUs, sizes, regions are variables, not module literals
+- [[file:terraform.org::*TF-017 — No tfvars drift between environments][TF-017]] — No tfvars drift between environments
+- [[file:terraform.org::*TF-018 — New module variables are wired through from the caller][TF-018]] — New module variables are wired through from the caller
+- [[file:terraform.org::*TF-019 — Log-producing resources have a diagnostic setting][TF-019]] — Log-producing resources have a diagnostic setting
+- [[file:terraform.org::*TF-020 — Cross-module workspace references are explicit][TF-020]] — Cross-module workspace references are explicit
+- [[file:terraform.org::*TF-021 — Tags are consistent within a module][TF-021]] — Tags are consistent within a module
+- [[file:terraform.org::*TF-022 — =for_each= over =count= for keyed resource sets][TF-022]] — =for_each= over =count= for keyed resource sets
+- [[file:terraform.org::*TF-023 — Implicit dependencies over rote =depends_on=][TF-023]] — Implicit dependencies over rote =depends_on=
+- [[file:terraform.org::*TF-024 — =required_version= present and matching the pipeline][TF-024]] — =required_version= present and matching the pipeline
+- [[file:terraform.org::*TF-025 — Providers are pinned][TF-025]] — Providers are pinned
+- [[file:terraform.org::*TF-026 — Provider bumps are their own change][TF-026]] — Provider bumps are their own change
+- [[file:terraform.org::*TF-027 — Azure-side names carry the =-${var.env}= suffix][TF-027]] — Azure-side names carry the =-${var.env}= suffix
+- [[file:terraform.org::*TF-028 — Resource block names are =snake_case= and consistent][TF-028]] — Resource block names are =snake_case= and consistent
+- [[file:terraform.org::*TF-029 — Module variable order matches the caller][TF-029]] — Module variable order matches the caller
+- [[file:terraform.org::*TF-030 — Dashboard templates are flagged only when clearly broken][TF-030]] — Dashboard templates are flagged only when clearly broken
+- [[file:terraform.org::*TF-031 — Resources land in the file matching their type][TF-031]] — Resources land in the file matching their type

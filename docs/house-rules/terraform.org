@@ -1,0 +1,361 @@
+#+title: Terraform house rules (TF)
+
+Read with =common.org=. Paths are repo-root-relative.
+
+* Scope
+
+Terraform / HCL in any repo: the root module (=main.tf=, =variables.tf=, the file that calls the
+child modules, and per-resource-type files), child modules with their =main.tf=, =variables.tf=,
+per-resource-type files and =*.tpl= templates, and per-environment =*.tfvars= files. Rules that
+name =azurerm= resources apply where the =azurerm= provider is used; the rest apply to any
+provider. Apply is owned by the pipeline, never a developer machine. Not pipeline YAML
+(=pipeline.org=), not Helm charts (=helm-chart.org=). A file the repo contract marks as dormant
+or out of scope is left alone.
+
+* Calibration
+
+Fresh vs legacy:
+
+- *Fresh greenfield tf violating a best practice* → Smell by default, Bug for security /
+  data-loss / public-exposure issues. Don't soften severity because surrounding modules have the
+  same gap.
+- *Long-standing legacy patterns shared across modules* (every storage account is publicly
+  addressable, tags are sparse and inconsistent, no resource has a =tags= block) → mention once at
+  the top as a project-level migration opportunity (CM-005), not per file.
+- *Mixing old and new in fresh code* (a new module with ~tags = { ... }~ on some resources but not
+  others; new code adding =prevent_destroy= to one stateful resource and not its sibling) → Smell.
+- *A targeted edit to a legacy file* that follows the file's existing style for minimal diff →
+  not a finding.
+- When in doubt whether a file is fresh or legacy, ask before reviewing.
+
+Not findings: the repo's provider choice, its modular layout, a per-environment tfvars split, and
+the dev-default-in-=variables.tf= + prod-override pattern — all house style. Descriptive-but-verbose
+resource block names — house style. Dashboard template content is house style (TF-030 covers only
+clearly broken content).
+
+Terraform / Helm boundary: Terraform owns anything cluster-scoped or platform-shared — the
+cluster itself, the container registry, federated identity credentials, Key Vault entries,
+messaging, storage accounts, databases. Workloads (Deployments, Services, ConfigMaps, Secrets,
+HTTPRoutes) live in the Helm chart (=helm-chart.org=). Don't flag tf for "should be in Helm" or
+chart files for "should be in tf".
+
+House mechanisms: ~lifecycle { prevent_destroy = true }~ on stateful resources; =moved {}= for
+address refactors; =removed {}= with ~lifecycle { destroy = true|false }~ for decommissioning;
+=templatefile("${path.module}/dashboard.tpl", { ... })= for dashboards.
+
+Rules lifted from =mz-terraform-writer='s house conventions with no reviewer rule yet carry Smell
+severity unless the entry states otherwise.
+
+* Secrets and exposure
+
+** TF-001 — No hardcoded secrets in tf
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* Hardcoded secrets, connection strings, keys, tokens, SAS URLs, account keys directly in
+  tf files. Use =data "azurerm_key_vault_secret"= (or the provider's secret-store data source) or
+  pipeline-supplied variables.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** TF-002 — Sensitive-shaped variables are ~sensitive = true~
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Sensitive-shaped variables (tenant IDs, client object IDs, secret values) declared
+  without ~sensitive = true~.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** TF-003 — Sensitive module outputs are ~sensitive = true~
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* Module outputs that surface sensitive values (connection strings, primary access keys,
+  secrets) without ~sensitive = true~.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** TF-004 — Least-privilege role assignments and KV access policies
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* =azurerm_role_assignment= or =azurerm_key_vault_access_policy= granting more
+  permissions than the use case requires (=Set= / =Delete= / =Purge= when only =Get= / =List= is
+  needed).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** TF-005 — Role assignments scoped as narrowly as possible
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Role assignments scoped at subscription when resource-group or resource scope would
+  suffice.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Public network exposure
+
+** TF-006 — Storage accounts restrict public network access
+
+- *Severity:* Smell
+- *Applies to:* fresh additions
+- *Rule:* Storage accounts without explicit ~public_network_access_enabled = false~ or
+  =network_rules= restricting access.
+- *Not a finding:* existing public-network-access defaults on long-standing storage accounts —
+  historical drift; surface once at the top.
+- *Precedent:* none yet
+
+** TF-007 — App Service, Function App, SQL Server, Key Vault not publicly addressable without justification
+
+- *Severity:* Bug for fresh resources holding sensitive data; Smell otherwise
+- *Applies to:* all code
+- *Rule:* App Service, Function App, SQL Server, Key Vault publicly addressable without explicit
+  justification or IP restrictions.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** TF-008 — No broad =azurerm_mssql_firewall_rule= source ranges
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* =azurerm_mssql_firewall_rule= with broad source ranges — actual broad ranges like
+  =0.0.0.0= to =255.255.255.255=.
+- *Not a finding:* a ~start_ip_address = "0.0.0.0"~ / ~end_ip_address = "0.0.0.0"~ rule — the
+  documented Azure "Allow Azure services" pattern, intentional. The same shape in a
+  pipeline-supplied tfvars file is also left alone.
+- *Precedent:* none yet
+
+** TF-009 — No wildcard inbound NSG rules on non-public-facing resources
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* NSG rules with ~source_address_prefix = "*"~ or =0.0.0.0/0= on inbound for
+  non-public-facing resources.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* State-management hygiene
+
+** TF-010 — Stateful production resources carry =prevent_destroy=
+
+- *Severity:* Smell
+- *Applies to:* new stateful resources
+- *Rule:* Missing ~lifecycle { prevent_destroy = true }~ on stateful production resources
+  (databases, storage accounts that hold persistent data, Key Vaults).
+- *Not a finding:* none.
+- *Precedent:* an =azurerm_mssql_database= carrying ~lifecycle { prevent_destroy = true }~.
+
+** TF-011 — Removing =prevent_destroy= needs a written rationale
+
+- *Severity:* Bug unless the diff is explicitly part of a planned decommission
+- *Applies to:* all code
+- *Rule:* Removing =prevent_destroy= from an existing stateful resource without a written
+  rationale in the diff.
+- *Not a finding:* a planned decommission stated in the diff.
+- *Precedent:* none yet
+
+** TF-012 — =moved {}= / =removed {}= blocks are coherent
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* New =moved {}= blocks pointing at addresses that don't exist in state, or =removed {}=
+  blocks without a clear ~lifecycle { destroy = true|false }~ decision. Existing =moved= /
+  =removed= blocks are a state-management contract — never squashed or reordered.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** TF-013 — No stale =import= blocks
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Manual =import= blocks left in code after import is complete.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Module shape and variables
+
+** TF-014 — Module variables are typed
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Untyped module variables (no =type=).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** TF-015 — Non-trivial variables carry =description=
+
+- *Severity:* Suggestion
+- *Applies to:* all code
+- *Rule:* Module variables missing =description= when their purpose isn't trivial from the name.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** TF-016 — SKUs, sizes, regions are variables, not module literals
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Hardcoded SKUs, sizes, regions in module code that should be variables passed from the
+  root.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** TF-017 — No tfvars drift between environments
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Variables present in one environment's tfvars file (for example =prod.tfvars=) but
+  missing from another's (=dev.tfvars=) when both environments need an explicit value. Surface
+  explicitly: name the variable, name which file is missing it. Writers make the asymmetry
+  explicit in the tfvars-drift call-out.
+- *Not a finding:* the pattern of dev-shape defaults in =variables.tf= + prod overrides — flag
+  only when both environments genuinely need explicit values.
+- *Precedent:* none yet
+
+** TF-018 — New module variables are wired through from the caller
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* A new variable added to a module's =variables.tf= but not wired through from the root
+  module's call to that module — the caller hits a "value for input variable required" error.
+  The root variable in the root =variables.tf= (with a default if appropriate) travels with it.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Resource composition
+
+** TF-019 — Log-producing resources have a diagnostic setting
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Missing =azurerm_monitor_diagnostic_setting= on resources that produce logs (App
+  Service, Function App, SQL Database, Storage), pointed at the module's Log Analytics workspace.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** TF-020 — Cross-module workspace references are explicit
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Diagnostic settings pointed at workspaces in a different module without a clear
+  cross-module reference.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** TF-021 — Tags are consistent within a module
+
+- *Severity:* Smell
+- *Applies to:* fresh inconsistency within a module
+- *Rule:* Missing tags when other resources in the same module have them.
+- *Not a finding:* sparse tagging across the codebase (a =product= tag on a few resources only)
+  — known drift; surface project-level once at the top. When extending an existing module,
+  matching the surrounding file is correct; tagging discipline is a project-level migration the
+  user asks for explicitly.
+- *Precedent:* none yet
+
+** TF-022 — =for_each= over =count= for keyed resource sets
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* =count= used where =for_each= with a string key would be clearer (especially for
+  resource sets that get added / removed / reordered).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** TF-023 — Implicit dependencies over rote =depends_on=
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* =depends_on= used where implicit reference dependencies would suffice. Rote
+  =depends_on= listing every related resource is the smell.
+- *Not a finding:* real ordering requirements that references can't express (a Key Vault access
+  policy that must exist before another resource reads a secret).
+- *Precedent:* none yet
+
+* Provider and version pinning
+
+** TF-024 — =required_version= present and matching the pipeline
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Missing ~terraform { required_version = "..." }~ at the root, or pinned versions that
+  drift between local and the Terraform CLI version the pipeline pins.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** TF-025 — Providers are pinned
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Missing =required_providers= block or unpinned provider versions.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** TF-026 — Provider bumps are their own change
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Bumping a provider version (or =required_version=) as a side effect of an unrelated
+  change. Surface as a separate decision; if a feature genuinely requires a newer provider, the
+  writer surfaces the bump in its proposal.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Style and readability
+
+- =TODO= / =FIXME= / =HACK= — CM-001.
+- No comments at all — CM-003.
+
+** TF-027 — Azure-side names carry the =-${var.env}= suffix
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* Resource Azure-side names without =-${var.env}= suffix where the surrounding module
+  uses it. Kebab-case, with the area prefix the surrounding module uses
+  (=<prefix>-sqlserver-${var.env}=, =ai-<prefix>-api-${var.env}=).
+- *Not a finding:* storage account names without dashes (=<prefix>appdocs${var.env}=) — Azure
+  forbids dashes there; the =${var.env}= suffix still applies.
+- *Precedent:* none yet
+
+** TF-028 — Resource block names are =snake_case= and consistent
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* Resource block names not in =snake_case=, or wildly inconsistent within a module
+  (=orders_sql_server=, =ai_orders_api= are the shape).
+- *Not a finding:* descriptive-but-verbose block names — house style.
+- *Precedent:* none yet
+
+** TF-029 — Module variable order matches the caller
+
+- *Severity:* Suggestion
+- *Applies to:* new or touched code
+- *Rule:* Module variables in a different order than the root module's call passes them —
+  readability hit when scanning for parity.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Dashboards
+
+** TF-030 — Dashboard templates are flagged only when clearly broken
+
+- *Severity:* Smell
+- *Applies to:* all =*.tpl= dashboard templates
+- *Rule:* Malformed JSON or broken =${...}= references in a dashboard template. Dashboards stay in
+  the module that owns them and render via =templatefile("${path.module}/dashboard.tpl", { ... })=.
+- *Not a finding:* style choices inside dashboards — house style.
+- *Precedent:* none yet
+
+* Writer conventions (from =mz-terraform-writer=, no reviewer rule yet)
+
+** TF-031 — Resources land in the file matching their type
+
+- *Severity:* Smell
+- *Applies to:* new resources
+- *Rule:* Module =main.tf= owns shared resources (Log Analytics workspace, common data lookups);
+  everything else lands in the per-resource-type file (=app.tf=, =function.tf=, =keyvault.tf=,
+  =database.tf=, =alerts.tf=, =dashboard.tf=, =storage-account.tf=). Create a new resource-type
+  file rather than dumping into =main.tf= when no existing file fits.
+- *Not a finding:* none.
+- *Precedent:* none yet

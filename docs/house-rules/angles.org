@@ -1,0 +1,422 @@
+#+title: Attack angles (A)
+
+The questions =mz-devils-advocate= asks of every change. Every angle is reported in order on every
+gate, even when the answer is "nothing here" with one line of why. An angle tagged =:agent-files:=
+applies only when the change touches an agent or skill file; on any other change it is reported as
+=Not applicable — no agent or skill file changed=.
+
+Free-form challenges go on top of the list, tagged =angle: none=. New angles arrive as the
+=Proposed angle= in =mz-runbook-manager= Create output and land here through
+=mz-house-rules-manager=. Ids are =A-nn= and are never reused.
+
+This registry is read at start by =mz-devils-advocate=. Citations in it follow
+=~/.claude/docs/mz-suite.org= Review scope, the citations bullet: no line numbers, prose by section
+heading, code by file and symbol.
+
+* Angles
+
+** A-01 — Production data shape differs from dev
+
+- *Ask:* What does the real data look like that the fixtures and the dev database don't show — many
+  rows per key instead of one, missing related rows, nulls, bare rows written by an earlier code
+  path, enum siblings handled as a pair? Is the change still correct against the worst real row?
+- *Probe:* Read the mapper, matcher, or query and list every assumption about uniqueness, presence,
+  and shape. Compare against the schema and the =Not a finding= carve-outs in the stack's registry
+  file. Run the existing integration project as-is when it seeds representative rows. When only a
+  production query can confirm, label =suspected= and give the user the query to run.
+- *Motivated by:* a sync that matched upstream records on a session id alone, while production
+  carried several transactions per session, so records silently went missing from lists.
+
+** A-02 — Runtime differs from spec
+
+- *Ask:* Where does the change trust a documented contract — a claim shape, a JSON schema, a header,
+  an SDK behavior, a framework default — that the runtime may deliver differently (one serialized
+  string where the spec says array, camelCase where the fixture is PascalCase, an optional field
+  absent)?
+- *Probe:* Find every deserialization, claim-mapping, and header-read point in the diff. Check
+  whether a test pins the runtime shape rather than the spec shape. If a fixture was hand-written
+  from documentation instead of captured from a real response, say so.
+- *Motivated by:* an identity provider's groups claim that arrived in a browser client as one
+  serialized string, not the array the documentation described.
+
+** A-03 — Time passes
+
+- *Ask:* What in or around this change has an expiry, a schedule, a clock, an age cutoff, or an
+  ordering across runs? What happens on the first run after a credential lapses, at a month or year
+  boundary, under clock skew, when a scheduled run overlaps the previous one, when a record is older
+  than a threshold?
+- *Probe:* Grep the diff and its config for secrets, tokens, certificates, timer and cron
+  expressions, =DateTime.Now= / =UtcNow= / =TimeProvider= (or the stack's equivalent), and age
+  comparisons. For each, name the failure date or condition and whether anything would alert before
+  it.
+- *Motivated by:* an expired service-principal secret that failed an infrastructure pipeline; an
+  expired API token that failed a document-publishing pipeline; a function app's client secret that
+  expired and stopped every scheduled timer at once.
+
+** A-04 — Second or overlapping call
+
+- *Ask:* What happens when this runs twice — a retry, a double-click, two pods, a background drain
+  overlapping the request path, a redelivered queue message? Is it idempotent? Does a shared
+  resource (database context, connection, static state, file) get touched concurrently?
+- *Probe:* Look for a database context shared across tasks, singleton state, missing idempotency
+  keys, non-transactional multi-step writes. Run the relevant existing test project repeatedly when
+  flakiness is the hypothesis.
+- *Motivated by:* flaky concurrency errors in an integration test suite, traced to a database
+  context shared across concurrent tasks.
+
+** A-05 — Failure halfway through
+
+- *Ask:* If this dies after step 2 of 4 — exception, pod eviction, timeout, network drop — what state
+  is left behind, and does the next run recover or compound it? A partial row, a half-applied
+  migration, an image pushed without a release manifest?
+- *Probe:* Walk each multi-step write or deploy sequence in the diff and name the state after each
+  step fails. Check for transactions, compensating actions, =backoffLimit: 0= on migration Jobs,
+  orphan builds in pipelines.
+- *Motivated by:* none yet
+
+** A-06 — Other callers' assumptions
+
+- *Ask:* Who else calls, consumes, or depends on what changed — other features, front-end clients,
+  functions, a Helm chart, a pipeline, an external repo — and what did they assume about the old
+  behavior, shape, or name?
+- *Probe:* Grep for every caller of a changed contract (method, DTO, endpoint, values key,
+  environment variable, secret id, port). Read them. Check contract-before-consumer ordering across
+  the set of pull requests.
+- *Motivated by:* none yet
+
+** A-07 — Rollback
+
+- *Ask:* If this is reverted after deploy, what breaks? Does the old code run against the new
+  schema, the new values key, the new image? Is there a =Down= that loses data, a renamed column, a
+  dropped default?
+- *Probe:* Read the migration =Down=, the chart and values diff, the pipeline path filters. Name the
+  ordering a rollback would need and whether it is possible without manual steps.
+- *Motivated by:* none yet
+
+** A-08 — Silent-failure visibility
+
+- *Ask:* When this fails in production, who finds out and how soon? Does an exception get swallowed
+  into a default, a log line nobody reads, a =continueOnError=, a best-effort branch? Would a
+  dashboard, an alert, or a user report be the first signal?
+- *Probe:* Look for catch-and-default on decision-driving calls, best-effort flags, missing
+  diagnostic settings, background jobs with no failure surface. Ask what test would prove the
+  failure is loud.
+- *Motivated by:* none yet
+
+** A-09 — Non-interactive principals still reach their endpoints
+
+- *Ask:* When a change touches authorization — a policy, a scheme, an =[Authorize]= attribute at any
+  level, a claim mapping, a route move — does every non-interactive principal (timer, function,
+  webhook, service-to-service) still reach the endpoints it must? Is the caller identity varied
+  through the real pipeline in a test, rather than inspected as attributes?
+- *Probe:* List every principal that calls the touched controller or endpoint, not just the
+  interactive user. Check the combined effect of class-level and action-level =[Authorize]=
+  (=csharp.org= CS-077 — requirements AND, schemes union). Look for a test that issues a request
+  with each principal's identity through =WebApplicationFactory= (=csharp.org= CS-070); a
+  reflection or attribute-shape assertion does not answer this angle.
+- *Motivated by:* a nightly sync whose scheduled-run endpoint returned 403 in production for days,
+  under a class-level policy stacked on the action's own.
+
+** A-10 — Proof the changed surface works and shows up
+
+- *Ask:* What recorded evidence, post-dating the last edit, shows this change working end to end and
+  visible where a user or operator would see it? A green test suite is not that evidence — it
+  proves the code the tests exercise, not that the surface renders, the route resolves, the status
+  posts, or the log line lands. For a change to a contract, a registry file, or documentation there
+  is no runtime to observe, so the question becomes twofold: is every claim the change writes true
+  of the repo right now, *and* is every claim already standing on disk that this change may have
+  falsified without touching it — a citation into a file the change edited, or into a file the
+  change deleted — still true? Nothing fails loudly when a documented sentence is wrong — it
+  silently misroutes every agent that reads it, so this check is the whole substance of review for
+  such a change.
+- *Probe:* For a runtime surface, name the observation and when it was made — the page loaded, the
+  request issued and its response body, the job's own log, the row read back — and check it
+  post-dates the last edit; if the only evidence is a test run, say so and label the angle
+  unanswered. For claims on disk — the durable citations a change writes into, or leaves standing
+  in, a registry file, runbook, doc, or agent file: resolve every cited file and symbol (class,
+  method, test, key, step, or section heading) and confirm the file exists, the symbol is in it,
+  and the sentence around the citation is still true of it. *This reaches a code change too, not
+  only a documentation one: where the change edits a file that =docs/= already cites, every
+  standing citation into that file is a claim the change may have falsified without touching it,
+  and those are swept the same way.* Run the grep or command a factual assertion implies rather
+  than reasoning about it — an assertion that a name appears in one place is =rg= output, an
+  assertion about branches is =git for-each-ref=, an assertion about a count is the count. Treat
+  "not documented anywhere" as a claim needing a search before it is accepted, not a default.
+  Report what was run and what it returned; "verified" or "checked the citations" without the
+  command and its output does not answer this angle.
+- *Motivated by:* a contract rewrite that carried five false "undocumented" claims and two false
+  sentences caught only on re-check, plus stale contract and variable-list citations.
+
+** A-11 — Upstream cost per user action
+
+- *Ask:* How many third-party round trips does one user request cost? Does anything called a "cache"
+  survive past the request scope, and is a bulk fetch standing in for a keyed read?
+- *Probe:* Follow the request path and count the calls to external clients per request. Check the
+  lifetime of any cache (=csharp.org= CS-035). Flag full-list fetches filtered in memory where the
+  upstream offers a keyed read.
+- *Motivated by:* a plan whose request path fetched a full upstream list and filtered it in memory
+  on every call; the angle bit that plan twice.
+
+** A-12 — A failure that arrives looking like a success
+
+- *Ask:* When this surface fails, what exactly goes on the wire — body, media type, status — and can
+  the caller tell that apart from a legitimate negative answer? Does an error body deserialize
+  cleanly into the caller's success type with every field at its default, so "the call failed" and
+  "the operation said no, with nothing to add" become the same thing downstream?
+- *Probe:* Issue the *failing* request, not only the passing one — a missing id, an unauthorized
+  caller, a dependency down — and read the body that actually comes back. Check what the framework
+  or the middleware substitutes for the handler's own shape: a bare =StatusCodeResult= under
+  =[ApiController]= becomes RFC 9457 ProblemDetails, and a proxy or gateway may replace the body
+  entirely. Then deserialize that body into the caller's success type and state what the caller
+  sees. Name the test that pins the shape on each side, or report that none does. Reading the
+  handler and reasoning about the shape does not answer this angle; the substitution is invisible
+  in the diff.
+- *Motivated by:* a 404 returned as ProblemDetails that deserialized into the client's response
+  envelope as a well-formed "failed, no message" result (=csharp.org= CS-092).
+
+** A-13 — A loosened policy admits callers who must not see each other's data
+
+- *Ask:* When a change loosens an authorization policy, which classes of caller does it newly admit
+  — a user in another tenant's group, a user in no group, any other authenticated principal the new
+  policy accepts — and what stops each of them from seeing data that is not theirs? This is A-09's
+  inverse: A-09 asks whether the callers who must get in still do; this asks what the newly
+  admitted ones can now read.
+- *Probe:* Diff the old and new policy's requirements and list every principal class that passes
+  the new one and failed the old. For each, name the row-scoping that limits what it sees (the
+  visibility filter the query applies) and the integration fact that issues a request as that
+  principal through the real pipeline and asserts what comes back (=csharp.org= CS-070). A class
+  with no fact is the angle unanswered; an attribute-reflection test does not answer it.
+- *Motivated by:* two read endpoints moved from an admins-only policy to an any-user policy; the
+  facts the angle produced were requests as a user in another tenant's group and as a user in no
+  group, each asserting a not-found response that carried no data.
+
+** A-14 — A decision that moves between layers takes its tests with it
+
+- *Ask:* When a change moves a decision between layers — service to mapper, controller to filter,
+  page to shared helper — which tests pinned that decision before the move, would each still fail
+  if the moved code stopped deciding, and did the hard cases come along to the new layer?
+- *Probe:* List the tests that exercised the decision at its old home. For each, say what it now
+  runs through and whether removing the decision at the new home would turn it red; a test that now
+  only reaches a mock or a pass-through passes either way. Then list the edge cases the old tests
+  covered and find each one's fact at the new layer by name.
+- *Motivated by:* a classification decision moved from a service into a mapper; the hard cases —
+  each combination of status where the decision went the unexpected way — had to be rewritten as
+  facts on the mapper.
+
+** A-15 — Proof the changed instruction was actually exercised  :agent-files:
+
+- *Ask:* What did you run that exercised the changed instruction, and what did it print? For an
+  agent or skill file: was the agent or skill loaded and invoked, or only read over?
+- *Probe:* After the last edit, start a *fresh* session — =claude -p= from a directory where the
+  change applies — invoke the changed agent or skill, and report the command and its actual output
+  (=~/.claude/docs/mz-suite.org= Testing and verification). A session started before the edit does
+  not see it. =/agents= shows the name as it resolves. No claim is made about reloading inside an
+  already-running session; nothing has checked one.
+- *Motivated by:* an unexercised instruction is the untested load-bearing path of an agent change —
+  nothing else proves the agent does what its file says.
+
+** A-16 — Followed literally by someone with no context, does it work?  :agent-files:
+
+- *Ask:* Walk the instruction exactly as written — every value, every step, in order. Does each step
+  produce the stated result, or does it need a fact the reader does not have?
+- *Probe:* Copy the literal snippet into a scratch location and run it. For settings snippets, check
+  every key name and value against what Claude Code accepts, not against what the key is named.
+- *Motivated by:* a quickstart that told readers to write a settings value Claude Code does not
+  accept, and did not warn about a URL form that made the clone fail. Anyone following it exactly
+  got a broken setup.
+
+** A-17 — Does this list read as complete when it is not?  :agent-files:
+
+- *Ask:* Is this enumeration — agents, skills, sections, steps, paths — exhaustive, or does it only
+  look exhaustive? What would a reader wrongly conclude is absent because it is not listed?
+- *Probe:* Count the list against disk: =ls ~/.claude/agents/mz-*.md=, =ls ~/.claude/skills/=, the
+  checklist's section headings in =~/.claude/docs/agents-md-checklist.org=. For a per-repo list,
+  check the claim against that repo's files rather than against the list's own prose.
+- *Motivated by:* a per-repo setup list that omitted one component the repo needed, because one of
+  its services deployed through a different CI system. The list read as exhaustive.
+
+** A-18 — Is the claim right about the mechanism, or only plausible?  :agent-files:
+
+- *Ask:* Does this sentence describe what Claude Code actually does, or how it reads like it should
+  work? Name the observed behavior. A claim framed as a preference often conceals a mechanism that
+  behaves differently.
+- *Probe:* Run it and read the output: =/agents=, =/skills=, a =claude -p= session. Resolution,
+  loading, and naming are the places this kind of text has been wrong before.
+- *Motivated by:* a personal =~/.claude/agents/= copy sharing a name with an agent from another
+  source was framed as a tidiness preference. Both files load, the orchestrator picks between them
+  by description, and neither file controls which one runs; the original text concealed that
+  nondeterminism.
+
+** A-19 — Was this fact checked against disk, or inherited?  :agent-files:
+
+- *Ask:* Where did this fact come from — a file you read, a command you ran, or an agent file, a
+  prior doc, or a migration note that asserted it? A repo's own agent files are not evidence about
+  that repo. And where a claim names one action as the cause of an observed state: did the evidence
+  isolate that action, or did several actions run before the state was read once?
+- *Probe:* Open the file or run the command in the repo the claim is about. Deploy paths,
+  infrastructure, chart locations, and pipeline topology are the claims that go stale first. For a
+  cause claim, list every action that ran between the last read of the state and the read that
+  shows the effect; more than one means the run does not attribute it — read the state after each
+  action, or state in the text that the run does not isolate which one did it.
+- *Motivated by:* a contract rewrite that inherited stale deployment facts from a repo's own agent
+  files — charts that had moved and a deploy path that had been retired — until an audit caught it.
+  Also an observation that two update commands, run together, moved two pins, written as though it
+  showed which command moved which.
+
+** A-20 — Can both of these statements be followed at once?  :agent-files:
+
+- *Ask:* Does anything the change wrote contradict another statement in the same file, in
+  =~/.claude/docs/mz-suite.org=, in the repo contract, or in an agent or skill file? Each sentence
+  can be true on its own and the pair still be impossible to obey.
+- *Probe:* Re-read the whole document the change touched, not the diff. For a command, run the exact
+  documented form and check the other statements the document makes about it.
+- *Motivated by:* a documented validation command carrying a flag that turns warnings into errors,
+  beside a statement that the warning it always raised was expected by design. The documented
+  command could never pass.
+
+** A-21 — Does this agent change owe a checklist line in the same diff?  :agent-files:
+
+- *Ask:* Does the draft start or stop expecting a fact from a repo's =AGENTS.md=? If so, where is the
+  matching line in =~/.claude/docs/agents-md-checklist.org= in this same diff?
+- *Probe:* Diff the agent's first step and inputs against the checklist's numbered items. A fact an
+  agent expects that the checklist does not list, or a checklist line no agent still needs, is the
+  drift — =mz-agent-auditor= grades it and =mz-agent-builder= moves the line with the agent.
+- *Motivated by:* =~/.claude/docs/mz-suite.org= Roster and delegation rule, the agent-files bullet —
+  the agent file and the checklist are read by different audiences, so nobody sees both drift
+  apart.
+
+** A-22 — What does this do in a repo that is not this one?  :agent-files:
+
+- *Ask:* An =mz-= agent is loaded in every session on this machine, so the change reaches every repo
+  it is used in. Which repo's layout, roster, registry, or topology does it now assume? Which one
+  stalls or guesses?
+- *Probe:* Check the fact against =~/.claude/docs/agents-md-checklist.org= — if the agent now needs
+  it and the checklist does not require it, repos will not have it. Walk the three shapes the suite
+  contract's Reading order names: a repo with an =AGENTS.md=, a repo with only a root =CLAUDE.md=,
+  and a repo with neither. Also walk a repo not on GitHub.
+- *Motivated by:* a rule written in one repo never reaches another, while an agent file reaches
+  every repo it runs in; repos range from a full contract with registries to no contract at all.
+
+** A-23 — Is this fence stated in a way anything can check?  :agent-files:
+
+- *Ask:* Can =mz-agent-auditor= grade an agent's own fence statement against this one, or does it
+  need judgement the text does not supply? A fence stated as an attitude cannot be checked.
+- *Probe:* Read the fence beside the list in =~/.claude/docs/mz-suite.org= Safety fences and ask what
+  observable act it forbids and who it binds. A fence with no subject in a repo says so explicitly
+  rather than being omitted.
+- *Motivated by:* the suite contract states its fences in full so =mz-agent-auditor= can grade an
+  agent's own fence statements against them, and the checklist asks a repo to state its fences — a
+  fence the contract omits cannot be checked. No incident yet.
+
+** A-24 — Does the evidence for this claim survive the change's own workflow?  :agent-files:
+
+- *Ask:* The command output or observation backing this sentence — is it still true after this change
+  ships? Pushing the branch, opening or merging the pull request, deleting the source branch: name
+  which routine next action falsifies the evidence, then state the claim against evidence that
+  outlives them, or say in the text what expires it.
+- *Probe:* For each verified fact the change wrote, walk the next step of the repo's own workflow and
+  ask what it does to the evidence. Prefer the durable form: a linear history with no merge commits
+  outlives a =git ls-remote --heads origin= snapshot; a file on disk outlives a branch listing.
+- *Motivated by:* =git ls-remote --heads origin= returning only the default branch was cited as proof
+  no pull request had ever been merged — which stops being true the moment a branch is pushed, and a
+  merged pull request usually deletes its source branch. The durable evidence was the linear
+  history.
+
+** A-25 — Did the file write actually land, or was it only reported?  :agent-files:
+
+- *Ask:* Does this change depend on a subagent writing a file, and has that write been proven to
+  land, or is the writer's report the only evidence? A refused or silently failed write leaves the
+  work looking done when nothing landed, and a non-interactive session raises no prompt to reveal
+  it. One known cause is a session that treats the target directory as protected configuration and
+  refuses the write as a sensitive file; it is one instance, not the only way a write goes missing.
+- *Probe:* =git status --porcelain <path>= for every file the change claims a delegated writer
+  produced, then read the file back and compare it against the approved draft. Neither of two things
+  is proof: the writer agent's own report that it wrote the file, and the absence of an error in a
+  relayed subagent transcript. Where a write was hand-applied from a writer's draft, the read-back
+  is the only check that the content matches byte for byte.
+- *Motivated by:* a run in which every delegated write was refused as a sensitive file while the
+  delegate's report read as though the edits had been applied.
+
+** A-26 — Will this sentence still name the change it points at, a month after it merges?  :agent-files:
+
+- *Ask:* Does the prose refer to its own change in the first person — "this change", "this branch",
+  "the commit that adds this", "the pull request this rides in"? The sentence stays after the merge;
+  the referent leaves, because nothing in the file names an issue or pull request a reader can look
+  up. Either name the id, or write the sentence so it does not point at its own change at all.
+  *Distinct from A-24:* A-24 asks whether the /evidence/ behind a claim survives the repo's own
+  workflow; this asks whether the /referent/ does — whether the thing the sentence points at is
+  still identifiable to someone who was not there.
+- *Probe:* The test is a question and the search is how you start it, not the whole of it: *does
+  every pointer in the prose the change wrote name something a later reader can look up?* An issue
+  number, a pull-request number, a commit hash, a file path, a date all resolve; a pointer that
+  resolves only for someone standing in this checkout does not. Begin by searching the added lines
+  for the two families that have produced the defect so far. Pointing at /this change/: =this
+  change=, =this branch=, =this commit=, =this pull request=, =this PR=, =this diff=. Pointing at
+  /this tree or this moment/: =in the working tree=, =not yet committed=, =as of this writing=,
+  =currently=, =at present=. Then read the remaining pointers in the added lines against the
+  question above — the list has already missed a phrasing nobody had thought of, and will again.
+  For each hit, name what a reader a month from now would look up to resolve it: a hit carrying an
+  issue or pull-request id resolves; one carrying none is the finding. Tense is the second tell: a
+  sentence in the future tense about an event the merge itself fires.
+- *Motivated by:* a contract sentence that backed its evidence with "expires … when this change's own
+  pull request merges"; after the merge "this change" resolved to nothing and both expiry events had
+  fired while the sentence still described them in the future tense. On the angle's first
+  application the gate also found "by the rewrite in the working tree" — a phrasing the original
+  list lacked — which is why the tree-and-moment family exists and the search opens the test rather
+  than being it.
+
+** A-27 — Does the setup this procedure mandates disable the action it requires?  :agent-files:
+
+- *Ask:* A procedure the change writes — exercise this, verify that, edit the other — sets something
+  up and then acts. Does the setup put the action out of reach? Nothing fails loudly: the action is
+  refused or quietly skipped and the run reports it done. The known instance: a Claude Code session
+  that loads a directory as plugin configuration treats it as protected for the life of the session
+  and cannot edit the files it loaded, while a procedure made that same session the way to exercise
+  an agent change. That is one instance, not the only way a setup step can disable a later one.
+  *Distinct from A-20:* there, two statements contradict each other on the page; here neither
+  statement mentions the other and both documents read correctly — the collision is in the tool's
+  behavior, and only a session that performed both steps meets it. *Distinct from A-25:* A-25 asks
+  after the fact whether a write landed; this asks, before the procedure ships, whether it could
+  have.
+- *Probe:* List the procedure's steps in the order a person performs them and name the session each
+  one runs in. A step that loads, locks, or protects something, followed by a step that writes
+  inside it from the same session, is the finding. Isolate the suspected setup with an A/B: the same
+  =Write= to a path under the loaded or protected location, once from a session with the setup and
+  once from a plain =claude -p --permission-mode default=, with =git status --porcelain <path>=
+  after each. A permission grant matching the refused path does not change a protected-file refusal.
+- *Motivated by:* a builder run inside a session that had loaded the agents directory as plugin
+  configuration drafted seventeen edits to agent files and every one was refused as a sensitive
+  file; nothing landed, and a less careful run would have reported the edits applied.
+
+** A-28 — A whole-tree mechanical rewrite stays mechanical, mergeable and blameable
+
+- *Ask:* When a change rewrites files wholesale by machine — a line-ending conversion, a mass
+  reformat, a bulk file move — what proves every changed byte is the intended transform and nothing
+  else? What else runs on the commit, such as a pre-commit hook or a formatter, that could crash on
+  the file count or inject edits into a commit meant to be mechanical? Which open branches and pull
+  requests will conflict on whole files, and what recipe does each author follow? After the merge,
+  does =.git-blame-ignore-revs= still name commits that exist on the integration branch?
+- *Probe:* Prove the diff mechanical on the committed range, not the working tree:
+  =git diff --ignore-cr-at-eol --exit-code <before> <after>= for a line-ending rewrite,
+  =git diff -w --exit-code <before> <after>= for a whitespace reformat,
+  =git diff -M100% --name-status <before> <after>= showing only =R100= rows for a pure file move;
+  then a byte-compare script asserting each changed file equals the expected transform of its old
+  blob, and =git diff --name-only <before> <after>= equal to the list the rewrite was meant to
+  produce. Count carriage returns with =tr -dc '\r' < <file> | wc -c= or that byte-compare script —
+  in Git Bash =grep -c $'\r'= is not a reliable detector. For hooks, read the repo's pre-commit hook
+  and any staged-file runner configuration (=lint-staged= and the like) whose scope holds staged
+  files, and name what runs on them — a formatter run in parallel batches can collide on a large
+  commit or rewrite more than the transform; the proof above, run after the commit, is what catches
+  the second. For open work, list =git for-each-ref --format='%(refname:short)' refs/remotes/origin=
+  and the integration branch's open pull requests (=gh pr list=, through =mz-gh-scout=), and for
+  each that touches rewritten files name the merge recipe — for a line-ending conversion,
+  =git merge -X renormalize origin/<integration-branch>=. For blame, read the merge methods the
+  repository allows and the one the pull request will complete with (through =mz-gh-scout=): a
+  squash or rebase gives the rewrite commits new hashes, so the ignore file names commits that never
+  reach the branch unless the merge keeps them. After the merge, run
+  =git blame --ignore-revs-file .git-blame-ignore-revs <file>= on a rewritten file; blank lines
+  still credit the rewrite commit, because git cannot match an empty line to the parent — expected,
+  not a failure.
+- *Motivated by:* a conversion of some 1,700 C# files from CRLF to LF, completed as a
+  no-fast-forward merge so the rewrite commits kept their hashes and the blame-ignore list stayed
+  valid.

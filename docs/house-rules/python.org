@@ -1,0 +1,44 @@
+#+title: Python house rules (PY)
+
+Read with =common.org=, which applies here as well. These are rules beyond what
+=mz-python-reviewer= already states. Ids are never reused.
+
+* Scope
+
+Python service code in any repo: API applications (routes, services, schemas, models — FastAPI,
+Pydantic, SQLModel) and the shared Python packages they depend on (=*.py=, =pyproject.toml=).
+
+* Calibration
+
+- Apply to new or touched code the change wrote, per =common.org= Calibration. A long-standing
+  pattern across an application is drift, surfaced once at the top of a review and filed as a
+  =tech-debt= issue, not graded per file.
+- Severities here override =mz-python-reviewer='s default for the same pattern.
+
+* Layering
+
+** PY-001 — A request or response model defined inside a =services/= package
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* Request and response models live in the API's schemas package
+  (=app/schemas/<feature>.py=). A model the change defines inside a =services/= package — copying
+  an older service-package shape — is the finding. A service module may re-export a schema; it
+  does not define one.
+- *Not a finding:* an existing instance of the older shape, including a service module that only
+  re-exports from the schemas package for backwards compatibility. Neither is the example to copy.
+- *Precedent:* none yet
+
+* Modeling
+
+** PY-002 — A PATCH update written field by field instead of the shared update helper
+
+- *Severity:* Bug
+- *Applies to:* new or touched PATCH endpoints and the services behind them
+- *Rule:* =common.org= CM-010 (a local copy of something the shared layer already provides),
+  in Python: a partial update is ~model_dump(exclude_unset=True)~ passed through the
+  repo's shared partial-update helper. Hand-written field-by-field assignment in its place is a
+  local copy of that helper. =mz-python-reviewer= grades this Smell; the Bug here follows CM-010.
+- *Not a finding:* a local form the writer's plan records as put to Max, with Max choosing it. A
+  PUT endpoint, which is strict replacement and takes no partial update at all.
+- *Precedent:* none yet

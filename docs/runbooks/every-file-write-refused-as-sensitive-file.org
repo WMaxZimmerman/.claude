@@ -1,0 +1,163 @@
+#+title: Runbook: Every file write is refused as a sensitive file
+#+startup: content
+
+*Applies to:* Claude Code; any repo.
+
+This runbook is about Claude Code, the tool, not about any one repository: the guard it describes
+is Claude Code's, and it fires on where a file sits, not on what the repository holds.
+
+* Symptoms
+
+- Any attempt to write or edit a file fails with
+  =Claude requested permissions to edit <path> which is a sensitive file.= That is a different
+  message from the ordinary =but you haven't granted it yet= refusal, and the wording is how you
+  tell them apart.
+- A delegated writer agent reports that it cannot write the path it owns. =mz-house-rules-manager=,
+  =mz-runbook-manager=, and =mz-agent-builder= are the usual casualties, because the delegation
+  rule (=~/.claude/docs/mz-suite.org= § Roster and delegation rule) routes those writes through
+  them.
+- In an interactive session the refusal surfaces as a prompt on each write. In a non-interactive
+  session (=claude -p=) there is no prompt and the write simply fails.
+- Nothing lands. =git status --porcelain= over the refused paths shows no working-tree change
+  afterwards.
+
+Which paths are refused tells you which of the two causes you have:
+
+- *Every path in the checkout* — prose, docs, and agent files alike — and the refusal holds even
+  when the session was started with =--permission-mode acceptEdits=. That is cause 1, the
+  checkout's location.
+- *Only paths under a directory the session loaded with =--plugin-dir=*, while paths elsewhere in
+  the same session write normally, and a permission grant that matches the refused path does not
+  help. That is cause 2, the loaded plugin directory.
+
+* Cause
+
+Two independent conditions produce the identical message, so the message alone does not tell you
+which one you are hitting. The distinguishing question is *where the refused path sits*: under a
+directory named =.claude=, or under a directory the session loaded with =--plugin-dir=. Either
+makes the path protected configuration. Neither is a property of the repository, and a checkout
+can meet one, both, or neither.
+
+** Cause 1 — the path sits under a directory named =.claude=
+
+This one is a property of *where a checkout sits*, not of the repository. When a checkout's root
+directory is named =.claude= — or the checkout is nested under a directory of that name — every
+file in the tree is on a path under =.claude=. Claude Code treats a path under a =.claude=
+directory as protected configuration, so the match is path-based rather than file-specific and
+sweeps in the whole tree. The condition holds whenever the containing directory carries that name
+and stops holding when it does not; anyone can recreate it by cloning into a directory named
+=.claude=.
+
+What was observed: in a checkout whose directory was named =.claude=, a write by a delegated
+writer to a registry file was refused repeatedly, and a probe write to a throwaway path that did
+not exist and carried no special meaning was refused with the identical message. After the
+checkout directory was renamed to a name other than =.claude=, a write to that exact probe path
+succeeded, and a write to a path no allow rule covered was refused with the ordinary
+=but you haven't granted it yet= message instead — the wording is the evidence that the path then
+went through ordinary permission machinery, not the sensitive-file guard. A default =git clone=
+of a repository whose name merely contains =.claude= does not meet the condition; the containing
+directory has to be named exactly =.claude=.
+
+*This suite lives under such a directory.* =~/.claude/= is itself a directory named =.claude=, so
+every agent file, skill file, and doc of the =mz= suite is on a path under it. Even so, on
+2026-11-17 writes to =~/.claude/docs/= and to =~/.claude/CLAUDE.md= succeeded unprompted, with
+=defaultMode= set to =auto= in =~/.claude/settings.json=. So the guard does not refuse every path
+under a =.claude= directory in every setup. Whether the permission mode, the fact that
+=~/.claude= is the user configuration directory rather than a checkout, or both made the
+difference has not been tested.
+
+** Cause 2 — the session loaded the directory with =--plugin-dir=
+
+A directory passed to =--plugin-dir= is treated as protected configuration for the life of that
+session, and the files inside it cannot be edited from within it. The checkout's own name is
+irrelevant to this one, and a permission grant that matches the path does not help.
+
+What was observed: a writer agent run inside a =claude -p --plugin-dir <dir>= session had every
+edit to files under the loaded directory refused with the sensitive-file message. In a controlled
+pair of runs — same checkout, same permission mode, same target directory — the write was refused
+with =--plugin-dir= and succeeded without it. The guard is scoped to the loaded directory, not to
+the whole session: in a =--plugin-dir= session a delegated writer still wrote a file outside the
+loaded directory unprompted under a matching grant.
+
+The practical consequence: *you cannot use a =--plugin-dir= session to edit the plugin files that
+session has loaded.* Editing and exercising a plugin are two sessions, in that order. The =mz=
+suite itself does not use =--plugin-dir= — its agents load from =~/.claude/agents/= and a changed
+agent is exercised in a fresh =claude -p= session (=mz-suite.org= § Testing and verification) — so
+cause 2 arises only when working on a plugin.
+
+* Resolution Steps
+
+1. *Confirm it is this and not a file-specific block, then establish which cause.* Attempt a write
+   to a throwaway path in the same tree, such as =docs/.perm-probe.tmp=. The same
+   =sensitive file= message on a path with no special meaning confirms the protection is
+   path-based. Then ask where the refused path sits. Under a directory named =.claude= is cause 1
+   — go to step 2. Under a directory the session was started with =--plugin-dir= is cause 2 — go
+   to step 7, and confirm it by re-running the same write from a session started without the
+   flag. Both can be true at once, and then both fixes apply.
+2. *Cause 1, permanent fix — rename the containing directory.* Moving the checkout so it is not
+   under a directory named =.claude= removes the cause; steps 3 through 5 are per-write
+   workarounds that only hold for as long as the name does. This does not apply to =~/.claude=
+   itself, which is Claude Code's user configuration directory and cannot be renamed; for it, use
+   steps 3 to 5. Git is indifferent to the containing directory's name — nothing under =.git/=
+   stores an absolute path unless the checkout has worktrees or submodules, and the remote is a
+   URL. What does need redoing is Claude Code state keyed by the old path:
+   - project-scope plugin entries in =~/.claude/plugins/installed_plugins.json=, which each map a
+     =projectPath=; a user-scope entry has none and survives the rename. Trust the renamed folder
+     and let the repo's committed =.claude/settings.json= re-register what it declares, rather
+     than reinstalling;
+   - per-project session state under =~/.claude/projects/=, keyed by the absolute project path
+     with separators replaced by =-=, which does not follow the rename;
+   - any absolute path recorded in the checkout's own =.claude/settings.local.json=.
+3. *Interactive session — approve the prompt.* Each write raises a prompt that can be approved.
+   Choosing the don't-ask-again option records a rule for subsequent writes. Switching the session
+   to accept-edits mode has also let the main agent's own writes through.
+4. *Non-interactive session (=claude -p=) — nothing recovers the write in-session.* There is no
+   prompt to approve. Either re-run the work from an interactive session, or apply the writer's
+   draft by hand per step 5.
+5. *Workaround when a delegated writer is blocked.* Have the writer agent emit its complete
+   draft — full path plus entire file body — and the main agent applies it verbatim, with no edits
+   of its own. This is a departure from the delegation rule in =mz-suite.org= § Roster and
+   delegation rule. Record it in the change that uses it; do not normalise it.
+6. *Permission rules in settings behave non-obviously.* Write =Edit(path)= rules: an =Edit= rule
+   is matched by file permission checks and covers the =Write= tool — that much was confirmed by a
+   relative =Edit(...)= rule granting a =Write=-tool write in a
+   =claude -p --permission-mode default= run while an uncovered control path in the same run was refused. Whether it covers
+   =NotebookEdit= and the other file tools is inference, not a checked fact. The =Write(...)= rule
+   form has not been tried, so whether one is matched, ignored, or something else is unknown. An
+   /absolute/ =Edit(//<drive>/<path>/**)= rule in =.claude/settings.local.json= did *not* unblock
+   writes against cause 1; that failure differed from the successful probe in two ways at once —
+   rule form, and the sensitive-file guard rather than ordinary permission machinery — so it
+   cannot be attributed to either.
+7. *Cause 2 — edit from a session that has not loaded the directory.* Nothing recovers the write
+   inside the session that loaded it, and a matching permission grant does not help. Edit the
+   plugin files from an ordinary session, then start a fresh =claude --plugin-dir <dir>= session
+   to load and exercise the result. A =--plugin-dir= session can still write files outside the
+   loaded directory, so a writer whose paths lie elsewhere is unaffected and needs no workaround.
+
+#+begin_quote
+*INCOMPLETE* — no configuration is known to defeat the sensitive-file guard itself, under either
+cause. Two rule shapes have been tried and neither worked: the absolute =Edit(...)= rule in
+step 6, against cause 1, which differed from the successful control probe in two ways at once and
+so settles nothing; and a relative =Edit(...)= grant matching the refused paths, in force
+throughout a refused =--plugin-dir= run, which was no help against cause 2. Whether any rule
+shape, scope, or settings file defeats the guard under either cause is untested. The 2026-11-17
+writes under =~/.claude= (Cause 1) show the guard does not always fire under a =.claude=
+directory, but not why.
+#+end_quote
+
+* Verification
+
+1. Repeat the write that failed. It completes with no =sensitive file= message.
+2. =git status= shows the file as modified or untracked as expected.
+3. Read the written file back and confirm the content matches the draft byte for byte,
+   especially when step 5's hand-apply route was used.
+4. If a delegated writer was the blocked party, re-invoke it on the same path and confirm it
+   reports the write succeeded rather than reporting it cannot write.
+5. After a cause-2 refusal (step 7): =git status --porcelain= over the refused paths confirms
+   nothing was written, then the same write from a session started without =--plugin-dir=
+   succeeds. Start the =--plugin-dir= session afterwards and confirm it loads the edited files — a
+   fresh session picks up working-tree edits.
+6. After a rename (step 2): from the renamed directory, =git status= and =git log --oneline -1=
+   report the same branch and HEAD commit as before the rename, and =git remote -v= reports the
+   unchanged remote URL. Start a fresh session there and confirm a write to a throwaway path
+   succeeds and that the repo's agents resolve.

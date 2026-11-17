@@ -1,0 +1,382 @@
+#+title: What a repo's AGENTS.md should provide
+#+startup: content
+
+* How to read this list
+
+The =mz-= agents carry no facts about any one repository. A fact they need about a repo comes
+from that repo's contract, and a repo does not have to have one. Per =~/.claude/docs/mz-suite.org=
+§ Reading order, an =mz-= agent reads the repo's root =AGENTS.md=; with none, the repo's root
+=CLAUDE.md=; with neither, it works from =mz-suite.org= and its own built-in defaults, and says
+which it used. An =AGENTS.md= is therefore optional, and a repo without one is not a finding.
+
+This page lists what a repo contract should provide for the =mz-= agents to use it, grouped by
+section, and names the agents that read each item. It applies to whichever file the Reading order
+picks — =AGENTS.md= or, failing that, =CLAUDE.md=. Where a repo keeps an =AGENTS.md=, its root
+=CLAUDE.md= should import it with the line =@AGENTS.md= alone: Claude Code loads =CLAUDE.md= into
+the main session and never reads =AGENTS.md= on its own, so without the import the main agent
+works without the contract its delegates read.
+
+Many items repeat a default =mz-suite.org= already sets. Those are marked /Optional/, with the
+section of =mz-suite.org= that holds the default; a repo states them only where it differs, and
+where it does, the repo's statement wins (Reading order). Every other item is /required/ when the
+repo has a contract: the agent that needs it otherwise finds it from the repo itself and says how,
+which is slower and can guess wrong.
+
+=mz-agent-auditor= checks a repo's contract against this list when asked. A missing required item
+is a *Smell*. A missing optional item is at most a *Suggestion*. A repo with no contract at all is
+not graded against this list.
+
+* 1. Repository layout
+
+Read by: mz-aptitude-scout, mz-git-historian, mz-runbook-manager, mz-house-rules-manager,
+mz-devils-advocate, mz-skill-builder, every stack writer and reviewer.
+
+- The top-level areas of the repo and what each holds. These are the paths =mz-aptitude-scout=
+  scores.
+- The feature-folder convention below each area, so sub-areas can be discovered without a
+  hard-coded list.
+- Anything intentionally absent, such as a service with no UI, so an agent does not treat the gap
+  as missing work.
+- Any legacy subtree that reviewers should calibrate differently.
+- The deployable units, their external dependencies (databases, brokers, third-party APIs), the
+  deploy layer (cluster, platform, or host), and the local orchestration used for development.
+  =mz-runbook-manager= builds its search vocabulary from these names.
+
+* 2. Source control and GitHub topology
+
+Read by: mz-gh-scout, mz-gh-pr-operator, mz-gh-issue-writer, mz-git-historian, mz-devils-advocate.
+
+- *Host*, only if the repo is not on GitHub. /Optional./ A repo on another host says so, so no
+  agent reaches for =gh=; =mz-suite.org= § Tracking says what happens to tech debt then.
+- *Owner and repository*, as =<owner>/<repo>=, only where =gh= cannot read it from the =origin=
+  remote — a fork, or more than one GitHub remote. /Optional./
+- *Integration branch* that pull requests target. /Optional — default: the remote's default
+  branch, read at action time (=mz-suite.org= § Source control)./ Never assumed to be =main=.
+- *Branch and commit naming convention*, including where the issue number goes. /Optional —
+  default: =mz-suite.org= § Source control./
+- *Labels applied to every issue an agent files from this repo*, beyond the suite's =tech-debt=
+  label. /Optional./
+- *CI workflows by name and role.* Each GitHub Actions workflow (or other CI system's pipeline)
+  that matters to a pull request, and whether it is a required status check or a mirror of
+  another CI system. For a mirror, name the other system and the file that holds the real detail.
+- *Where each workflow's logs live and how to reach them* — =gh run view --log= for GitHub
+  Actions — so a debugger can point at a failed verification run rather than guess.
+- *Any conduct rule for pull-request rework*, if the repo has one. /Optional./
+
+* 3. Agent roster and delegation rule
+
+Read by: every =mz-= agent when it hands off, and by mz-agent-builder and mz-agent-auditor when
+they change or check the roster. mz-skill-builder and mz-skill-auditor read the delegation rule
+and the reviewer map to keep a skill's steps off a path a named agent owns.
+
+- *The repo's own agents and plugins.* Which plugins the repo enables, and a table of the agents
+  it adds under =.claude/agents/=, each with its surface and posture. Where one does the same job
+  as an =mz-= agent, it is used instead (=mz-suite.org= § What the suite is for). None carries the
+  =mz-= prefix. A repo with neither needs no such statement.
+- *The delegation rule*, for each kind of change: which writer, which test-writer, which reviewer,
+  and which debugger. /Optional — default: =mz-suite.org= § Roster and delegation rule, with each
+  stack writer naming its paired reviewer./ State it where the repo routes a path differently, and
+  say explicitly which stacks have no debugger.
+- *Skill files.* Where the repo keeps skills of its own — =.claude/skills/<name>/=, each a
+  =SKILL.md= and any other =.md= files beside it — the delegation rule routes them to
+  =mz-skill-builder=, gated by =mz-skill-auditor=, and says a skill file is never hand-edited.
+  None carries the =mz-= prefix. A repo with no skills of its own needs no such bullet.
+- *Who the rules bind.* Any rule the repo adds for the main agent only, such as "never edit
+  directly, delegate", says so. The =mz-= agents read the contract and would otherwise read it as
+  a restriction on their own work. /Optional — default: =mz-suite.org= § Who these rules bind./
+- *How a gated writer runs*, *routing conventions*, *reviewer findings never dropped*, and *the
+  gate*. /Optional — defaults: =mz-suite.org= § How a gated writer runs, § Reviewer findings are
+  never dropped, and § The =mz-devils-advocate= gate./ A repo states only where it differs — for
+  example a writer-to-reviewer pairing of its own, or a house rule it rules on per pull request.
+- *Reviewer ownership by path*, where the repo has more than the defaults: which reviewer owns
+  which path prefixes, whether a language-wide reviewer runs on everything of that language
+  regardless of writer, and any domain-specialist reviewer that runs in addition. Which agents'
+  findings sit outside the gate, if any, and — when such an agent grades on a scale other than
+  Bug / Smell / Suggestion — the scale it uses, named here beside the agent; a repo that names no
+  such agent keeps the ladder alone (item 5). Where the repo keeps agents or skills of its own,
+  the map carries a row for =.claude/agents/= → =mz-agent-auditor= and for =.claude/skills/**= →
+  =mz-skill-auditor=, because =mz-devils-advocate= resolves each auditor's surface from this map.
+  /Optional where the repo keeps neither and no stack differs from the defaults./
+
+* 4. Review scope
+
+Read by: every reviewer, mz-devils-advocate, mz-agent-builder, mz-agent-auditor.
+
+/Optional — defaults: =mz-suite.org= § Review scope./ A repo states any of the following only
+where it differs or adds to the default:
+
+- The wrote-this-line test, and how pre-existing problems a change exposes are reported.
+- The comment and docstring rule, if the repo applies one beyond =common.org=.
+- The plain-English rule.
+- The citation convention.
+- Whether a cross-cutting duplication pass over the whole changed surface is expected.
+- The trace-before-raise rule.
+- *States ruled out by design.* A list, under a heading a reviewer and the gate can find, of the
+  states the system is run so that they cannot arise — a hand edit to a production table, a record
+  deleted outside the application, a second row where the system keeps one — each with why it
+  cannot arise and since when. A finding whose trigger needs one of these states is
+  *Not a problem (ruled out by design)* and is dropped by the reviewer and ruled so by the gate.
+  =mz-suite.org= names none, so with no list here no state is ruled out.
+
+* 5. House code rules
+
+Read by: every writer and reviewer.
+
+- Nothing required. House rules and attack angles come only from =~/.claude/docs/house-rules/=
+  (=mz-suite.org= § Reading order, the one exception); the =mz-= agents never read a repo's own
+  =docs/house-rules/=.
+- A rule the repo states in its contract that binds every line written there is a repo rule, and
+  wins on conflict like any other. Where it carries a severity, it uses the Bug, Smell, and
+  Suggestion ladder (=mz-suite.org= § Severity ladder): agents recognise no other severity word,
+  so a rule stated with a different one cannot be graded. The one exception is the scale item 3
+  lets a repo name for an agent whose findings sit outside the gate: it covers that agent's
+  findings alone, never a rule. /Optional./
+
+* 6. Testing and coverage
+
+Read by: mz-devils-advocate, every writer and test-writer.
+
+- The rule for untested load-bearing paths: a gap a reviewer, a writer, or the main agent raises
+  is filled before the cycle's commit; a gap =mz-devils-advocate= raises is filled in a commit on
+  the branch before the pull request is opened or updated — never deferred either way; or how
+  exceptions are recorded.
+- The repo's verification commands — build, test, lint, and format — where tests live, and the
+  order they run in when the repo requires one. /Default when absent: the agent finds them from
+  the repo and says how (=mz-suite.org= § Testing and verification)./ Include the form that runs
+  a single test and any variant that runs without containers, because a writer in a red-green
+  cycle runs the narrow form and only the main agent runs the full sweep. State a command in a
+  form that does not depend on one shell, or give both forms, because an agent on Windows may have
+  only PowerShell. That means no variable set as a command prefix and no =&&= chaining in a
+  command the contract hands an agent. This bounds what =mz-devils-advocate= may run when probing
+  and what the writers run after a change. A repo with several stacks lists them per stack;
+  item 10 refines the stack detail. A repo with no test suite says so.
+
+* 7. Registries and conventions on disk
+
+Read by: mz-runbook-manager, mz-house-rules-manager, mz-devils-advocate, mz-aptitude-scout,
+mz-skill-builder, and every reviewer.
+
+The suite keeps its own registries under =~/.claude/=, not in the repo (=mz-suite.org= § Where the
+suite keeps things): the house-rules registry, the runbooks, and the per-repo aptitude file. A
+repo's contract names none of them, and an =mz-= agent never reads a repo's own
+=docs/house-rules/= or reads or writes its =docs/runbooks/=. Tech debt is a GitHub issue labelled
+=tech-debt= (=mz-suite.org= § Tracking), not a file. What a repo states:
+
+- =.claude/skills/=, where the repo keeps skills of its own, and — where the repo's =.gitignore=
+  excludes =.claude/= — the rule there that lets =.claude/skills/= back in. A skill file an ignore
+  rule excludes does not reach a commit; =mz-skill-builder='s hand-off has the main agent check
+  each file it wrote with =git check-ignore -v <path>=.
+- =handoffs/= for design hand-offs, if the repo uses them. /Optional./
+
+* 8. Main-agent routines the mz agents rely on
+
+These are behaviours of the main agent, not of any =mz-= agent, but the =mz-= agents assume they
+exist. /Optional — defaults: =mz-suite.org= § Main-agent routines and § Tracking./ The defaults
+are the aptitude check, the Plan pass with its =tech-debt= search, the follow-up issue, trace
+before raising, and the diff hand-off to =mz-house-rules-manager= (=mz-suite.org= § Roster and
+delegation rule). A repo states only:
+
+- *Work lifecycle.* /Optional./ Where the repo codifies how work flows from an issue to a pull
+  request, the lifecycle names each phase and the agent it invokes. If it uses
+  =mz-devils-advocate= in Plan mode before implementation, it says when that runs and how the
+  carry-forwards reach the gate.
+- Any routine it changes or adds, said as a change to the default.
+
+* 9. Safety fences
+
+Read by: every agent; =mz-agent-auditor= grades each agent's own fence statements against
+=mz-suite.org= § Safety fences.
+
+- The universal fences are in =mz-suite.org= § Safety fences and bind in every repo; a repo
+  contract does not need to restate them and cannot loosen them.
+- Whichever host-specific command the repo's topology makes meaningless, named explicitly, so an
+  agent does not reach for it — =gh= in a repo not on GitHub, for example. /Optional./
+- Any further fence the repo adds, stated as universal or naming the role it binds. /Optional./
+
+* 10. Stack sections — only when the repo has that stack
+
+Each stack the repo has needs a section naming that stack's facts. Every stack section states the
+build, test, lint, and format commands, the directory each runs from, and where tests live.
+
+** dotnet
+
+- Which source paths, projects, and shared libraries belong to the .NET writer, and which
+  projects are Blazor and belong elsewhere. State the boundary in both directions.
+- The feature-folder layout and layering, and where entities, data-transfer objects, domain
+  types, and mappers live.
+- The dependency-injection registration seam.
+- The naming suffix convention in force.
+- The reference feature that new work is modelled on, or the nearest-sibling rule.
+- Whether local-development host projects exist and who owns them.
+- Every test project, which source project each covers, and the split between the unit tier and
+  the integration tier that stands up a real database.
+- The test base classes and shared helper locations.
+- Per database context: its name and provider, the context and startup projects that become the
+  command flags, where entities and configurations live, the migrations folder and its naming
+  precedent, how the local database comes up, the environment name that marks it local, and
+  whether production applies migrations at runtime or from a bundle baked at image build.
+- Whether the local apply belongs to the agent or is delivered as a script for the pipeline.
+- The connection-configuration contract the deploy surface reads.
+- Any database context that is out of scope.
+- Where entity-relationship diagram files live.
+- The observability stack and the role name each tier logs under.
+- The authentication schemes and authorization policies each service uses, and its identity
+  provider. Authentication symptoms do not share root causes across providers.
+- Any documented island the reviewers must not flag: a serialization island, an authentication
+  island, generated content, or a legacy subtree with its own calibration.
+- The background-processing tier, if one exists, and the trigger or queue mechanism behind it.
+
+** blazor
+
+- Each Blazor project, its paired test project, and which is the calibration baseline.
+- The user-interface library, and that its global providers live in one place.
+- The authentication provider per project and how a token is acquired and attached.
+- The runtime-configuration mechanism, and any legacy path marked as a pending migration.
+- The reference file per shape: page, reusable component, stateful service, JavaScript interop
+  wrapper, typed HTTP client, and bootstrap.
+- The reference test per shape, including one that exercises popover-using primitives.
+- The project layout where it differs from the default.
+
+** angular
+
+- Which paths are applications and which are shared libraries.
+- Whether a legacy subtree exists, and that every file in it is legacy by default.
+- Per application or subtree: the Angular version, the test runner and therefore the spy
+  interface, and the state-management library.
+- The user-interface component library, if the applications use one, and the element or
+  directive names the reviewers may hold a template to. Without this the reviewers cannot grade a
+  missing label or a misplaced validation message.
+- The generated API client path and its regeneration command, which an agent surfaces and never
+  runs.
+- The shared test-helper library, and whether it reaches the legacy subtree.
+- The end-of-feature verification sequence and its order.
+- Any per-application contract file to read after the root contract.
+- Any application or path marked unused or off-limits.
+
+** python
+
+- Which Python surfaces exist and the shape of each: a service, a shared library, or a tool.
+- The per-service layout: the entry module where routes register, the models module migrations
+  read, and the routes, services, repositories, schemas, and events folders.
+- The canonical route and service pair to copy as the reference shape.
+- The shared package for helpers that are not service-specific.
+- For a tool: the entry-point invocation other repos depend on.
+- The package manager, and that agents surface dependency commands rather than run them.
+- The test layout, whether split by tier or flat, and which tiers the pull-request gate runs.
+- The shared testing-fixtures package and the local re-export names for the engine and session.
+- The marker names for end-to-end and integration tests, the HTTP-mocking library already in use,
+  and the async mode setting.
+- The house input base model, the request-context dependency, the shared partial-update helper,
+  the logger, whether a typed-exception layer exists, and the one sanctioned blocking-hop helper.
+- The configuration module and the environment-variable naming convention.
+- Whether the repo has adopted an async direction, and where that decision is recorded.
+- If the repo has a message bus: whether a transactional outbox exists and the call that records
+  the outbox row inside the domain transaction, the message-handler entry point, the
+  transient-versus-permanent and dead-letter rules, and the flag that gates broker startup so
+  tests run without one.
+- The recipe that starts the local broker, if the repo runs one in a container. /Optional./
+- Per migration environment: the service, its configuration and environment files, its versions
+  folder, its database and database engine, and how the connection resolves. The engine matters
+  because enum handling, identifier casing, and error codes differ between them.
+- The recipe that starts the local database, the autogenerate recipe, the local upgrade and
+  downgrade commands, and the integration-test command whose fixtures apply migrations.
+- Any migration recipe that applies through a deploy path or one-off migrator container, named so
+  the agent can refuse to run it.
+- Any shared-infrastructure table whose shape must not be redefined.
+- How migrations reach deployed environments.
+- Which specialist writer and reviewer, if any, own the event and messaging surface, stated
+  explicitly when none exists, because the Python agents then own it.
+
+** containers
+
+- The Dockerfile paths for production, development, and test images, which file is canonical per
+  image kind, and whether one file is parameterized per kind.
+- The build context, every build argument by name and what it selects, every build secret
+  identifier with its mount target, and the target stage names the pipeline and compose build.
+- The image name and tag format pushed, the registry and project, and which pipeline owns build,
+  push, and registry authentication.
+- Whether a migrator stage or baked migration bundle exists, its tooling, and the output path a
+  chart consumes.
+- The listening ports and the chart or compose field each must match.
+- The non-root user convention on shipped stages, or that images run as root today.
+- The compose file paths, and whether compose authoring belongs to the Dockerfile writer.
+- The ignore-file locations and which build context each governs.
+- Any test-gate stage's deliberate shell discipline, per file.
+- The chart tree paths, which resources belong in each, and whether a separate provisioning chart
+  exists.
+- The canonical chart that is the precedent baseline.
+- Whether the chart is an umbrella with an aliased subchart per unit, or one chart per service.
+- The values layers per environment, the merge mechanism, and whether they live in the repo or an
+  external values repository.
+- The values keys the pipeline injects at deploy time and the image name they compose.
+- The image pull secret name, the label key set, and the namespace source.
+- The migration pattern, init container or pre-upgrade job, with its image and command.
+- Which secrets the chart creates versus references, and any chart-managed generated secret.
+- Whether workload identity is the default for cloud-backed services, and where the federated
+  credential lives.
+- The health-check paths and the resource request and limit defaults.
+- Which routing resource is the house standard, =HTTPRoute= or =Ingress=; the gateway the routes
+  attach to and the path-prefix convention.
+- The messaging-topic resource version, operator label, namespace, and defaults, if topics exist.
+- The deploy mechanism, chart name and version scheme, chart registry, and the
+  branch-to-environment mapping with which environments are human-gated.
+- Any deploy flag the contract forbids, with the reason, and the wait timeout a cold rollout
+  needs.
+
+** terraform
+
+- The Terraform tree path, its root files, modules, and per-resource-type file convention.
+- The per-environment variable files, which is the plan target for the gate, and which is
+  production.
+- The provider and version constraints, and the pinned command-line tool version.
+- The backend type and the per-environment overrides the initialize step supplies.
+- Which CI workflow runs plan and validate as the gate, and which applies on merge, in what order.
+- Which resources carry destroy protection, and that the declarative move and remove blocks are
+  the house refactor mechanisms.
+- The boundary between what Terraform owns and what the charts own.
+- Any file that is dormant or off-limits.
+- The resource groups, namespaces, or clusters each environment deploys to.
+
+** CI pipelines
+
+For GitHub Actions workflows, or another CI system's pipeline files where the repo uses one.
+
+- Whether the repo keeps one multi-stage workflow or a tree of workflows plus shared reusable
+  workflows or templates, and where each lives.
+- The workflow families and the deploy target each serves, and the file and template naming
+  convention.
+- The trigger conventions for continuous workflows versus gate workflows.
+- The runners or agent pools and their machine images.
+- The deployment environment names and the approvals or protection rules attached to each.
+- How secrets and variables reach a job — repository or environment secrets, a secret store and
+  the step that fetches from it — with the names in use.
+- The pinned action or task versions and pinned tool versions.
+- The artifact names published and consumed, and the pattern for passing values between jobs.
+- Which jobs are gates and which apply or deploy on merge.
+- The repo's own command for validating a workflow or pipeline file, if it has one; where the CI
+  system offers no such command, the agents surface this instead of running one.
+- *Where one CI system mirrors another's phase statuses*, the phase names it polls, the state
+  vocabulary it recognises, and the status-posting script. These are a contract the agents must
+  not break.
+
+* Minimal skeleton
+
+An =AGENTS.md= is markdown, so this skeleton is too. Headings may be worded differently; each
+section the repo keeps sits under a heading an agent can find by these names. A section whose
+items are all optional and all left at the default may be left out.
+
+#+begin_src markdown
+# AGENTS.md
+
+## Repository layout
+## Source control and GitHub topology
+## Agent roster and delegation rule
+### Who these rules bind
+## Review scope
+## House code rules
+## Testing and coverage
+## Registries and conventions on disk
+## Main-agent routines
+## Safety fences
+## <Stack> conventions   (one per stack the repo has)
+#+end_src

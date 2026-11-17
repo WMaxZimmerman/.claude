@@ -1,0 +1,1902 @@
+#+title: C# / .NET house rules (CS)
+
+Read with =common.org=. =blazor.org= layers Blazor deltas on top of this file: a CS entry applies in
+a Blazor project as written unless =blazor.org= states a delta for it.
+
+* Scope
+
+C# / .NET code in any repo: =*.cs= in ASP.NET Core APIs, Functions or worker hosts, class libraries
+and plain-.NET contracts libraries (a contracts library consumed by a Blazor app is still in scope
+here — it is not Blazor code); Aspire =*.AppHost= projects; EF entity, =DbContext=, entity
+configuration and migration code; and the project files (=*.csproj=, =Directory.Build.props=,
+=Directory.Packages.props=, =*.sln=). Not Blazor projects — =.razor= files and the C# supporting
+them in a Blazor WebAssembly or Server project are =blazor.org='s.
+
+The test projects for the above are in scope: production rules reach test code as each entry
+marks, and every entry under the *Test style* heading is test-only. That group is named by its
+heading, not by an id list, because a new test-style entry takes the next free id wherever it
+falls.
+
+* Calibration
+
+- Apply-to-new is the default. Rules marked =new or touched code only= never demand a refactor of
+  pre-existing code; legacy instances (separate-file interfaces, positional records, 4-space
+  continuations, =DTO= / =DM= casing, sync-over-async in surrounding code) are project drift —
+  surface once per CM-005.
+- EF-generated content under =**/Migrations/**= — the =*.cs= migration files, =*.Designer.cs=, and
+  =*ModelSnapshot.cs= — is not reviewed for style. Generated =/// <inheritdoc />= lines, the
+  =#nullable disable= directive, and the scaffolded =Up= / =Down= / =BuildTargetModel= structure
+  are not findings; =mz-ef-migration-writer= preserves them by design. Rules apply to hand-written
+  =Sql(...)= edits inside a migration and to entity / =DbContext= configuration code.
+- House style is not a finding: file-scoped namespaces, =_camelCase= private fields, =I=-prefixed
+  interfaces, primary constructors for DI-only classes, =record= with mutable ={ get; set; }=
+  properties (the AutoFixture / fake-model-generator test pattern), long lines (there is no
+  line-length cap).
+- An Aspire AppHost (=*.AppHost/Program.cs= and its =.csproj=) is local-dev orchestration only;
+  production runs through whatever deployment the repo uses (Helm, a pipeline, a platform service).
+  Don't flag AppHost ports or image tags against production values. A cross-cutting
+  AppHost-vs-production mismatch (the AppHost's API port against the chart's =targetPort=) is not a
+  Bug — surface it as a one-line "for awareness" note only when it looks accidental rather than
+  intentional. Long =WithEnvironment(key, value)= chains are how Aspire wires .NET configuration,
+  not a smell. An AppHost in the solution without a test project is not a finding — it isn't
+  unit-testable in the normal sense.
+- A legacy island with an architecture of its own — its own solution and props files, a different
+  layering such as Minimal API routes returning an explicit result union instead of
+  controllers → services → repositories with typed exceptions — is graded against its surrounding
+  files: the rules that assume the house layering (the naming-suffix vocabulary of CS-026, the
+  repository / =Dm= / =Dto= layering of CS-020 and CS-021, typed-exception error handling of
+  CS-009, the =ServiceRegister= seam of CS-023) have no subject there, its long-standing patterns
+  are drift surfaced once per CM-005, and solution-scoped rules (CS-044's central pin, CS-047's
+  sibling comparison) are measured within the island's own solution. Everything else applies
+  normally.
+- An older island inside the house layering (an in-repo third-party client library, say) is graded
+  the same way: what a change writes is graded against the surrounding file, and long-standing
+  shapes there (block-scoped namespaces, run-together test names) are drift per CM-005. Production
+  rules apply to new code there; new tests follow the Test style group; an island's established,
+  documented test approach (its own integration base registering the client against WireMock.Net
+  fake servers, say) is accepted rather than drift.
+- Serialization posture: =System.Text.Json= is the default. A =Newtonsoft.Json= island is whatever
+  the repo contract (its =AGENTS.md= or =CLAUDE.md=, per =~/.claude/docs/mz-suite.org= Reading
+  order) documents as one; with none documented, there is none (CS-032).
+- =[ProducesResponseType]= is optional and left to the author. Which response codes an action
+  declares, or whether it declares any, is not a finding at any severity — an action that can
+  answer 404 and 424 and declares neither is correct.
+- Rules lifted from the =mz-dotnet-writer= and =mz-ef-migration-writer= house conventions with no
+  reviewer rule behind them carry Smell severity unless the entry states otherwise.
+
+* Framework-standard adherence
+
+** CS-001 — Bespoke plumbing where a documented framework mechanism exists
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* Bespoke plumbing hand-rolled where a documented framework mechanism exists (ASP.NET
+  Core, EF Core, Aspire, MSAL, System.Text.Json) — a hand-built =HttpClient= instead of
+  =IHttpClientFactory=, a hand-rolled JSON pass instead of STJ — without a stated house reason.
+  Prefer the framework idiom; an explicit, documented house opinion is the only thing that
+  overrides it. CS-007 and CS-032 are instances of this rule.
+- *Not a finding:* a deviation backed by a documented house opinion (a documented =Newtonsoft.Json=
+  client island).
+- *Precedent:* none yet
+
+* Async / threading
+
+** CS-002 — No sync-over-async
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* =.Result=, =.Wait()=, =GetAwaiter().GetResult()= on Task-returning calls.
+  Async-all-the-way is the rule; surrounding legacy code that does this is debt to migrate, not a
+  pattern to match.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CS-003 — Missing =CancellationToken= on async public methods
+
+- *Severity:* Smell on new code; Bug when it breaks downstream cancellation propagation
+- *Applies to:* new or touched code only
+- *Rule:* Async public method, especially I/O, without a =CancellationToken= passed down the call
+  chain. This rule is about the token being *absent*; CS-090 is the opposite direction — a token
+  present at the end of the chain and never honoured — and the two are never raised on one member.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CS-004 — Mutable shared state on a =Singleton= without synchronization
+
+- *Severity:* Bug on =Singleton=; Smell on =Scoped=
+- *Applies to:* all code
+- *Rule:* Mutable shared state (=Dictionary=, =List=, fields) without synchronization on a
+  =Singleton=-registered service.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CS-005 — =DbContext= shared across concurrent tasks
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* =DbContext= shared across concurrent tasks
+  (~Task.WhenAll(items.Select(i => repo.QueryAsync(i)))~ against the same context) — "a second
+  operation was started on this context" / open DataReader. When the collision is a side-effect
+  write on a parallel-read path, recommend a transient =IDbContextFactory<TContext>= context for
+  the write (fresh connection, save, dispose) so the parallel reads are preserved — don't recommend
+  sequentializing the reads.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CS-079 — A non-=async= Task-returning member returns its failures on the task
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* A Task-returning member that does synchronous work (=Task.FromResult=, no =await=) and
+  throws a non-usage exception synchronously, so a caller that stores the task or passes it to
+  =Task.WhenAll= sees the throw at the call rather than at =await=. Return it with
+  =Task.FromException<T>(...)=, or make the member =async=. An instance of CS-001 (the task-based
+  async pattern).
+- *Not a finding:* argument validation (=ArgumentNullException.ThrowIfNull=) thrown synchronously —
+  usage errors stay synchronous by the same pattern. A cancellation is *not* a usage error: a
+  non-=async= member observing a cancelled token returns =Task.FromCanceled<T>(token)= rather than
+  throwing synchronously (CS-090), so the two kinds of exception thrown before any work starts are
+  not interchangeable.
+- *Precedent:* a non-=async= repository member whose =catch= hands the caught dependency failure
+  back as =Task.FromException<T>(exception)= rather than rethrowing synchronously, with its
+  =ThrowIfNull= argument guard at the top left synchronous; an integration-host fake of the same
+  member returning its arranged failure on the task the same way production does.
+
+** CS-090 — A =CancellationToken= accepted at the end of the call chain and never honoured
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* A method takes a =CancellationToken=, neither passes it on nor reads it, and cannot pass
+  it on — because what it calls accepts none, or because it does no I/O at all. *Keep the parameter
+  and honour it*: =cancellationToken.ThrowIfCancellationRequested()=, placed after the argument
+  validation and before each call the token cannot reach, so an upstream request is not issued on
+  behalf of a caller that has already gone. In a non-=async= Task-returning member, return
+  =Task.FromCanceled<T>(cancellationToken)= on the cancelled branch rather than throwing the guard
+  synchronously — the guard's =OperationCanceledException= is not a usage error, so a synchronous
+  throw of it is a CS-079 finding. The two shapes the house does *not* want, and why: leaving the
+  parameter unread gives a reviewer meeting the method cold nothing to tell it apart from a
+  forgotten parameter; dropping the parameter looks more honest but is not, because such members
+  typically sit behind a shared seam — a dispatcher over per-system repositories, say — so removing
+  it from the branch interfaces moves the unread token up to the dispatcher instead of removing it,
+  and re-adding it when a terminus gains one is a breaking change across every interface,
+  implementation, call site and test double on that seam.
+- *Not a finding:* *the retained parameter itself.* A =CancellationToken= a method keeps but cannot
+  thread further is the shape this rule asks for, not an unused-parameter finding — a reviewer asks
+  for the missing guard and never for the parameter's removal. Also not findings: a member with no
+  token at all (CS-003's subject, not this one's); a member that threads the token into everything
+  it calls, which has nothing left to honour; a test double or integration-host fake that accepts a
+  token and does not act on it, whose job is to record and return (CS-084 governs what it records).
+  Pre-existing unguarded terminus methods are drift — surface once per CM-005.
+- *Precedent:* an =async= repository member calling a vendor client whose signature takes no token:
+  =ct.ThrowIfCancellationRequested()= after its id-parse guard and before the vendor call, covered
+  by a fact asserting =OperationCanceledException= and that the vendor was never called when the
+  token is already cancelled. Its non-=async= sibling returns =Task.FromCanceled<T>(ct)= instead.
+
+*Open question — synchronous interfaces.* Whether an interface whose only implementation is
+synchronous should drop the =Task= or keep it to match an async sibling is undecided; neither shape
+is a finding until the repo contract decides. An interface can carry both shapes — one member
+returning a plain value beside members returning =Task= — while a sibling interface on the same
+dispatcher returns =Task= throughout. This interacts with CS-090: dropping the =Task= on a
+synchronous member would take the =CancellationToken= with it, so settle this question before
+applying CS-090's guard to such a member. *That parking reaches synchronous members only.* A member
+that returns a =Task= on every implementation is not in question, so CS-090 applies to it unparked
+— an unread token there is a live finding, not a deferred one.
+
+* Resource lifetime
+
+** CS-006 — =IDisposable= not disposed
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* =HttpResponseMessage=, =Stream=, custom disposables not disposed.
+- *Not a finding:* none.
+- *Precedent:* a typed client's =using var response= around a call whose body is read and then
+  handed on, pinned by a test asserting the response content's =Dispose(bool)= ran once the body
+  was read.
+
+** CS-007 — =HttpClient= instantiated outside =IHttpClientFactory=
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* =HttpClient= instantiated outside =IHttpClientFactory=.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CS-008 — Mutating =DefaultRequestHeaders= on a factory-returned =HttpClient=
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* Mutating =DefaultRequestHeaders= on a factory-returned =HttpClient= (the handler is
+  shared across concurrent uses). Set auth on a per-call =HttpRequestMessage=.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Error handling
+
+** CS-009 — Controllers return results, not =BadRequest(...)=
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Controllers returning =BadRequest(...)= / =NotFound(...)= / =Problem(...)= directly
+  instead of throwing a typed exception that middleware translates. Match the project pattern.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CS-010 — Swallowed exceptions returning =default(T)= / =null=
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Swallowed exceptions returning =default(T)= / =null= and logging — masks real failures.
+  The distinguishing test is whether the call is decision-driving: an upstream call (config,
+  partner, identity, feature flags) whose result changes a downstream code branch must catch →
+  =LogError= → rethrow, never return defaulted state that silently flips the branch. Retry / Polly
+  is fine in addition, never as a substitute for the rethrow.
+- *Not a finding:* purely decorative data (branding, banners) may degrade gracefully. Boundary
+  clients adapting to a flaky external contract may legitimately swallow — flag and ask intent
+  rather than auto-rewrite.
+- *Precedent:* none yet
+
+** CS-011 — Status code unchecked before reading the body
+
+- *Severity:* Bug
+- *Applies to:* all code, except a call whose response body is a response envelope (CS-091)
+- *Rule:* =EnsureSuccessStatusCode= missing before reading a response body.
+- *Not a finding:* a call to an endpoint whose response body is a response envelope — a body
+  type carrying the operation's own success flag, status, messages and data (an =ApiResponse<T>=,
+  say). There the failure body is the product — the envelope carries the messages the UI shows —
+  so =EnsureSuccessStatusCode()= would throw away the only thing worth reading. What this rule
+  exists to prevent, trusting a body you have not checked, is met instead by a parser seam
+  validating the protocol shape before deserializing (CS-092) and by CS-091 taking the success
+  decision from the envelope's own success flag. A call that reads an envelope and does neither is
+  a CS-091 finding, not an exemption from this one.
+- *Precedent:* none yet
+
+** CS-012 — Deserialized response dereferenced without null-check
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* Dereferencing a deserialized response without a null-check.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CS-081 — A wrapped exception keeps the caught one as =InnerException=
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* A =catch= that throws a new exception without passing the caught one as
+  =innerException= — the cause and its stack are lost to logs. Pass it
+  (=throw new FailedDependencyException(message, exception)=); a typed exception the change wraps
+  into gets the =(string message, Exception innerException)= constructor if it lacks one.
+- *Not a finding:* =throw;= rethrows. What the HTTP middleware does with the inner exception is a
+  separate concern.
+- *Precedent:* an adapter's =catch= arms over a vendor's exception types, each passing the caught
+  exception as =innerException= to the feature's typed failure, which carries a
+  =(string message, Exception innerException)= constructor.
+
+** CS-086 — A parse of stored or untrusted text uses =TryParse= and throws the feature's typed exception
+
+- *Severity:* Bug
+- *Applies to:* new or touched code only
+- *Rule:* =int.Parse= / =decimal.Parse= / =Guid.Parse= / =DateTime.Parse= (or a =Convert.To*=)
+  applied to a string that came from the database, a request, or a third-party payload, with no
+  guard that the value is parseable — a null or whitespace check is not one. The framework's
+  =FormatException= escapes through the middleware as a 500, so a single bad stored value turns a
+  handled condition into an unhandled one, and the client cannot tell it apart from a server
+  defect. In a feature that has its own typed-failure vocabulary the fix is to use =TryParse= and
+  throw that vocabulary's exception on the false branch — a dependency-failure exception the
+  middleware maps to 424, say, the same status every other "dependency unreachable" path in that
+  feature returns. This governs *whether the parse can fail*; CS-078 governs *which culture* it
+  parses under, and a new parse of third-party text answers both.
+- *Not a finding:* a parse of a value the type system already constrains — a =Guid= route
+  parameter the model binder bound, an enum value read back from a strongly-typed column. A parse
+  whose input the same method just produced. =TryParse= with a documented fall-back value where the
+  feature has no typed-failure vocabulary and the fall-back is the intended behavior. Pre-existing
+  unguarded parses are drift — surface once per CM-005 and file.
+- *Precedent:* a repository member's first check after its argument guards: an =int.TryParse= of a
+  stored external id under =CultureInfo.InvariantCulture=, throwing the feature's
+  dependency-failure exception with a message const declared in the same method on the false
+  branch. The defect it replaced was an =int.Parse= of the same value whose only upstream check was
+  for null or whitespace.
+
+** CS-091 — Never infer success from the HTTP status on an enveloped response
+
+- *Severity:* Bug
+- *Applies to:* new or touched code only — any .NET caller of an endpoint whose response body is a
+  response envelope (a body type carrying the operation's own success flag, status, messages and
+  data). With no marker attribute to key on, the tell at a call site is the method reading through
+  the envelope parser seam or deserializing into the envelope type. In a Blazor typed client this
+  is =mz-blazor-reviewer='s to apply; =blazor.org= adds no delta and BZ-038 points here instead.
+- *Rule:* Deciding whether such a call succeeded from =EnsureSuccessStatusCode()=,
+  =IsSuccessStatusCode=, or a comparison against =response.StatusCode=. HTTP reports whether the
+  call completed; the envelope reports whether the operation did, and the two are allowed to
+  disagree — a =200= may legitimately carry =IsSuccess: false= with =Data= populated, the
+  partial-success case, so a status-line check reports that call as a success and renders a result
+  the operation did not stand behind. Read the body through the parser seam, then branch on the
+  envelope's =IsSuccess=; its messages are what the UI shows, and its =StatusCode= is the
+  *operation's* status, not a copy of the transport's, so it is the one to read when a status is
+  needed. The producer-side obligation that goes with it: the envelope's =IsSuccess= and
+  =StatusCode= are the operation's own outcome, chosen, never derived from the transport status.
+- *Not a finding:* a call to an endpoint that returns a bare DTO, which stays under CS-011 /
+  BZ-038 unmodified. A third-party client whose API has no envelope — reading
+  =response.IsSuccessStatusCode= there is correct and is not this rule's subject. Reading the
+  transport status for something other than the success decision — a =429= retry, a =401= re-auth
+  — where the outcome is still taken from =IsSuccess=.
+- *Precedent:* a typed client member that issues the request and hands the response straight to
+  the parser without consulting the status line, returning =Task<ApiResponse<TDto>>= so its caller
+  branches on =IsSuccess=.
+
+** CS-092 — An enveloped response is proved to be one before it is trusted
+
+- *Severity:* Bug
+- *Applies to:* new or touched code only — any .NET caller of an endpoint whose response body is a
+  response envelope
+- *Rule:* Deserializing a response body straight into the envelope type —
+  =ReadFromJsonAsync<ApiResponse<T>>=, =JsonSerializer.Deserialize<ApiResponse<T>>= — and
+  branching on the result without first proving the body is an envelope. Every member of the
+  envelope is optional on the wire, so a body that is not an envelope at all deserializes *cleanly*
+  into one: each property takes its default and the caller sees =IsSuccess: false=, =Data: null=,
+  an empty message list — indistinguishable from a legitimate failure envelope, and rendered as "it
+  failed and there is nothing to tell you". This is not hypothetical: a 404 from an enveloped
+  endpoint whose not-found path returns a bare =NotFoundResult= is RFC 9457 ProblemDetails, because
+  =[ApiController]= converts any bare =StatusCodeResult= to ProblemDetails; that body is valid JSON
+  and deserializes exactly as described. Read every such body through a parser seam that checks
+  for the envelope's marker property (=isSuccess=, say) before deserializing and throws a protocol
+  exception when it is absent — a protocol failure and an operation failure are different outcomes
+  and the caller must be able to tell them apart. CS-091 is the inverse error on the same surface:
+  that rule forbids taking the success decision from the transport status, this one forbids taking
+  it from a body nothing proved was an envelope. A caller can violate either one alone.
+- *Not a finding:* the parser itself, whose job is to read an unproven body. A call to an endpoint
+  that returns a bare DTO, which stays under CS-011 and CS-012 unmodified. A third-party client
+  whose API has no envelope. A test that deserializes a body directly in order to assert the wire
+  shape, which is what makes it a test of the shape.
+- *Precedent:* a parser seam whose one member parses the body with =JsonDocument=, checks that the
+  root is a JSON object carrying the marker property before deserializing, and throws its protocol
+  exception from three sites — the body is not JSON; marker present but payload unbindable; marker
+  absent — covered by its own test class, and a client test asserting a ProblemDetails 404 body is
+  rejected as a protocol error.
+
+** CS-094 — An adapter converting a vendor's failures converts every typed failure its terminus can throw
+
+- *Severity:* Bug
+- *Applies to:* new or touched code only
+- *Rule:* A =try= / =catch= converting a third-party client's exceptions into the feature's own
+  typed failure, catching a subset of what the called member actually throws. The remainder escapes
+  the middleware as an unhandled 500 instead of the status the feature chose, so a vendor outage is
+  reported to the client as a server defect — and the gap is invisible at the catch site, which
+  reads as complete. *Completeness is established by reading the terminus's own throw sites, never
+  from the vendor's exception namespace and never from the types the happy path produced in
+  testing.* Two shapes make a subset look complete: a *derived* exception caught where the *base* is
+  what the terminus throws on its other paths (catching a not-found exception derived from a
+  request exception misses every other path that throws the base), and a *sibling on an unrelated
+  root* (a response-error exception deriving straight from =Exception=, which no catch of the
+  request-exception base can ever reach). Where the terminus also throws bare =System.Exception=,
+  that residue is *not* catchable without swallowing everything, which CS-010 forbids: leave it
+  uncovered deliberately and say so with a test asserting it propagates, so the next reader can tell
+  a decision from an omission. Each converted type gets its own =[Fact]=; they differ in the
+  arranged exception, so CS-063 splits them and CS-088's merge direction does not reach them.
+  *The other direction — a wrapper catch converting too much.* A =catch= of a wrapper exception —
+  =AggregateException=, =TargetInvocationException= — converts to the feature's typed failure only
+  under a =when= filter checking that *every* inner exception is a dependency failure (for an
+  =AggregateException=, over =Flatten().InnerExceptions=). Unfiltered, it reports a code defect
+  thrown inside the wrapped call — a =NullReferenceException=, an =InvalidOperationException= — as
+  a vendor outage. Pin it with a fact where a wrapper carrying a non-dependency inner exception
+  propagates unconverted.
+- *Not a finding:* a method that only calls a vendor client and adapts nothing — this rule's
+  subject is the conversion boundary, not every call site. A =catch (Exception)= at a genuine
+  process boundary (middleware, a Functions host, a background-service loop), which is not an
+  adapter. A vendor exception the terminus provably cannot throw on the path in question — handling
+  written for one anyway is CS-102's finding. Pre-existing adapters the change does not touch —
+  drift per CM-005 and file.
+- *Precedent:* an adapter with three =catch= arms — the vendor's request-exception base (so its
+  derived not-found type comes with it), an amount-format exception thrown from inside the same
+  call, and a response-error exception on an unrelated root — each converted to the feature's
+  dependency failure and mapped to 424, covered one fact per type, with the bare-=Exception=
+  residue pinned by a propagate fact. A filtered catch narrowing by type —
+  ~catch (Exception e) when (e is HttpRequestException || e is OperationCanceledException && !ct.IsCancellationRequested)~
+  — lets everything else propagate.
+
+** CS-102 — No handling, message, or arranged test failure for a failure the called code cannot produce
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only, production and test code
+- *Rule:* A =catch= arm, a typed-failure message (or a clause of one), or a test arranging a
+  collaborator to fail, for a failure the called code cannot actually produce. Impossibility is
+  *proved by reading the called code's real throw and return sites* — never assumed from its
+  exception namespace, its interface, or what a mock was told to do. The handling reads as
+  coverage and the message as a diagnosis; both send the next reader after a path that does not
+  exist, and an arranged impossible failure is the only thing keeping such a message alive. Remove
+  the arm or the clause; delete the test, or rearrange it to a failure the real collaborator can
+  produce. CS-094 is the opposite question at the same boundary: that rule grades failures the
+  terminus *can* throw and nothing converts, this one grades handling for failures it *cannot*.
+- *Not a finding:* a check on outside data — a vendor response, a stored value, a request, a
+  configuration value — which is never impossible however the producer is written today: the
+  outside party can send anything. A failure the called code can produce on some path, however
+  rare. CS-094's deliberately unconverted bare-=Exception= residue and the fact pinning that it
+  propagates. Argument guards (=ArgumentNullException.ThrowIfNull=) on the member's own inputs.
+  Pre-existing handling the change does not touch — drift per CM-005.
+- *Precedent:* a client's "could not parse the body" message naming only the vendor's response
+  body, because a token-side parse failure cannot reach that =catch (JsonException)= — the token
+  mapper catches its own =JsonException= and returns an empty token, which a separate
+  "token unavailable" branch reports. The defect it replaced named both, kept alive only by a fact
+  arranging the token factory to throw an exception it never throws.
+
+** CS-097 — A deserialized payload's non-nullable member is guarded, not trusted
+
+- *Severity:* Bug
+- *Applies to:* new or touched code only
+- *Rule:* Reading a member of a deserialized body whose declared type is non-nullable —
+  =IReadOnlyList<T>=, =string=, a record property carrying a ~= []~ or ~= string.Empty~ initializer
+  — without a guard, on the strength of that declared type. =System.Text.Json= assigns =null= over a
+  property initializer when the body carries an explicit =null= for that property, and nullable
+  reference types are a compile-time annotation the serializer does not enforce, so the compiler
+  reports the guard as unnecessary on a value that is null at runtime, and a reader who trusts the
+  compiler is reading a true statement about the type and a false one about the value. The
+  dereference then throws =NullReferenceException= — not the typed failure the caller's =catch=
+  arms were written for, and in a component it escapes as an unhandled render exception. Guard at
+  the assignment (~?? []~), or declare the member nullable so the type tells the truth and every
+  call site is forced to decide. CS-012 is the outer check and this rule is the inner one: CS-012
+  grades dereferencing the *response object* without a null-check, this grades the members *inside*
+  an object that passed it, and a caller can satisfy CS-012 and still be this finding. CS-092 is
+  the third of the set and proves neither — establishing that a body is the envelope it claims to
+  be says nothing about which of that envelope's members the sender populated.
+- *Not a finding:* a member the same method just produced. A member a deserialization-time guard
+  has already proved — =[JsonRequired]=, a validating converter, a parser that rejects the body. A
+  member whose declared type is already nullable, where the type demands the check and the compiler
+  enforces it. A test deserializing a body in order to assert the wire shape. Pre-existing
+  unguarded members in code the change does not touch — drift, surfaced once per CM-005 and filed.
+- *Precedent:* an envelope's ~public IReadOnlyList<string> Messages { get; set; } = [];~ —
+  non-nullable, initialized, and overwritten with =null= by any body carrying ="messages": null= —
+  assigned by a page straight onto a non-nullable field its markup reads as =.Count=; the remedy
+  guards at the assignment (=envelope.Messages ?? []=), pinned by a test arranging
+  ~Messages = null!~, the body the declared type says cannot exist.
+
+** CS-098 — A query's no-row case throws the feature's typed failure, not the framework's
+
+- *Severity:* Bug
+- *Applies to:* new or touched code only
+- *Rule:* An EF query ending on a terminal operator that throws when the sequence is empty —
+  =SingleAsync=, =FirstAsync=, or their synchronous forms over an =IQueryable= — in a feature that
+  has its own typed not-found failure. =InvalidOperationException= ("Sequence contains no
+  elements") is not a not-found exception the middleware maps, so it falls through to the unknown
+  arm, which logs an unexplained error and returns 500: a routine missing row reaches the client as
+  a server defect and the operator as an unexplained one, for a condition the feature already has a
+  word for. End on the =*OrDefaultAsync= form and throw that vocabulary's exception on the null
+  branch — =?? throw new OrderNotFoundException(...)=, which the middleware maps to 404. Where one
+  member issues two reads on the same key, both answer a missing row the same way, or the member
+  states two different things about one absence a few lines apart. This is CS-086's hazard at the
+  query rather than at the parse — a framework exception for a handled condition, the wrong status,
+  an unexplained log line — and the two are independent: a member can guard every parse with
+  =TryParse= and still end its query on =SingleAsync=.
+- *Not a finding:* a read whose key the same member already proved on an earlier read of the same
+  table, which is unreachable short of a concurrent delete between two reads sharing no transaction
+  — the divergence it leaves between the two reads is real and is graded *Suggestion*, carrying no
+  gate weight, rather than this rule's Bug. A terminal operator over an already-materialized
+  collection rather than an =IQueryable= (=order.Lines.SingleOrDefault()=) — not this rule's
+  subject; see the open question below. A read in a host with no HTTP response and no typed-failure
+  vocabulary — a Functions host, a background-service loop — where the throw is the intended
+  failure and CS-010 governs whether it may be swallowed instead. Pre-existing throwing terminals in
+  code the change does not touch — drift per CM-005 and file.
+- *Precedent:* one repository member whose first read ends =FirstOrDefaultAsync(...)= with a
+  =?? throw= of the feature's not-found exception (the remedy), and whose second read on the same
+  key ends =.SingleAsync(ct)= (the defect).
+
+*Open question — throwing terminals over in-memory collections.* Whether a throwing terminal
+(=Single()=, =First()=) over an in-memory collection is the same finding as CS-098 is undecided.
+The 500 is the same, but such sites are usually numerous and unread for reachability, and a rule
+reaching all of them would be a scope widening nobody has measured — raise the scope question once
+rather than a per-site finding until it is decided. An extra keyed round trip re-reading a row the
+first read already materialized is deliberately not a rule either: the second read often projects
+navigations the first did not load, so it is a trade rather than a redundancy, and the remedy such
+a rule would ask for — a stated rationale — would be a comment, which CM-003 and CS-027 forbid.
+
+* Readability and testability
+
+** CS-013 — Functions doing multiple things
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* Functions doing multiple things or spanning many logical steps. Break into smaller,
+  single-purpose functions.
+- *Not a finding:* an EF projection repeating a sub-expression where extracting it into a method
+  would stop the projection translating to SQL — a method call inside the expression tree is not
+  translatable. Still flag a repeated sub-expression that could be a named =Expression= declared
+  outside the lambda and composed in.
+- *Precedent:* the carve-out — an EF projection writing a blank-address check out twice, once for
+  the applicant's address and once for the business's. None yet for the named-=Expression= remedy.
+
+** CS-014 — No private methods in production code
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* Any =private= method — instance or static, including small pure helpers, predicate
+  helpers, and exception-message factories. No triviality carve-out: extract to a public method on
+  a focused injectable class with a co-located interface, register in the feature's
+  =ServiceRegister=, give it its own test class, and mock it in the consumer's tests.
+- *Not a finding:* private =const= values, private fields, lambdas, and locals. A =private static=
+  handler delegate inside a static Minimal API route class — the idiom, with no DI-registered class
+  to extract it into. *A private computed property, whatever its return type*, that passes all three
+  of these: its body is a *single expression* (no block body, no statement list); it computes from
+  the *declaring type's own state* — its fields, =const= values, properties and injected
+  dependencies — rather than from values handed to it; and it does *not select among three or more
+  results by branching on a value's kind*. Such a member names a read of state the type already
+  holds. A property takes no arguments, so there is nothing a consumer could vary and nothing to
+  exercise independently of the type that declares it — that, not the return type, is why the
+  carve-out reaches a property and never a method, and =bool= was never the operative fact. A
+  one-branch ternary or a null-coalescing fallback inside that single expression stays inside the
+  carve-out. Each of the three checks hands off to a different rule when it fails: a *block body* is
+  a method written as a property and this rule reaches it unchanged; computing from *values handed
+  in* makes it a total function of its arguments, which is CS-018's carve-out and its remedy — a
+  =public static= display or classification class with its own test class, not an injectable; and
+  *three-or-more-way branching on a value's kind* is a classification or display map, the same
+  CS-018 shape, whether written as a =switch= expression or a ternary chain. A property may still
+  stand after that extraction to assemble the result from the static call's output; what moves out
+  is the mapping, not the member. Production code only — private helpers inside test classes are
+  not findings. =blazor.org= BZ-059 restates this carve-out; the two are widened together or not at
+  all.
+- *Precedent:* none yet
+
+** CS-015 — Single =return= per method
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* Multiple =return= statements in a new or touched method. One =return= at the end: build
+  the result in a local, use a conditional / switch expression, or extract the branch into an
+  injected helper (CS-014). Waive only when the single-return form is clearly less readable, and
+  say why in the finding (writers name the kept early return in the cycle report).
+- *Not a finding:* argument-validation =throw= statements at the top are not returns.
+- *Precedent:* none yet
+
+** CS-016 — Name predicts behavior — methods, locals, and parameters alike
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* A name that doesn't predict what the thing holds or does, or behavior that leaks beyond
+  what the name implies. Methods, local variables, and parameters are all in scope: with CM-003 in
+  force the name is the entire explanation a reader gets, so a local that asserts something untrue
+  of its own value is the same finding as a misnamed method. A name describing an ordering or
+  threshold relation (=...IsBeyond...=, =...IsAbove...=, =...After...=) is checked against the
+  underlying values rather than against the reader's intuition. One bounded case extends past code
+  elements to prose: a diagnostic or exception message that *interpolates an identifier and labels
+  it with an entity name* is checked the same way, because the label is read as the noun to go
+  looking under — =$"Order {orderLineId} returned an empty response body."= sends a reader to the
+  orders table holding an order-line id. Name the entity the id actually identifies, as the sibling
+  messages in the same type do. Rename; split the method when the behavior is genuinely two things
+  (CS-013).
+- *Not a finding:* a name that reads awkwardly but is accurate. Loop and lambda throwaways (=i=,
+  =x=) in a short body. Pre-existing names in code the change does not touch. Message prose
+  generally — wording, tone, punctuation, and how much detail a message carries are all outside
+  this rule; only an entity label that disagrees with the interpolated id's own type is in it.
+- *Precedent:* a local named =stageIsBeyondThePreLoanStages= over a two-value exclusion set one of
+  whose members is an ~Unknown = -1~ sitting *below* the first stage, so it was not "beyond"
+  anything — renamed to say what the check actually tests.
+
+** CS-017 — Single-implementation interface is co-located in its impl file
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* Fresh single-implementation interface placed in its own =IX.cs= file. House style
+  co-locates it in its impl file (=IX= above =X= in =X.cs=, same namespace).
+- *Not a finding:* genuine multi-implementation abstractions (2+ implementers) may keep their own
+  file. Pre-existing separate-file interfaces are prior-convention drift — don't demand a refactor
+  of the codebase's existing ones. Don't suggest splitting a co-located interface into a separate
+  =IX.cs=.
+- *Precedent:* none yet
+
+** CS-018 — No static class / extension method wrapping mockable logic
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* New =static class= / extension method wrapping logic a consumer would want to mock
+  (mapping, claims / identity extraction), even if pure. Recommend an injectable =IX= / =X= pair
+  instead — feature-scoped → that feature's =ServiceRegister=; used by 2+ features → a shared /
+  cross-cutting registration point (see the open question under Architecture and repositories). The
+  test of "would want to mock" is whether the consumer's own test needs to vary the result
+  independently of the input; *a total function of its arguments fails that test, which puts it
+  outside this rule before any carve-out speaks.* The carve-out below is one instance of that and
+  not the limit of it: a contracts library is named there because it also has no container to
+  register into, but the absence of a container is a second reason, not the operative one. In a
+  project that /does/ have a container, a pure display or classification function is still a total
+  function and still fails the test above.
+- *Not a finding:* pre-existing static helpers. *A pure, dependency-free classification, predicate,
+  or display-formatting function* — a total function of its arguments, with no constructor
+  dependency, no configuration read, no I/O and no mutable static state: it stays a =public static=
+  and is called by name, wherever it lives. Two cases with different second reasons and the same
+  answer. In a *contracts library with no DI container* consumed by more than one deployable, CS-018
+  has no reachable remedy at all and demanding one is wrong rather than merely inconvenient: the
+  injectable form would mean registering one contracts type twice, in each consumer's container. In
+  a *project that does have a container* (a Blazor project's =Services/= folder, say), the container
+  is not the obstacle; the absence of anything to vary is. The injectable form there buys an
+  interface whose only implementation is computable from the call's own arguments, and a consumer
+  test that substitutes it stops asserting the rendered text and starts asserting whatever the
+  substitute was told to return — the same hazard =blazor.org= BZ-076's carve-out names on a
+  wire-format parser. In both cases the function still gets its own test class (CS-085 for where it
+  lives, CS-061 for the static-SUT shape), and each consumer keeps its own extra clauses at the call
+  site rather than in the shared function (CM-006). Four things take the carve-out away and make
+  the type a CS-018 finding again: a constructor dependency, a configuration read, I/O, or mutable
+  static state. =blazor.org= BZ-059 carries the matching remedy clause so a Blazor extraction does
+  not read the opposite prescription.
+- *Precedent:* a classification function in a container-less contracts library called from both
+  the API's mapper and a Blazor page; =public static= display classes in a Blazor project's
+  =Services/= folder, each member a total function of its parameters over a =const= table.
+
+** CS-019 — New controller or service with zero test coverage
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* A new controller or service with zero test coverage. Flag explicitly even if every method
+  looks like a thin pass-through, especially once it composes 2+ dependencies (a mapper plus a
+  service call).
+- *Not a finding:* an AppHost project without a test project — not unit-testable in the normal
+  sense; =mz-dotnet-writer= skips the test-writer hand-off for AppHost-only changes unless the
+  change introduces real logic.
+- *Precedent:* none yet
+
+* Architecture and repositories
+
+** CS-020 — New repository methods return =Dm=, not =Model= — and the =Dm= carries no entity
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* New repository methods returning entity =Model= types instead of =Dm=, *or returning a
+  =Dm= that holds an entity as one of its properties*. Return =Dm= from new methods, mapped via an
+  injected =I*Mapper=; the =Dm= carries the values its consumers read, never the entity. An entity
+  hung off a =Dm= property satisfies the first clause by the letter and defeats its point — the
+  entity still leaves the repository, and every consumer ends up typed on it. The harm is specific,
+  not stylistic: an entity's navigation properties are populated only as the loading query happened
+  to populate them, so a consumer reading an inverse navigation (=line.Order=) works only while one
+  repository method loads both ends in a single query and EF fixes the inverse up, and gets =null=
+  from any other caller. A consumer that needs a navigated value takes it as its own =Dm= property.
+  *Direction is what this rule is about: an entity must never leave a repository, but passing one
+  further down into one is acceptable.* A =Model= taken as a parameter reaches no consumer and types
+  nobody outside the data layer, so a repository method that takes an =OrderModel= and returns a
+  =Dm= satisfies this rule in full.
+- *Not a finding:* existing =Model=-returning methods, and existing =Dm= types carrying an entity,
+  are legacy drift. A =Dm= property typed on another =Dm=, on an enum, or on a contracts-library
+  type — none of those is an entity. *A repository method that takes an entity as a parameter* —
+  per-system repositories behind a =Handler= (CS-026), called with entities the caller already
+  materialized. Passing down is not the harm this rule names. A repository that mutates an entity
+  passed down to it is CS-022's subject, not this rule's — the mutation is allowed there because it
+  is inside a repository, and nothing in this clause widens that permission to a service.
+- *Precedent:* a record =Dm= whose every property is a scalar, an enum, a contracts type, or a
+  child =Dm=, built by an injected mapper from the entities the repository loaded, so nothing
+  outside the data layer is typed on an entity.
+
+** CS-021 — Model→Dm / Dto shaping lives in mappers, never in repositories
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* Model→Dm / Dto shaping inside a repository — inline =Select(m => new FooDm { ... })=, a
+  =static readonly Expression<Func<TModel, TDm>>= projection field, or a hand-built
+  =new FooDm { ... }= in the repository body. The shape belongs in the =I*Mapper=; the repository
+  queries =AsNoTracking()= models and calls =mapper.Map(model)= / =.Select(mapper.Map)=. When a
+  server-side projection is genuinely needed, the mapper exposes the
+  =Expression<Func<TModel, TDm>>= as a public member and the repository passes it to =Select=.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CS-103 — Every producer of a domain-model property writes the same meaning into it
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* A mapper, projection, or other producer writing a value into a =Dm= property that means
+  something different from what the type's other producers write there — the same flag set from a
+  vendor's role field in one mapper and from a derived business rule in another. A consumer reading
+  the property cannot tell which meaning it got, and the answer changes with which path built the
+  object. Every producer writes the one meaning; a producer that cannot know that value leaves the
+  property unset, or the property is made nullable so "not known" is expressible. CS-016 governs
+  what a name promises; this rule governs the values written under it.
+- *Not a finding:* producers that reach the same meaning by different routes — a vendor field in
+  one, a stored column in another — where the meaning matches. A producer leaving the property
+  unset because it cannot know the value, which is this rule's remedy (CS-104 governs when an unset
+  default reads as real data). Pre-existing divergent producers the change does not touch — drift
+  per CM-005 and file.
+- *Precedent:* an =IsPrimaryBorrower= flag written as "this individual is the loan's primary
+  party" by three mappers and as the vendor's primary-role flag by two others.
+
+** CS-104 — A wide domain model is not returned mostly unfilled where its defaults read as real data
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* Constructing a wide =Dm= and filling one or two of its members, so the rest stay at
+  defaults a consumer cannot tell from real values — a zero id or record number, an empty =Guid=,
+  an enum's zero member. A downstream reader takes the defaults as facts about the record. Return a
+  narrow type carrying only what the producer knows.
+- *Not a finding:* a =with= copy of a fully filled instance. Test fixtures. Pre-existing partial
+  instances the change does not touch — drift per CM-005 and file.
+- *Precedent:* a service building a wide application =Dm= filled only with a score, so its id,
+  number, partner, stage and child list stay at defaults and its system enum at its zero member —
+  which reads as a real system on a record that belongs to the other one.
+
+** CS-022 — Data mutations happen inside repositories
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Data mutations outside repository methods — services calling =context.SaveChanges()=,
+  mutating tracked entities directly, or hitting external state-changing APIs. If a service must
+  mutate for a specific reason, the code includes a one-line comment explicitly naming the
+  exception; flag silent violations. This one-liner is the sole carve-out from CS-027.
+- *Not a finding:* a labelled mutation carrying the one-line exception comment.
+- *Precedent:* none yet
+
+** CS-023 — DI wiring lives in the feature's =ServiceRegister=
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* DI wiring outside the feature's =ServiceRegister.AddXServices(this IServiceCollection)=
+  extension. The register takes an =IConfiguration= as well only when one of its registrations
+  reads configuration.
+- *Not a finding:* cross-cutting registrations shared by 2+ features at the shared registration
+  point (CS-018). A register with no =IConfiguration= parameter because none of its registrations
+  reads configuration — the common shape. A register the change does not touch, whatever its
+  signature.
+- *Precedent:* none yet
+
+** CS-082 — A query predicate shared by 2+ repositories lives in one injectable expression provider
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* The same business filter (visibility, eligibility, scope) written out in two or more
+  repositories. Extract it to an injectable =IX= / =X= pair (CS-018) exposing
+  =Expression<Func<TModel, bool>>=; repositories pass it to =Where= so it translates to SQL.
+  Repository tests mock it (CS-071); the provider's own test class runs the expression against a
+  real data-test context (CS-064), including a parity test against the query it replaced. CS-021
+  governs projections, this rule governs filters.
+- *Not a finding:* a predicate used by one repository; key-equality filters (~x => x.Id == id~).
+- *Precedent:* a record-visibility provider exposing =VisibleToCurrentUser()=, consumed as
+  =.Where(visibility.VisibleToCurrentUser())= by a list query and a detail query, with its own test
+  class.
+
+** CS-087 — A composite business match key is written out once, not per call site
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* A business match key — the field pairing that decides two records are the same thing —
+  written out at a new call site inside one project when copies already exist at others. A
+  composite identity has every half load-bearing: an external session id equalling the stored
+  application id *and* the vendor's transaction id equalling the stored loan id, say. Lift it to one
+  named predicate every call site shares — an injectable =IX= / =X= pair (CS-018) exposing a
+  =bool Matches(...)= or a =Func<...>= for an in-memory filter over a cached collection — rather
+  than adding a copy. This is graded even when the new copy is faithful, because the key's failure
+  mode is silent: a half-right copy compiles, returns a record, and passes a test written against
+  the same assumption. *A copy that tests only one half of the key is not this rule's Smell but a
+  correctness defect — grade it Bug.* Treating one half alone as the key matches the wrong records
+  and can damage production rows. When citing copies, name the whole multi-comparison predicate,
+  never its first comparison alone — a citation to the first line shows the half-key reading this
+  rule exists to prevent.
+- *Not a finding:* a key used at exactly one call site. Primary-key equality (~x => x.Id == id~).
+  The same key inside a repository predicate that must translate to SQL — that is CS-082 and is
+  cited there instead; this rule's subject is the in-memory filter over a cached or
+  already-materialized collection, which CS-082's =Expression<Func<TModel, bool>>= requirement has
+  no purchase on. A copy that lives in a different project or a different stack — CM-006.
+- *Precedent:* a repository holding one named lookup field for the composite key, shared by three
+  of its members — the remedy at one type's scale.
+
+** CS-105 — A business comparison made in both SQL and C# agrees on case
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* One business comparison written as a query predicate or projection that translates to
+  SQL *and* as an in-memory C# comparison, where the two disagree on case. Under a case-insensitive
+  database collation a stored =sp= equals =SP= in the SQL copy, while C# ~==~ on strings is ordinal
+  and case-sensitive, so the same row is classified two ways depending on which path read it.
+  Compare in C# with the database's case rule
+  (=string.Equals(a, b, StringComparison.OrdinalIgnoreCase)= against a case-insensitive collation),
+  or normalize the value on write so both copies see one form. CS-082 and CS-087 govern whether
+  such a comparison is written out more than once; this rule governs whether the copies that exist
+  agree.
+- *Not a finding:* a comparison made only in SQL or only in C#. Values whose case the writing code
+  fixes and nothing else writes — =Guid= values, enum values EF stores as strings (CS-055).
+  Pre-existing divergent copies the change does not touch — drift per CM-005 and file.
+- *Precedent:* an entity-type check (=EntityType= against a sole-proprietor constant) made inside
+  an EF projection in one mapper and with C# ~==~ in memory in another.
+
+*Cross-feature references are allowed, in either direction — not a finding.* One feature may use
+another feature's types freely; there is no guard on direction and no reviewer raises one, at any
+severity. This does *not* settle the open question below: that one is about where a registration
+shared by several features lives, not about whether one feature may reference another's types.
+
+*Open question — the cross-cutting registration point.* CS-018 and CS-023 name "a shared /
+cross-cutting registration point", which a repo may not have by that name. Where the repo contract
+names one, use it. Where it names none, an identity-derived provider used across features placed in
+the most closely related feature's register (an auth feature's, say) is not a finding until the
+repo decides.
+
+* Code quality
+
+- Magic numbers / strings carrying business meaning — CM-004.
+- =TODO= / =FIXME= / =HACK= — CM-001.
+- Commented-out code — CM-002.
+- The same business rule written out in two projects or two stacks (a service and a =.razor=
+  component) — CM-006; CS-082 is the narrower repository-predicate case and CS-087 the in-project
+  composite-match-key case.
+
+*Open question — plain duplication inside one project.* This file grades two specific
+duplications and no general one: CS-082, where the copies must translate to SQL, and CS-087, where
+the duplicated thing is a composite identity whose half-right copy damages data. Each earned its id
+on a *named harm*, which is also what set its severity. A plainly copied guard clause has no such
+harm behind it and falls between them — two adapters each carrying the same =double=-to-=decimal=
+convertibility guard under slightly different signatures, say. That is recorded as a *decision*
+rather than left looking like an oversight: a general rule would fire on every faithful two-line
+copy, and extracting such a pair can mean a shared type across adapters a design deliberately keeps
+apart, which is a design call and not a rule call. CM-006's =Not a finding= points here. If a
+general rule is wanted, the thing to settle first is what harm it names, since that is what set the
+severity on the other two.
+
+** CS-024 — No =Console.WriteLine= for logging
+
+- *Severity:* Smell
+- *Applies to:* all code, including dev / local-only paths
+- *Rule:* =Console.WriteLine= for logging. Always =ILogger<T>=, structured logging with named
+  placeholders.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CS-025 — JSON casing via attributes, not property names
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Manual JSON casing (an =Access_Token= property name) instead of =[JsonPropertyName]=
+  (STJ) / =[JsonProperty]= (Newtonsoft, inside a documented Newtonsoft island only).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CS-026 — PascalCase type suffixes (=Dto=, =Dm=), never all-caps
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* All-caps suffixes on new types (=OrderSummaryDTO=, =OrderDM=). Proper casing is =Dto= /
+  =Dm= (PascalCase, treating the suffix as a word), even when the surrounding file uses the older
+  form. Suffix vocabulary:
+  - =Model= — EF entity.
+  - =Contract= — third-party API shape.
+  - =Dto= — controller response.
+  - =Dm= — =DomainModels/= business type.
+  - =Mapper=, =Repository=, =Client=, =Service=.
+  - =Handler= — dispatches on a discriminator (a system or kind enum) to the per-system
+    collaborator for that value and returns the one type every branch produces. The shared
+    interface is the handler's own =IXHandler=, which is what consumers depend on — the branches
+    are separately-typed per-system =Repository= types, not implementations of one common branch
+    interface. Selecting the branch is the whole job: per-branch shaping beyond picking the
+    collaborator belongs in that system's =Repository= or =Mapper=.
+  - =Reader= — read-only adapter composing an *ambient* source (=HttpContext=) into what one
+    consumer needs; no writes, no business orchestration.
+  - =Parser= — reads a serialized response body into a contract type, *validating the protocol
+    shape before trusting it*; the validation is the job, not the deserialization. An envelope
+    parser checks the raw JSON for its marker property before deserializing, because a body that
+    is not an envelope deserializes into one and is then indistinguishable from a genuine failure
+    envelope (CS-092); it throws a protocol exception rather than handing that back. A type that
+    only calls =ReadFromJsonAsync<T>= is not a =Parser= — that is the =Client='s own line. A
+    =Parser= is not a =Reader= (which composes an ambient source rather than a response), not a
+    =Client= (which makes the call), not a =Mapper= (which does no I/O and no validation), and not
+    a =Handler= (having no discriminator to dispatch on).
+  *An adapter over an external system is not a =Reader=*: where the tree already has a =Handler=
+  dispatching to per-system =Repository= types, a new one is a =Repository= behind that =Handler=.
+  Naming it =Reader= re-implements the dispatcher-plus-repository layer rather than adding a missing
+  one, and the duplicate layer duplicates its contents too — a second copy of a composite match key
+  is what CS-087 catches.
+- *Not a finding:* pre-existing legacy uses are project drift; flag only fresh additions in code
+  under review. Don't rewrite legacy casing while doing other work. *A type named for the framework
+  base it derives from* carries the framework's name, not this vocabulary's, and is never a CS-026
+  finding — =DelegatingHandler= / =AuthorizationMessageHandler= subclasses,
+  =AuthorizationHandler<T>=, =AuthenticationHandler<T>=. Pre-existing =*Handler= types carrying no
+  discriminator, and a pre-existing =*Parser= doing text extraction with a silent default rather
+  than protocol validation, are drift: surface once per CM-005, never as a demand to rename.
+- *Precedent:* none yet
+
+** CS-027 — CM-003 in C# / .NET constructs
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only, production and test code
+- *Rule:* CM-003 applies — added =///= XML-doc comments (=<summary>=, =<remarks>=, =<param>=) or
+  explanatory =//= comments. Recommend a more descriptive name (type, member, parameter, local,
+  test method) or extracting a small well-named type / method, with design rationale moved to the
+  PR description or the issue. No emojis in code either.
+- *Not a finding:* the one-line comment naming a data mutation outside a repository (CS-022) — the
+  sole carve-out. EF-generated migration content (see Calibration). The comment rule applies to
+  hand-written =Sql(...)= edits inside a migration and to entity / =DbContext= configuration code —
+  =mz-ef-migration-writer= adds no comments there either; the migration name and the PR description
+  carry the intent.
+- *Precedent:* none yet
+
+** CS-028 — Records are class-body, never positional
+
+- *Severity:* Smell
+- *Applies to:* new or touched types only
+- *Rule:* Positional / primary-constructor record
+  (=public record SyncRunDm(Guid Id, DateTimeOffset StartedAt);=) on a new or touched type. Convert
+  to class-body form with explicit ={ get; set; }= properties, constructed via object initializer
+  and copied with =with=. *Nullable annotations follow the project.* In a project without
+  =<Nullable>enable</Nullable>=, =?= on a reference type (=string?=, =FooDm?=) appears only in a
+  file that opens with =#nullable enable=; elsewhere in that project the annotation is outside any
+  nullable context and states nothing the compiler checks.
+- *Not a finding:* =record= with mutable ={ get; set; }= properties — acceptable due to the
+  AutoFixture / fake-model-generator test pattern; class-body form is the house shape, only the
+  positional form is a finding. Pre-existing positional records are legacy drift. A new member of
+  an existing =[JsonDerivedType]= polymorphic hierarchy of positional records carrying
+  =[method: JsonConstructor]= that matches its siblings — the positional shape is what STJ binds on
+  deserialization there; a new data-holding type outside such a hierarchy still follows this rule.
+  Class primary constructors for DI are fine (CS-049). =string?= / =required= where the project has
+  nullable enabled, or in a file opening with =#nullable enable=. =?= on a value type (=DateTime?=,
+  an enum). Pre-existing unannotated-context =?= the change does not touch — drift per CM-005.
+- *Precedent:* none yet
+
+** CS-029 — Attribute stacks are ordered shortest-first (pyramid)
+
+- *Severity:* Smell
+- *Applies to:* new or touched stacks only
+- *Rule:* Attribute stack (class, method, property, or parameter) not ordered by character length
+  ascending, pyramid-style — =[HttpPost("runs")]=, =[ProducesResponseType(401)]=,
+  =[ProducesResponseType(409)]=, =[ProducesResponseType(typeof(StartSyncRunResponseDto), 200)]=;
+  =[Audited]= above ~[Table("Orders", Schema = "Sales")]~. Writers re-check every stack they added
+  or touched before hand-off.
+- *Not a finding:* legacy stacks untouched by the change. Don't reorder attributes in code you
+  aren't otherwise changing.
+- *Precedent:* none yet
+
+** CS-030 — Multi-line primary constructor: base list continues the closing-paren line
+
+- *Severity:* Suggestion
+- *Applies to:* new or touched declarations only
+- *Rule:* Multi-line primary constructor with the base / interface list on its own line after the
+  closing paren. Continue the closing-paren line: =TimeProvider timeProvider) : IRecordImporter=.
+  Class base list only; not =?:= conditionals. Single-line declarations already read
+  =public class Foo(IDep dep) : IFoo=.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CS-031 — Multi-line parameter lists align under the first parameter
+
+- *Severity:* Suggestion
+- *Applies to:* new or touched declarations only
+- *Rule:* Multi-line parameter list (primary-constructor dependencies or method parameters) using
+  break-after-paren + 4-space continuation instead of aligning continuation lines under the first
+  parameter on the declaration line. Aligned-after-open-paren; there is no line-length cap, so
+  "would exceed 120" is never a reason to accept the 4-space form. Short declarations that fit on
+  one line stay on one line.
+- *Not a finding:* legacy continuations elsewhere are drift — don't reflow them incidentally. A
+  wide aligned parameter list is house style, not a long-line finding. Generated migration code.
+- *Precedent:* none yet
+
+** CS-093 — =[Obsolete]= goes where the warning is wanted, and its message says which deprecation it is
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* An =[Obsolete]= placed without deciding whether call sites are meant to see it. A type
+  consumed through its interface by DI gets *no warning at any call site* from a class-level marker
+  — the only warnings are the registration that names the concrete type and any test that
+  constructs it — so the placement decides the attribute's entire effect and has to be chosen
+  rather than defaulted. *Callers must act:* mark the *interface*, and the member too where only
+  one member is retiring; every injection site and every call then warns, which is the point of
+  marking it at all. *A planned teardown, recorded for the next reader:* mark the *class*; no
+  call-site warning is the intended outcome rather than an oversight, because the type is live,
+  its behaviour is unchanged, and its callers retire with it instead of migrating off it. The
+  message carries which of the two it is, since the attribute cannot: name the replacement, name
+  what keeps the type alive, and say outright that behaviour is unchanged where it is. A bare
+  =[Obsolete("Use X instead")]= on a class behind an interface reads as a deprecation that failed
+  to reach anyone, and nothing distinguishes it from one. In a project that does not treat
+  warnings as errors, neither placement can break a build — placement buys readership and nothing
+  else, which is exactly why it has to be deliberate.
+- *Not a finding:* a concrete type with no interface, where marking the class and marking the
+  call-site-visible surface are the same act. An =[Obsolete]= the change only reads. A marker
+  already in place that the change does not touch — drift per CM-005. The registration site and
+  the type's own test continuing to warn under the planned-teardown form: those two warnings are
+  the form working as intended, not a gap to close, and silencing them with =#pragma= would erase
+  the only signal the marker produces.
+- *Precedent:* the planned-teardown form — =[Obsolete]= on a legacy repository class whose
+  interface is deliberately left unmarked because a live handler injects it, with a message naming
+  what is wrong, what new work uses instead, and what keeps it alive; the registration and the
+  type's own test class are the two sites that warn. The callers-must-act form has none yet.
+
+* Serialization
+
+** CS-032 — STJ for new code; Newtonsoft only in documented islands
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* New =Newtonsoft.Json= usage outside a client island the repo contract documents as
+  Newtonsoft. STJ for new code. =System.Net.Http.Json= extensions (=PostAsJsonAsync=,
+  =JsonContent.Create=) use STJ under the hood — flag inconsistent mixing within one client.
+- *Not a finding:* Newtonsoft usage inside a documented island; match Newtonsoft conventions when
+  extending one, so new code there satisfies the no-mixing half of this rule. Don't push migration
+  of existing Newtonsoft code unless asked; standardizing on one serializer is tech debt, not a
+  per-change finding.
+- *Precedent:* none yet
+
+** CS-078 — Third-party payload strings parse with =CultureInfo.InvariantCulture=
+
+- *Severity:* Bug
+- *Applies to:* new or touched code only, *production and test* — in test code the obligation is
+  to match the culture the production call under test passes, not to be invariant by reflex; see
+  the Test style preamble.
+- *Rule:* A number or date from an external payload (any vendor API, any third-party string) parsed
+  or converted without an explicit culture — =decimal.Parse=, =double.Parse=, =int.Parse=,
+  =Convert.ToDouble=, =Convert.ToDecimal=, =DateTime.Parse= — or a number formatted back to one
+  with a bare =ToString()=. The current culture is the host's; under a comma-decimal culture
+  ="1234.56"= misparses. Pass =CultureInfo.InvariantCulture= (or =ParseExact= with it), and cover
+  it with a test under a comma-decimal culture (CS-083).
+- *Not a finding:* formatting for display to a user in their culture. A test literal never
+  round-tripped through a culture-sensitive call, and an arranged value the production path
+  neither parses nor formats. Pre-existing culture-sensitive parses are drift — surface once per
+  CM-005 and file.
+- *Precedent:* invariant =decimal.TryParse= / =double.TryParse= of a vendor snapshot's amount
+  fields; an invariant =ToString= on a vendor record's number feeding a follow-up vendor call.
+
+* Auth
+
+** CS-033 — Every controller endpoint carries a registered ~[Authorize(Policy = "...")]~
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* Controller endpoints missing ~[Authorize(Policy = "...")]~, or using a policy not
+  registered in startup. The registered set is whatever the API's =AddAuthorization= block
+  registers; check against it, not against memory.
+- *Not a finding:* a bare =[Authorize]= on an action where the API's =DefaultPolicy= is set to a
+  registered policy — it resolves to that policy and is equivalent to naming it, so it is
+  compliant. Both forms coexisting in one controller is not drift. An action with *no*
+  =[Authorize]= at all is still this rule's Bug where the API registers no =FallbackPolicy=
+  (CS-077).
+- *Precedent:* none yet
+
+** CS-034 — Scheme specified on endpoints reachable from service-to-service callers
+
+- *Severity:* Bug when the wrong scheme silently rejects valid callers
+- *Applies to:* all code
+- *Rule:* Authentication scheme not specified on endpoints reachable from non-user callers
+  (functions, timers, webhooks, service-to-service), where the API registers more than one scheme
+  (a user JWT scheme and a service-to-service one, say).
+- *Not a finding:* endpoints on the default scheme.
+- *Precedent:* none yet
+
+** CS-077 — No class-level =[Authorize]= above an action a different principal must reach
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* A controller-level =[Authorize]= combines with every action-level =[Authorize]= — the
+  requirements AND, the scheme lists union — so an action-level policy never replaces the
+  class-level one. Do not put a class-level policy above an action that a different principal must
+  reach (timer, function, webhook, service-to-service): give that action its own controller, or
+  drop the class-level attribute and carry the policy per action (CS-033, CS-034). When policies go
+  per action, pair them with a guard test asserting every HTTP action on the controller carries an
+  =[Authorize]= — where the API registers no =FallbackPolicy=, an action with no attribute is
+  anonymous. Build that guard on =Type.GetMethods(Public | Instance | DeclaredOnly)= filtered to
+  exclude both =[NonAction]= members and =IsSpecialName= members (property accessors), so it fails
+  only on real actions. Attribute-reflection tests do not prove reachability; cover the principal
+  through the real pipeline, and mind what that pipeline does not prove (CS-070).
+- *Not a finding:* a class-level policy above actions that all serve the same principal — the
+  common shape, and the reason the attribute exists.
+- *Precedent:* a controller whose class-level admin policy sat above a scheduled-run action called
+  by a service principal: the scheduled run returned 403 in production for days while reflection
+  tests over the attributes stayed green. Fixed by moving the admin policy onto each admin action
+  and adding the every-action guard test.
+
+* DI / lifetime
+
+** CS-035 — No lifetime mismatches
+
+- *Severity:* Bug for =Singleton= depending on =Scoped=; Smell for a =Scoped= "cache"
+- *Applies to:* all code
+- *Rule:* =Singleton= depending on =Scoped=; =Scoped= "cache" that re-fetches per request (defeats
+  the cache).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CS-076 — =IDbContextFactory<TContext>= is registered alongside the scoped context
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* A feature that needs a transient context for an isolated side-effect write on a
+  parallel-read path (CS-005) without =IDbContextFactory<TContext>= registered alongside the scoped
+  context. The factory and the scoped context coexist — =AddDbContextFactory= / =AddDbContext= with
+  =ServiceLifetime= set so the two registrations don't conflict. Confirm the registration shape
+  against the existing =DbContext= wiring before adding; the =DbContext= DI wiring is
+  =mz-ef-migration-writer='s, so the consuming feature hands the registration off rather than
+  adding a second context registration of its own.
+- *Not a finding:* features that only read, or that write through the request-scoped context on a
+  sequential path.
+- *Precedent:* none yet
+
+** CS-080 — No =new= of a DI-registered dependency inside a consumer
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* Production code constructing, with =new=, a type the container registers (a mapper,
+  service, reader, repository, helper) instead of taking its interface through the constructor. It
+  bypasses the registered lifetime (CS-035) and hides the dependency from the consumer's tests
+  (CS-071). Inject the interface.
+- *Not a finding:* =new= of data types (=Dm=, =Dto=, =Model=, options, exceptions) and unregistered
+  framework types; factory lambdas inside a =ServiceRegister=; test code constructing the SUT and
+  its real collaborators.
+- *Precedent:* none yet
+
+* AppHost (Aspire) projects
+
+In scope for =*.AppHost/Program.cs= and the AppHost =.csproj=; the general rules above apply too.
+See Calibration for the AppHost-vs-production and =WithEnvironment= carve-outs. The repo's own
+AppHost =Program.cs= is the canonical reference for its conventions.
+
+** CS-036 — =WithReference(...)= pairs with =WaitFor(...)= for startup dependencies
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* Project referenced via =WithReference(...)= but missing =WaitFor(...)= on the same
+  resource when the project consumes it at startup (the API references Postgres but doesn't wait
+  for it) — a race at =dotnet run --project AppHost=. =WithReference= injects connection strings /
+  endpoints; =WaitFor= orders startup; a project that consumes a resource at boot needs both.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CS-037 — No unused =WithReference(...)=
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* =WithReference(<resource>)= where the consuming project's config doesn't read the
+  injected connection string or endpoint. Extra noise; remove or wire it up.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CS-038 — Sensitive =AddParameter= is =secret: true=
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* Sensitive =AddParameter(name, default)= without =secret: true= (passwords, API keys,
+  tokens).
+- *Not a finding:* non-secrets (usernames, realm names) keep the default.
+- *Precedent:* none yet
+
+** CS-039 — Stateful containers are =Persistent= with a data volume
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Stateful containers (Postgres, Keycloak, object storage) missing
+  =WithLifetime(ContainerLifetime.Persistent)= and / or =WithDataVolume(...)= — data resets every
+  restart. Both are needed together.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CS-040 — No =latest= image tag in AppHost
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* Image tag pinned to =latest= on any =AddContainer(...)= or integration-package
+  =.WithImageTag(...)=. Same rule as Dockerfiles (=dockerfile.org= DK-012).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CS-041 — No business logic in AppHost
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Business logic in AppHost (anything beyond resource wiring, parameter binding, env-var
+  renaming, and a documented runtime-config-rendering exception — CS-042). Move it to the consumed
+  service. Don't bake feature flags into AppHost when the service can read them from its own
+  config. Env-var names use double-underscore .NET config segments (=ORDERS__AUTH__AUTHORITY=)
+  matching what the consumed project's =IConfiguration= expects.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CS-042 — No new AppHost helpers rendering runtime config files
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* A new AppHost helper writing an app's runtime config (a =wwwroot/config.json=, say) to a
+  path under =AppContext.BaseDirectory= — fragile to build-output layout changes, and contrary to
+  the committed-appsettings standard for Blazor WebAssembly apps (=blazor.org= BZ-046), which use
+  committed =appsettings.{Environment}.json= so the AppHost renders no runtime config for them.
+- *Not a finding:* an existing helper of this kind that the repo contract documents as a legacy
+  runtime-render mechanism for one app — not a go-forward pattern, but not a finding. The absence
+  of a runtime-config helper for a Blazor WASM app — don't flag it as missing.
+- *Precedent:* none yet
+
+** CS-075 — Cross-resource URLs compose via =GetEndpoint(...)=, deferred or eager by call site
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* A hard-coded =https://localhost:<port>= string, or an interpolated URL built from a port
+  constant, where one resource needs another's address. Capture the address with
+  =resource.GetEndpoint("name")=, then compose: =ReferenceExpression.Create($"{endpoint}/...")= for
+  the deferred form (the endpoint is not yet allocated at declaration time), or =endpoint.Url= for
+  the eager form — valid only inside a =WithEnvironment(ctx => ...)= callback, which runs after
+  allocation. Using =endpoint.Url= at declaration time is the failure this rule catches.
+- *Not a finding:* the service-name, port, image-tag, realm, and audience constants at the top of
+  =Program.cs= — those are the declared values, not composed addresses.
+- *Precedent:* none yet
+
+* Project files
+
+=*.csproj=, =Directory.Build.props=, =Directory.Packages.props=, =*.sln=.
+
+*Open question — solution-wide warnings-as-errors.* A solution may have some projects opting in to
+=<TreatWarningsAsErrors>true</TreatWarningsAsErrors>= (and =NuGetAuditMode= =direct=) per project
+and others setting nothing, with existing audit and compiler warnings that would make a
+solution-wide switch fail today. No rule demands the switch. Until the repo contract decides,
+neither the absence nor a per-project setting is a finding; a change that flips a project's setting
+is reviewed under CS-043 and CS-047.
+
+** CS-043 — Project-file diffs are reviewed as changes, never treated as noise
+
+- *Severity:* Smell if the diff goes unreviewed
+- *Applies to:* every =*.csproj=, =Directory.Build.props=, =Directory.Packages.props=, =*.sln=
+  change riding in a diff
+- *Rule:* Any project-file or solution diff is reviewed as a change — a new reference, a removed
+  reference, a property flip, a project added or dropped from the solution — never skipped as
+  tooling noise. Review it with the same attention as source.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CS-044 — New =PackageReference= needs a stated reason and a central pin
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* A new =PackageReference= needs a stated reason in the PR and a version pinned in
+  =Directory.Packages.props=, never an inline ~Version=~ on the =PackageReference=. Writers don't
+  run =dotnet add package=; they surface the package and the exact command, then pause.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CS-045 — =Aspire.Hosting.*= packages live only in =*.AppHost.csproj=
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* =Aspire.Hosting.*= package references appearing in a non-AppHost =.csproj=. Those
+  packages belong only in =*.AppHost.csproj= — never leak them into consumed projects. AppHost
+  project shape: =Microsoft.NET.Sdk= plus ~<Sdk Name="Aspire.AppHost.Sdk" Version="..." />~,
+  =<OutputType>Exe</OutputType>=, =Aspire.Hosting.AppHost=, and one =Aspire.Hosting.<Integration>=
+  package per service dependency.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CS-046 — No =InternalsVisibleTo= or test-only =internal= members
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* New =InternalsVisibleTo=, or a new =internal= / =*ForTesting= member whose only caller is
+  a test. Tests construct the concrete class (or its interface) and exercise public seams; if state
+  genuinely needs asserting, recommend a small public read-only property on the concrete class
+  rather than widening assembly visibility.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CS-047 — TFM, =Nullable=, =ImplicitUsings= don't drift from sibling projects
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* A project's =TargetFramework=, =Nullable=, or =ImplicitUsings= setting drifting from its
+  sibling projects in the same solution without a stated reason. New projects match the siblings.
+- *Not a finding:* a documented, deliberate difference (a contracts library with nullable enabled
+  while its consumers have not yet migrated) called out in the PR.
+- *Precedent:* none yet
+
+* Writer conventions (from =mz-dotnet-writer=, no reviewer rule yet)
+
+** CS-048 — =using= groups: =System.*= → project → third-party
+
+- *Severity:* Smell
+- *Applies to:* new or touched files only
+- *Rule:* =using= directives grouped =System.*= → project → third-party with blank-line separators,
+  alphabetical within each group. *=using static= directives come last* — their own trailing group
+  after every plain group, separated by a blank line, alphabetical within it, and there regardless
+  of what the static type is: a =using static System.*= goes in that trailing group too, not back
+  up with the =System.*= block.
+- *Not a finding:* grouping that already follows this order. A file where only some groups are
+  present — the rule fixes relative order, not presence, so a file with =System.*= and a trailing
+  =using static= and nothing between is correct.
+- *Precedent:* none yet
+
+** CS-099 — A =using= the change left unused, in a file the change touched
+
+- *Severity:* Suggestion
+- *Applies to:* new or touched files only
+- *Rule:* A =using= directive that nothing in the file reads any more because the change moved,
+  renamed or deleted the types it imported. Remove it in the same change. CS-048 governs the order
+  of the =using= block; this rule governs a line in it that no longer earns its place.
+- *Not a finding:* unused =using= directives in files the change did not touch — they are not
+  swept. A =using= that is still read somewhere in the file.
+- *Precedent:* none yet
+
+** CS-049 — Primary constructors for DI-only classes
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only — and the unit is the *constructor or class declaration
+  itself*, never any member of the class. Editing a method body does not make that class's
+  existing constructor touched code.
+- *Rule:* Primary constructors for DI; an explicit constructor only when the body does real work or
+  accepts non-DI scalars. Flag a primary constructor whose body does real work that wants an
+  explicit constructor.
+- *Not a finding:* a primary constructor on a DI-only class — preferred. An existing explicit
+  DI-only constructor *the change did not write*: a class whose /members/ a change touched still has
+  an untouched constructor, which is not touched code and which this rule does not reach — that
+  instance is pre-existing drift, surfaced once per CM-005 and not raised per touched file. The test
+  is the diff, applied by the reviewer: a constructor's parameter list, body, or class declaration
+  appearing in =git diff <base>...HEAD= makes it this rule's subject whatever else the change was
+  for, and a constructor that only /gained a parameter/ is rewritten, not untouched. *This carve-out
+  names no file, deliberately*: an enumerated list of exempt files states a per-branch fact inside a
+  file every branch reads, and it displaces the check it summarises — a reviewer who finds a file
+  already listed has no reason to open the diff, so a list can exempt the very constructor a change
+  wrote.
+- *Precedent:* the real-work exemption — an explicit message-handler constructor whose body reads
+  and validates a base-URL setting and default scopes and passes both to =ConfigureHandler=,
+  chaining =: base(provider, navigation)=; an explicit service constructor whose body calls
+  =httpFactory.CreateClient("Storage")=. Both correct as written.
+
+** CS-050 — File-scoped namespaces, =_camelCase= private fields, =I=-prefixed interfaces
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* File-scoped namespaces; =_camelCase= private fields; =I=-prefixed interfaces. Only
+  deviations are findings.
+- *Not a finding:* code that follows the style.
+- *Precedent:* none yet
+
+** CS-051 — EF read hygiene: =AsNoTracking()=, =AsSplitQuery()=, =SaveChangesAsync(cancellationToken)=
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only
+- *Rule:* EF reads use =AsNoTracking()=; multi-=Include= queries use =AsSplitQuery()=; always
+  =await context.SaveChangesAsync(cancellationToken)=.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CS-052 — =record= is the default for data-holding types
+
+- *Severity:* Smell
+- *Applies to:* new types only
+- *Rule:* Default to =record= for settings / contracts, DTOs, =Dm= types, and simple data-holding
+  types generally, including property-bag EF entities (class-body form per CS-028). Use =class=
+  only for reference-equality needs or real behavior beyond data + config.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* EF migrations (from =mz-ef-migration-writer=, no reviewer rule yet)
+
+A repo may hold several =DbContext= types, each with its own provider (SQL Server, Postgres), its
+own entity and migrations folders, and its own design-time startup project; every =dotnet ef=
+command names =--context=, =--project= and =--startup-project= explicitly. Where a context's entity
+types live in a project with no EF reference, CS-054 holds in substance through separate
+=IEntityTypeConfiguration<T>= classes in the data project rather than in form, and that is not a
+finding. A context whose only migration is EF's default name (=InitialCreate=) has no precedent for
+CS-053: propose the naming and confirm it with Max before adding its second migration; do not
+assume another context's prefixes or the EF default.
+
+** CS-053 — Migration names carry the house prefix
+
+- *Severity:* Smell
+- *Applies to:* new migrations
+- *Rule:* PascalCase migration names prefixed per the target context's existing precedent:
+  =ADD_<Thing>= (new column, feature flag, seed row), =REMOVE_<Thing>= (drops), =UPDATE_<Thing>=
+  (modifications, sproc / view refreshes, data-shape changes), =RENAME_<Old>_<New>=,
+  =CREATE_<Thing>= / =CreateTable_<Thing>= (new tables), =Migrate_<Thing>= /
+  =Initially_Populate_<Thing>= (data-only migrations).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CS-054 — Fluent config lives on the entity via =IEntityTypeConfiguration<TSelf>=
+
+- *Severity:* Smell
+- *Applies to:* new or touched entities
+- *Rule:* Entities implement =IEntityTypeConfiguration<TSelf>= and put fluent config (keys,
+  indexes, relationships, value converters, defaults) in their own
+  =Configure(EntityTypeBuilder<TSelf> builder)=; =OnModelCreating= calls
+  =ApplyConfigurationsFromAssembly(...)= — there is no central fluent-config block to edit. New
+  tables target an existing schema (centralized in a schema-name constants class where the context
+  has one) unless the user calls out a new one.
+- *Not a finding:* ~[Column(TypeName = "...")]~ attributes alongside fluent config — match the
+  surrounding entity's mix. Separate configuration classes where the entity project has no EF
+  reference (see the group preamble). A context whose tables are unqualified by schema.
+- *Precedent:* none yet
+
+** CS-055 — Enums are stored as strings
+
+- *Severity:* Smell
+- *Applies to:* new or touched entities
+- *Rule:* Enum columns use =EnumToStringConverter<T>= configured in =Configure(...)=, not =int=.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CS-056 — =DateOnly= for dates, =DateTimeOffset= elsewhere
+
+- *Severity:* Smell
+- *Applies to:* new or touched entities
+- *Rule:* =DateOnly= for date-without-time columns (mapped to =date=), =DateTimeOffset= everywhere
+  else.
+- *Not a finding:* entity configuration does not repeat handling the =DbContext= already applies
+  centrally to =DateTimeOffset= (a Sqlite value-converter shim for tests, say).
+- *Precedent:* none yet
+
+** CS-057 — Generated migration artifacts are never hand-edited
+
+- *Severity:* Smell
+- *Applies to:* all migrations
+- *Rule:* =*.Designer.cs= and =*ModelSnapshot.cs= are EF-managed — never edit by hand; fix a
+  snapshot by regenerating (=migrations remove= then =migrations add=). The =#nullable disable=
+  directive at the top of a generated migration is preserved on hand edits.
+- *Not a finding:* editing the generated migration's =Up= / =Down= for hand-written =Sql(...)=
+  adjustments (CS-058).
+- *Precedent:* none yet
+
+** CS-058 — Hand-written migration SQL uses the house helpers and dialect
+
+- *Severity:* Smell
+- *Applies to:* hand-edited migrations
+- *Rule:* When EF's generated diff isn't safe (renames, data backfill, view / sproc updates), =Up= /
+  =Down= use =migrationBuilder.Sql(...)=. Where the data project ships migration helper extensions
+  (for views / sprocs, for seed templates), use them rather than open-coded SQL. Where EF scaffolds
+  a column rename as =DropColumn= + =AddColumn= — silent data loss — replace it: on SQL Server with
+  =migrationBuilder.Sql("EXEC sp_rename ...")= in =Up= and the inverse in =Down=; on Postgres with
+  a true =RENAME COLUMN=, which Npgsql's =RenameColumn= emits. SQL is dialect-specific (T-SQL vs
+  Postgres) — never interchangeable.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CS-059 — Applied migrations are immutable
+
+- *Severity:* Smell
+- *Applies to:* all migrations
+- *Rule:* No edits to migrations already applied to a non-local environment — a wrong deployed
+  migration is fixed by a new migration. No squashing or reordering of existing migrations.
+  Changes spanning two contexts are separate cycles, never one migration.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Test style (from =mz-dotnet-test-writer=, no reviewer rule yet)
+
+Scope: the repo's non-Blazor .NET test projects. *Not* Blazor test projects — those are
+=blazor.org='s Test style group, which overrides the stack and naming rules below. Not a legacy
+test project the repo contract names as predating these conventions. In a legacy island's test
+projects (see Calibration), new tests are graded against the house shape and the existing naming
+(=*Test= classes, =TestXxx= methods, ~[Fact(DisplayName = "...")]~) is drift per CM-005; where such
+a project has no Moq or no house test base class, the rules keyed on that base class or on the
+CS-014 extract-a-class convention — CS-064, CS-066, CS-071, CS-074, CS-083, CS-095 — do not reach
+it. An island's accepted test approach (its own integration base registering a client against
+WireMock.Net fake servers) stands in for the base class and for CS-069's =HttpMessageHandler= mock.
+
+Production rules that already reach test code — no comments (CS-027), aligned multi-line parameter
+lists (CS-031), =using= groups (CS-048), class-body records constructed by object initializer
+(CS-028), no =InternalsVisibleTo= or test-only members (CS-046) — are not restated here. A
+positional =new Foo(a, b)= call site in a test is a CS-028 signal about the type's shape, not a
+test-style finding. *CS-078 (culture-invariant parsing and formatting of third-party payload
+values) joins that list*, with its obligation stated in the test's own terms: an arranged value
+matches the culture the production call under test passes, rather than being invariant by reflex —
+the arrangement's job is to mirror production, not to be independently correct. The failure mode is
+why it earns a place here: a bare =record.Number.ToString()= arranging a =Setup= against a
+production call that passes =CultureInfo.InvariantCulture= does not fail the thing under test —
+under a comma-decimal culture the =Setup= silently stops matching, so the test fails for a reason
+unrelated to its subject and the next reader debugs the wrong code. Raise one scope finding per
+file rather than one per arrangement.
+
+Which project takes a test for a type from an in-scope project that has no test project of its own
+is CS-085.
+
+*Open question — the API side of BZ-078.* =blazor.org= BZ-078 asks whether a typed-client test's
+arranged response body is one the real server can send, and warns off pinning an expectation to an
+enum's zero member where that member carries a real business value. It has no twin in this group,
+although API-side =HttpMessageHandler= stubs (CS-069) and WireMock.Net stubs can carry the same
+defect. CS-102 settles the arranged-exception half; until the arranged-response-body half is
+decided for these projects, raise the scope question once rather than a per-test finding.
+
+** CS-060 — Test stack is xUnit + Moq + Shouldly
+
+- *Severity:* Smell
+- *Applies to:* new or touched test code in non-Blazor .NET test projects
+- *Rule:* A test using an assertion or mocking library outside the house stack — xUnit (=[Fact]=,
+  file-scoped namespaces), Moq for mocking, Shouldly for assertions (=ShouldBe=,
+  =ShouldBeEquivalentTo=, =ShouldBeNull=, =ShouldBeEmpty=, =ShouldBeTrue=, =ShouldBeFalse=).
+  =MockBehavior.Strict= on =HttpMessageHandler= mocks (CS-069) and on Moq mocks swapped into an
+  integration host (CS-084), default loose behavior elsewhere. FluentAssertions, NSubstitute, and
+  xUnit =Assert.*= are not introduced here; a new test dependency is surfaced and asked, never
+  added.
+- *Not a finding:* Blazor test projects, which are bUnit + NSubstitute + =Assert.*= by documented
+  exception (BZ-065). =FakeTimeProvider= and other framework-supplied fakes alongside Moq.
+  WireMock.Net and the absence of Moq in a legacy island's test projects where that is the
+  established approach (see the group preamble) — a /new/ test dependency there is still surfaced
+  and asked.
+- *Precedent:* none yet
+
+** CS-061 — Test class layout: one =_sut=, =_mockX= dependencies, =expected= / =actual=
+
+- *Severity:* Smell
+- *Applies to:* new or touched test classes
+- *Rule:* A test class deviating from the house layout — a single =private readonly <Sut> _sut;=
+  field assigned in the constructor; mocks declared ~private readonly Mock<T> _mockX = new();~ and
+  named =_mockX= after the dependency; common arrangement in the constructor, per-test arrangement
+  in the test body; a one-line act (~var actual = _sut.X(...)~); locals named =expected= and
+  =actual=.
+- *Not a finding:* private arrange / assert helpers inside the test class (CS-014 is
+  production-scoped) — promote to the shared test base class only when shared across classes. *A
+  static SUT has no instance to hold*: where the type under test is a static class — a pre-existing
+  static helper, or one the CS-018 carve-out allows — the =_sut= field is omitted and the act calls
+  through the type name, ~var actual = StageClassification.IdentifiesAnOrder(...)~. Everything else
+  in the layout holds unchanged: dependency mocks (if any) still =_mockX=, common arrangement still
+  in the constructor, one-line act, locals still =expected= / =actual=. A =using static= import of
+  the SUT in place of the type-name call is neither required nor a finding. *An integration test
+  class holds no =_sut=*: it acts through the host's =_client= or a service resolved from the host,
+  and the =_sut= field and one-line =_sut= act do not apply.
+- *Precedent:* none yet
+
+** CS-062 — Test names are =Method_ExpectedOutcome_WhenCondition=
+
+- *Severity:* Smell
+- *Applies to:* new or touched test methods
+- *Rule:* A test method name outside =Method_ExpectedOutcome_WhenCondition=. When one test asserts
+  several related effects, chain them with underscores:
+  =Get_ShouldSetProperHeaders_SendCallToApi_AndReturnDeserializedResponse=. The name carries the
+  scenario — an arrange step that needs explaining gets a renamed local or an extracted well-named
+  helper, never a comment (CS-027).
+- *Not a finding:* Blazor test projects' snake_case component-test naming (BZ-072).
+- *Precedent:* none yet
+
+** CS-063 — Separate =[Fact]= methods over =[Theory]=
+
+- *Severity:* Smell
+- *Applies to:* new or touched test methods
+- *Rule:* A =[Theory]= whose cases diverge in arrange or assert. Separate =[Fact]= methods keep
+  each scenario greppable, independently failing, and clearly named; a =[Theory]= hides divergent
+  setup in parameters. =[Theory]= is correct only when the scenarios are genuinely duplicated —
+  same arrange / act / assert with only an input value differing.
+- *Not a finding:* a =[Theory]= over a single varying input value.
+- *Precedent:* none yet
+
+** CS-064 — Test base-class helpers over hand-rolled fakes
+
+- *Severity:* Smell
+- *Applies to:* new or touched test code in projects with a house test base class
+- *Rule:* A hand-rolled fake, dataset, or random-value generator where a base-class helper exists —
+  fake-model generation (with and without a modifier, single and plural), a random enum with
+  include / exclude, a fake dataset with explicit expected rows, a random id, a deep-equality
+  helper. Tests inherit the unit base class, or its data-test variant when the SUT needs the
+  =DbContext=. A needed helper that doesn't exist is surfaced as a gap, not worked around.
+- *Not a finding:* an integration project's own fixture / fake-model helpers — independent of the
+  unit base class by design.
+- *Precedent:* none yet
+
+** CS-065 — The unit project with the data-test base is the default seam
+
+- *Severity:* Smell
+- *Applies to:* new tests
+- *Rule:* A test placed in the integration project that the unit project could cover. Default to
+  the unit project (Sqlite in-memory via the data-test base class); promote to integration
+  (=WebApplicationFactory= + Testcontainers for the real database) only when the behavior genuinely
+  needs real database semantics, migration-shape coverage, or the full pipeline. When the boundary
+  is ambiguous, ask before promoting.
+- *Not a finding:* behavior that depends on SQL Server-only or Postgres-only semantics (collation,
+  full-text, ordering guarantees) — promoting is correct rather than fighting Sqlite. That includes
+  the order of rows sorted by a =Guid= key: EF's Sqlite provider compares a =Guid= as text, SQL
+  Server's =uniqueidentifier= compares its last six bytes first, so a Sqlite test proves the query
+  shape but not which row an =OrderBy(x => x.Id)= puts first. Assert that order on the real
+  database, or keep the unit test to a seed with one candidate row.
+- *Precedent:* an =.Include(o => o.Lines.OrderBy(l => l.Id).Take(1))= whose ordering Sqlite and SQL
+  Server disagree about.
+
+** CS-066 — Repository tests seed through the data-test base's dataset helper
+
+- *Severity:* Smell
+- *Applies to:* new or touched repository tests
+- *Rule:* A repository test hand-seeding the context, or inheriting the plain unit base instead of
+  the data-test base. Repository tests run on the data-test base and seed through its fake-dataset
+  helper with the expected rows named, so the assertion target is explicit in the arrange.
+- *Not a finding:* promotion to the integration project per CS-065.
+- *Precedent:* none yet
+
+** CS-067 — Service tests mock the repository and external clients, and assert =Dm= shapes
+
+- *Severity:* Smell
+- *Applies to:* new or touched service tests
+- *Rule:* A service test hitting a real repository or external client, or asserting on entity
+  =Model= / =Dto= shapes instead of the =Dm= the service returns. Mock the repository and every
+  external client with Moq; assert against =Dm= return shapes (CS-020).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CS-068 — Controller coverage is integration-first; typed exceptions are asserted at the service
+
+- *Severity:* Smell
+- *Applies to:* new or touched controller tests
+- *Rule:* Typed-exception behavior asserted through middleware at the controller instead of
+  =_sut.Method(...).ShouldThrow<TypedException>()= at the service layer (CS-009). Controller
+  coverage is normally integration (=WebApplicationFactory=, Testcontainers for the database),
+  asserting HTTP status and =Dto= shape. When a controller is unit-tested directly, Moq each
+  injected dependency, set
+  ~ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }~ for =User=
+  access, assert the returned value, and verify that the mapper's mocked output — not the service's
+  raw output — flows through.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** CS-069 — HTTP-client tests mock =HttpMessageHandler= with =MockBehavior.Strict=
+
+- *Severity:* Smell
+- *Applies to:* new or touched HTTP-client tests
+- *Rule:* An =HttpMessageHandler= mock without =MockBehavior.Strict= — loose behavior lets an
+  unexpected request pass silently. Expect Newtonsoft serialization for a documented Newtonsoft
+  client island, STJ everywhere else (CS-032).
+- *Not a finding:* loose =MockBehavior= on every other mock — that is the default.
+- *Precedent:* none yet
+
+** CS-070 — Auth / policy tests vary the JWT identity in the integration project
+
+- *Severity:* Smell
+- *Applies to:* new or touched auth tests
+- *Rule:* Policy behavior covered by unit-testing the policy expression instead of an integration
+  test that varies the JWT identity across the registered policies (CS-033). Know what that
+  integration test does not prove: a test host that redefines every policy on one test scheme
+  covers requirement combination and claim predicates but not the production scheme lists — a
+  policy renamed in startup passes both test layers and still fails at request time. A test that
+  hand-copies the registered policy-name list (as the CS-077 guard test does) is updated in step
+  with startup and the test host factory.
+- *Not a finding:* a policy the test host does not register, covered at the unit layer instead; the
+  integration layer cannot exercise it until the factory registers it.
+- *Precedent:* none yet
+
+** CS-071 — CS-014 helpers are mocked in the SUT's tests and tested directly in their own class
+
+- *Severity:* Smell
+- *Applies to:* new or touched test code in projects following the CS-014 extract-a-class
+  convention
+- *Rule:* A test re-exercising an injected helper's logic through the SUT. When the writer extracts
+  a helper per CS-014, the SUT's tests mock it (=_mockFooHelper=) and assert only that the mocked
+  output flows through; the helper gets its own test class exercising its public methods directly.
+- *Not a finding:* test-local arrange / assert helpers kept private in the test class — CS-014 is
+  production-scoped. *A real collaborator in place of the mock, in two cases only.* (1) *An
+  output-guard test* — one whose job is to pin the final rendered output of a builder, where
+  mocking the collaborator would let the output the user actually receives drift unseen (a letter
+  builder's tests constructing the SUT with a real name resolver, say). (2) *A test proving an EF
+  projection materialises the real composed result* — a mocked collaborator there shows only what
+  EF handed it, not what came out of the query, which is the thing under test. Outside those two,
+  the collaborator is mocked as the Rule says. The carve-out lifts only the mock: the Rule's other
+  half, the collaborator's own test class, still applies.
+- *Precedent:* none yet
+
+** CS-072 — Null inputs are covered; flaky tests are fixed, never skipped
+
+- *Severity:* Smell
+- *Applies to:* new or touched test code in non-Blazor .NET test projects
+- *Rule:* A SUT accepting reference types with no explicit null-input coverage; or any =Skip= on a
+  test (~[Fact(Skip = ...)]~, ~[Theory(Skip = ...)]~). A flaky test is fixed, or deleted on the
+  user's per-test decision; =Skip= is never used.
+- *Not a finding:* a test already carrying =Skip= before the change — pre-existing drift under
+  apply-to-new, surfaced once per CM-005.
+- *Precedent:* none yet
+
+** CS-073 — No reflection into private state on a class under active TDD
+
+- *Severity:* Smell
+- *Applies to:* new or touched test code in non-Blazor .NET test projects
+- *Rule:* =typeof(X).GetField("_field", BindingFlags.NonPublic | BindingFlags.Instance)= (or
+  equivalent reflection) against a class the current cycle is reshaping. For a class under active
+  TDD there is no "no public seam" case — hand back to =mz-dotnet-writer= for a public seam; never
+  substitute reflection, =InternalsVisibleTo=, or a test-only member (CS-046).
+- *Not a finding:* reflection against a pre-existing class the cycle isn't reshaping (seeding a
+  legacy cache's private store, say) — tolerated.
+- *Precedent:* none yet
+
+** CS-074 — No hand-picked literal id inside the random-id helper's range
+
+- *Severity:* Smell
+- *Applies to:* new or touched test code in projects whose test base class provides a random-id
+  helper
+- *Rule:* A hand-picked literal =int= id inside the range the project's random-id helper draws from
+  (a helper drawing from =1_000_000= to =int.MaxValue=, say) — it collides with a generated id and
+  produces an intermittent UNIQUE-constraint flake. Keep hand-picked literal ids clear of that range
+  (single- or double-digit), or take one from the helper.
+- *Not a finding:* the helper's results themselves; non-=int= keys (=Guid=, =string=).
+- *Precedent:* none yet
+
+** CS-083 — Culture is pinned with the project's scoped culture helper, not a hand-rolled swap
+
+- *Severity:* Smell
+- *Applies to:* new or touched test code in projects that ship a scoped culture helper
+- *Rule:* A test setting =CultureInfo.CurrentCulture= by hand in =try= / =finally= where the
+  project ships a disposable helper that sets and restores the culture (CS-064). Use it —
+  ~using var culture = new AmbientCultureScope("de-DE");~ — with a comma-decimal culture.
+- *Not a finding:* a manual swap restoring the original in =finally= in a test project with no such
+  helper — whether to lift the helper there is an open question for the repo. A test that also
+  depends on =CurrentUICulture=, which such a helper may not restore.
+- *Precedent:* none yet
+
+** CS-084 — A hand-written fake replacing a dependency in an integration host records its arguments
+
+- *Severity:* Smell
+- *Applies to:* new or touched fakes and Moq mocks in integration test projects
+- *Rule:* A hand-written fake swapped into the test host factory (or a per-test host) that returns
+  canned data without recording what it was called with, so no test can prove the pipeline hands
+  the real dependency what it relies on. Record the call's arguments on a public read-only
+  property, clear them in a =Reset()= called per test, and assert the fields the real
+  implementation reads, plus a negative assertion that it was not called on paths that must not
+  reach it. *Where the host fakes two or more per-system seams behind one dispatcher, which fake was
+  called is itself an assertion this rule asks for.* Put the behaviour and the recording on one
+  abstract base and derive a thin class per interface from it, so each test asserts the arguments
+  on the fake it expected and =ShouldBeNull()= on the sibling it did not. A single fake standing in
+  for the dispatcher records the arguments but cannot prove the discriminator reached the right
+  branch, which is the whole job of a =Handler= (CS-026). Where the faked seam is a production
+  interface carrying members beyond the one under test, the members the host does not fake fail
+  loudly — a =NotSupportedException= naming the interface, the member, and what the host does fake
+  — rather than returning a canned value a later test could mistake for arranged behaviour. *A Moq
+  mock swapped into an integration host is created with =MockBehavior.Strict=* — the same
+  obligation in Moq's terms: a loose mock answers every unarranged member with a silent default,
+  which is the canned value this rule objects to. This narrows CS-060's loose default for the
+  integration host only.
+- *Not a finding:* a Moq mock in a unit test, where loose behaviour stays the default (CS-060,
+  CS-069). A fake the change did not write — pre-existing drift under this rule's apply-to-new
+  =Applies to=, surfaced once per CM-005 rather than per fake. The test is the diff, not the file:
+  the integration host is edited whenever a new fake is registered, so a fake sitting in a file
+  this change touched is not exempted by the file, and a file named here would exempt the very
+  fakes this rule is for. *This carve-out names no file, deliberately* — CS-049 gives the reason.
+- *Precedent:* an abstract fake base recording the received record and token, cleared in =Reset=,
+  with one thin derived fake per per-system repository registered into the host; facts asserting
+  the received fields on the expected fake and =ShouldBeNull()= on its sibling; unfaked members
+  throwing through a shared message helper naming interface and member.
+
+** CS-095 — A mocked collaborator's arguments are captured into a named field, not asserted through =It.Is=
+
+- *Severity:* Smell
+- *Applies to:* new or touched unit test code
+- *Rule:* A unit test proving what the SUT handed a mocked collaborator by burying the expectation
+  in a matcher —
+  ~_mockMapper.Verify(m => m.ToDm(It.Is<OrderModel>(o => o.Customer is not null), It.IsAny<OrderLineModel>()))~.
+  The assertion carries the right information and reports it uselessly: a failure reads "expected
+  invocation not performed", naming neither which argument was wrong nor what it held, so every
+  failure costs a debugger run to localize. Capture the arguments instead — a =.Callback<...>(...)=
+  on the constructor's =Setup=, one type argument per parameter of the mocked member, writing each
+  argument to its own field, asserted per fact with Shouldly against the specific property under
+  test. The field is =private= and *not* =readonly=, because the callback assigns it and the
+  constructor does not; it is named for what it holds and where it came from
+  (=_orderHandedToTheMapper=), never =_mockX=-style, which names collaborators. This is the only
+  assertion the SUT still owns once CS-071 mocks the collaborator, so it is worth stating well. No
+  per-test reset is needed and none should be added: xUnit constructs the test class once per
+  fact, so the fields start null for every test — which is also what makes =ShouldNotBeNull()= on
+  the capture a real assertion that the collaborator was called at all, rather than a formality.
+- *Not a finding:* =Verify= / =Received= for the questions it answers well — that a call happened,
+  how many times (=Times.Once=), or that it never happened (=Times.Never=), where no argument is
+  under test. =It.IsAny<T>()= in the =Setup= that arranges the callback, which is how the capture
+  is wired. A matcher asserting an argument the test does not otherwise need to describe — an id
+  it just generated, matched to disambiguate one of several =Setup= calls. A hand-written fake in an
+  *integration* host, which is CS-084's subject and carries its own =Reset()= requirement for the
+  opposite reason: that host is shared across tests where this field is not.
+- *Precedent:* a repository test class with one capture field per parameter of its mapper's =ToDm=,
+  written by a single =Callback<...>= on the constructor's =Setup=, each asserted in the fact named
+  for the navigation or row the repository was meant to load before handing the entity on — where
+  a matcher would have reported only "expected invocation not performed" for a missing =Include=.
+
+** CS-085 — A type from a project with no test project of its own is tested in the house unit-test project, in a folder named for its source project
+
+- *Severity:* Smell
+- *Applies to:* new test files
+- *Rule:* A test for a type in an in-scope project that has no paired test project — a contracts
+  library, a service-defaults project, an AppHost — placed by guesswork, duplicated into two test
+  projects, or given a brand-new test project of its own. It goes in the house unit-test project
+  that already references those libraries (the one the repo contract names; otherwise the main
+  API's unit-test project). When the type is consumed by more than one deployable, that is still
+  the single home: a contracts type is not tested from a Blazor test project, whose stack differs
+  (BZ-065) and whose scope is =blazor.org='s. The folder under that test root is named for the
+  *source* project rather than mirroring the API, which is what distinguishes it at a glance from
+  the folders that do mirror the API (=Features/=, =Clients/=, =Services/=, =Middleware/=). A new
+  test project is surfaced and asked, never added.
+- *Not a finding:* a type belonging to a project that does have a paired test project — CS-065
+  governs the unit-versus-integration choice there, not this rule. A Blazor project's type, which
+  is =blazor.org='s scope and tested in its own project. Reusing an existing correctly-named folder
+  instead of creating a parallel one.
+- *Precedent:* none yet
+
+** CS-088 — Separate =[Fact]= methods differ in something an assertion reads
+
+- *Severity:* Smell
+- *Applies to:* new or touched test methods
+- *Rule:* Two or more =[Fact]= methods in one class with identical arrange, act, and assert,
+  differing only in a value no assertion reads — three facts throwing exceptions that differ only
+  in message text, asserted with =ShouldBeSameAs(expected)= on the instance while nothing reads
+  =.Message=. They pass and fail together, so each extra one costs a reader a comparison and
+  returns no coverage, and their names promise distinctions their bodies cannot make. Either make
+  the difference observable — assert the message, or assert the behavior the differing value is
+  standing in for — or collapse them into one fact. This is CS-063's other direction: CS-063 splits
+  a =[Theory]= whose cases diverge, and this rule merges =[Fact]= methods that do not. A case that
+  diverges is its own fact; a case that does not is not a case.
+- *Not a finding:* facts whose arrange or assert genuinely differ, however slightly — a different
+  exception type, a different mocked outcome, a different asserted field. Facts covering inputs
+  that each drive a separate branch of the SUT, even where the assertion text is identical.
+  Pre-existing duplicate facts the change does not touch.
+- *Precedent:* three facts each arranging the same exception type with a different message and
+  asserting =ShouldBeSameAs= on the instance, collapsed into one; contrasted with a sibling fact
+  that differs by exception type and is a real case.
+
+** CS-096 — Within one fact, no assertion that cannot fail independently of another
+
+- *Severity:* Smell
+- *Applies to:* new or touched test methods
+- *Rule:* An assertion inside a =[Fact]= whose outcome is already fixed by another assertion in
+  the same fact — most often a property assertion on an object the *test itself constructed*,
+  placed after a =ShouldBeSameAs= / =ShouldBe= has pinned the returned value to that object. Once
+  identity is pinned, those properties are the test's own literals: the later lines cannot fail
+  unless the pin fails, so they read as coverage, cost a reader a comparison each, and return none.
+  Either delete them, or drop the identity pin and assert the properties that are the real subject
+  — not both. This is the third direction on one axis: CS-063 splits a =[Theory]= whose cases
+  diverge, CS-088 merges =[Fact]= methods that do not differ from *each other*, and this rule
+  removes an assertion that does not differ from *its neighbour inside one fact*.
+- *Not a finding:* a =ShouldNotBeNull()= guard before dereferencing a *SUT-produced* value — it can
+  fail on its own and the nullable analysis wants it. Assertions on an object the SUT built rather
+  than the test. An assertion narrowing something the pin left open — a pin on the container with
+  assertions on a member the SUT replaced. Conditions inside one =ShouldSatisfyAllConditions=,
+  which exist to report together. Pre-existing stacked assertions the change does not touch.
+- *Precedent:* a controller fact pinning =actual.Data.ShouldBeSameAs(expected)= on a DTO the test
+  built, followed by two assertions reading that same DTO's own literals — removed, leaving
+  assertions on =IsSuccess= and =StatusCode=, which read the SUT's output.
+
+** CS-089 — No reflection test asserting a route template a request already exercises
+
+- *Severity:* Smell
+- *Applies to:* new or touched test methods
+- *Rule:* A unit test reaching through reflection to assert an action's route template literal —
+  =method.GetCustomAttributes<HttpGetAttribute>()...Template.ShouldBe("orders/{id:guid}")= — when
+  an integration test already calls that route. It restates the attribute instead of exercising
+  it, so it cannot fail for a reason anyone cares about: a route the integration test reaches is
+  already proven reachable, and a route it does not reach is not made reachable by a matching
+  string. Delete it and rely on the request. Where no integration test covers the route, the
+  missing coverage is the finding and the reflection test is not a substitute for it. CS-077's
+  guard test is the one attribute-reflection shape the house asks for, and it is asking for
+  something different — it detects the *absence* of an =[Authorize]=, which no positive test can
+  detect where the API registers no =FallbackPolicy= and an attribute-free action is silently
+  anonymous. That reasoning does not carry to a route template or to any other attribute value a
+  request proves; CS-077's own text says attribute-reflection tests do not prove reachability.
+- *Not a finding:* the CS-077 =[Authorize]=-presence guard and the policy-value assertion that
+  rides with it. A reflection assertion over an attribute whose runtime path nothing exercises
+  anywhere — surface the missing coverage rather than deleting the only check. Pre-existing
+  reflection tests the change does not touch (CS-073 governs reflection into private state, a
+  different subject).
+- *Precedent:* none yet
+
+** CS-100 — A test-helper parameter every caller passes the same value for becomes a value inside the helper
+
+- *Severity:* Suggestion
+- *Applies to:* new or touched test helpers
+- *Rule:* A parameter on a test helper (a seed, build or assert method inside a test class) for
+  which every call site passes the same value. Drop the parameter and fix the value inside the
+  helper, so the call sites show only what varies.
+- *Not a finding:* a parameter at least two callers pass different values for. A helper with one
+  caller. Pre-existing helpers the change does not touch.
+- *Precedent:* a seed helper that fixes stage, system and the has-application flag inside and takes
+  only the record number, which each of its callers varies.
+
+** CS-101 — Within one test class, each fact seeds distinct identifying values
+
+- *Severity:* Suggestion
+- *Applies to:* new or touched test methods
+- *Rule:* Two facts in one test class seeding the same identifying value — an application number,
+  a name, an external id. Give each fact its own value, continuing the sequence the class already
+  uses rather than reusing one, so a failure message or a leaked row points at one fact.
+- *Not a finding:* values that do not identify a record (year, amounts, addresses) shared through a
+  class-level fixture constant. One fact seeding several records that share a value on purpose
+  because the fact is about that sharing. Pre-existing facts the change does not touch.
+- *Precedent:* an integration test class whose facts each seed a distinct number from one running
+  sequence (801, 802, ...), each used once.
+
+** CS-106 — Where case matters, a Shouldly substring assertion is case-sensitive
+
+- *Severity:* Smell
+- *Applies to:* new or touched test methods
+- *Rule:* A Shouldly =ShouldContain= on a string, asserting text whose case is part of what the SUT
+  must get right — an enum name, a code, an identifier the SUT writes into a message — without
+  =Case.Sensitive=. Shouldly's string =ShouldContain= defaults to case-insensitive
+  (~ShouldContain(string actual, string expected, Case caseSensitivity = Case.Insensitive, ...)~ in
+  Shouldly 4.x), so a SUT emitting the wrong case still passes. Pass =Case.Sensitive=, or assert the
+  whole value with =ShouldBe=. Re-check the default if the pinned Shouldly major version moves.
+- *Not a finding:* =ShouldContain= over a collection, which is a different overload. Prose where
+  case carries no meaning. Pre-existing assertions the change does not touch.
+- *Precedent:* a fact asserting an envelope status name inside a failure message with
+  =ShouldContain(expected, Case.Sensitive)=.
+
+** CS-107 — An absence assertion for something never on the integration branch is red-step scaffolding
+
+- *Severity:* Smell
+- *Applies to:* new or touched test methods
+- *Rule:* A test asserting that a type, member, or JSON key is absent, where that thing never
+  existed on the integration branch — written in the red step to drive a removal or rename made on
+  the same branch. Once green it cannot fail for any reason that matters after merge: nothing on
+  the integration branch ever carried the name. Delete it in the refactor step.
+- *Not a finding:* a guard test scanning a namespace, an assembly, or an attribute set for a class
+  of thing that must not appear — CS-077's =[Authorize]=-presence guard, a sensitive-identifier
+  guard — which can fail on any future addition. An absence assertion for something that did exist
+  on the integration branch, which is not this rule's subject. An absence assertion naming a live
+  member of the serialized type that a particular case leaves out of the body (a JSON key an empty
+  object omits) — it can still fail after merge. Pre-existing assertions the change does not touch.
+- *Precedent:* the carve-out — guard facts scanning a contracts namespace and a domain-model
+  namespace for any sensitive identifier or entity. The defect — reflection facts asserting the
+  absence of names retired on the branch and never shipped, kept as red scaffolding and deleted in
+  the refactor step before merge.
