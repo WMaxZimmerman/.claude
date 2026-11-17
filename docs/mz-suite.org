@@ -161,8 +161,8 @@ review returns no Bug and no Smell the change wrote; otherwise the findings go b
 A fix round is reviewed the same way before it is committed, however small.
 
 Writers with no paired reviewer — =mz-aptitude-scout=, =mz-runbook-manager=,
-=mz-house-rules-manager=, =mz-gh-issue-writer=, =mz-gh-pr-operator= — self-verify against their
-own conventions.
+=mz-house-rules-manager=, =mz-gh-issue-writer=, =mz-gh-pr-operator=, =mz-erd-writer= — self-verify
+against their own conventions.
 
 Two things still stop and wait for Max: the *interview* a builder runs for a new agent or skill,
 and a *Needs Max* verdict from any agent.
