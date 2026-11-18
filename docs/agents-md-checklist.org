@@ -228,8 +228,13 @@ build, test, lint, and format commands, the directory each runs from, and where 
 
 ** blazor
 
-- Each Blazor project, its paired test project, and which is the calibration baseline.
-- The user-interface library, and that its global providers live in one place.
+- Each Blazor project, as =mz-suite.org= § Roster and delegation rule defines one, its form
+  (WebAssembly, Blazor Server, Blazor Web App, or Razor class library), its Blazor test project,
+  and which is the calibration baseline.
+- The user-interface component library and that its global providers live in one place — or the
+  repo's recorded decision against using one, as one line such as "UI component library: none, by
+  choice". Read by: mz-blazor-writer, mz-blazor-reviewer, mz-blazor-test-writer. What the
+  line settles is in =mz-blazor-writer= § First step, the MudBlazor question.
 - The authentication provider per project and how a token is acquired and attached.
 - The runtime-configuration mechanism, and any legacy path marked as a pending migration.
 - The reference file per shape: page, reusable component, stateful service, JavaScript interop

@@ -121,7 +121,7 @@ section "The house-rules registry".
 
 * Blazor house rules (BZ)
 
-- [[file:blazor.org::*BZ-001 — CS-001 for Blazor WASM, ASP.NET Core, MSAL, System.Text.Json][BZ-001]] — CS-001 for Blazor WASM, ASP.NET Core, MSAL, System.Text.Json
+- [[file:blazor.org::*BZ-001 — CS-001 for Blazor, ASP.NET Core, MSAL, System.Text.Json][BZ-001]] — CS-001 for Blazor, ASP.NET Core, MSAL, System.Text.Json
 - [[file:blazor.org::*BZ-002 — Directive order =@namespace= → =@page= → =@attribute= → =@using= → =@inject= → =@implements=][BZ-002]] — Directive order =@namespace= → =@page= → =@attribute= → =@using= → =@inject= → =@implements=
 - [[file:blazor.org::*BZ-003 — JS callback or service subscription requires =@implements IAsyncDisposable=][BZ-003]] — JS callback or service subscription requires =@implements IAsyncDisposable=
 - [[file:blazor.org::*BZ-004 — =[Parameter]= is =public= with ={ get; set; }=][BZ-004]] — =[Parameter]= is =public= with ={ get; set; }=
@@ -145,7 +145,7 @@ section "The house-rules registry".
 - [[file:blazor.org::*BZ-021 — Unregister from JS before disposing the reference][BZ-021]] — Unregister from JS before disposing the reference
 - [[file:blazor.org::*BZ-022 — MudBlazor providers live in =App.razor= only][BZ-022]] — MudBlazor providers live in =App.razor= only
 - [[file:blazor.org::*BZ-023 — Popover-using components are tested under =TestHost=][BZ-023]] — Popover-using components are tested under =TestHost=
-- [[file:blazor.org::*BZ-024 — MudBlazor is the only UI library][BZ-024]] — MudBlazor is the only UI library
+- [[file:blazor.org::*BZ-024 — One UI component library per project][BZ-024]] — One UI component library per project
 - [[file:blazor.org::*BZ-025 — Custom CSS classes match the project namespace][BZ-025]] — Custom CSS classes match the project namespace
 - [[file:blazor.org::*BZ-026 — Reusable inline styles become CSS classes][BZ-026]] — Reusable inline styles become CSS classes
 - [[file:blazor.org::*BZ-081 — A declared style rule has a consumer][BZ-081]] — A declared style rule has a consumer
@@ -192,7 +192,7 @@ section "The house-rules registry".
 - [[file:blazor.org::*BZ-086 — Markup does not re-make a decision its display helper makes][BZ-086]] — Markup does not re-make a decision its display helper makes
 - [[file:blazor.org::*BZ-063 — Typed client returns raw responses or unwraps the payload wrapper, never both][BZ-063]] — Typed client returns raw responses or unwraps the payload wrapper, never both
 - [[file:blazor.org::*BZ-064 — Delegating handlers are =Transient=][BZ-064]] — Delegating handlers are =Transient=
-- [[file:blazor.org::*BZ-065 — Test stack is bUnit + xUnit =Assert.*= + NSubstitute (overrides CS-060)][BZ-065]] — Test stack is bUnit + xUnit =Assert.*= + NSubstitute (overrides CS-060)
+- [[file:blazor.org::*BZ-065 — Test stack is bUnit + xUnit =Assert.*= + NSubstitute by default, the project's own where established (overrides CS-060)][BZ-065]] — Test stack is bUnit + xUnit =Assert.*= + NSubstitute by default, the project's own where established (overrides CS-060)
 - [[file:blazor.org::*BZ-066 — Component test layout: bUnit context base class, dependency-named substitutes, constructor wiring][BZ-066]] — Component test layout: bUnit context base class, dependency-named substitutes, constructor wiring
 - [[file:blazor.org::*BZ-067 — Service / pure-logic tests are plain classes with no render context][BZ-067]] — Service / pure-logic tests are plain classes with no render context
 - [[file:blazor.org::*BZ-068 — =TestHost= wrapper is copied verbatim, not re-invented][BZ-068]] — =TestHost= wrapper is copied verbatim, not re-invented

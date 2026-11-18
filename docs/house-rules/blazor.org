@@ -6,10 +6,11 @@ differs for Blazor. Paths are relative to the Blazor project root unless stated.
 
 * Scope
 
-Blazor WebAssembly projects in any repo: =.razor= pages and components, =_Imports.razor=,
-=App.razor=, =Program.cs=, supporting C# under =Services/=, =Clients/= and =Theme/=, and the
-project stylesheets under =wwwroot/css/=, plus their paired test projects for structure and
-coverage. Not a shared plain-.NET contracts library the Blazor project references (that is
+Every project in any repo that holds =.razor= components, in every Blazor form — WebAssembly,
+Blazor Server, Blazor Web App, and Razor class library: =.razor= pages and components,
+=_Imports.razor=, =App.razor=, =Program.cs=, supporting C# under =Services/=, =Clients/= and
+=Theme/=, and the project stylesheets under =wwwroot/css/=, each where the project has it, plus
+their paired test projects for structure and coverage. Not a shared plain-.NET contracts library the Blazor project references (that is
 =csharp.org=). Not the API, charts, Dockerfiles, or pipelines.
 
 * Calibration
@@ -20,11 +21,13 @@ coverage. Not a shared plain-.NET contracts library the Blazor project reference
   project's file. Auth wiring is the usual exception to one-for-one transfer — one project may use
   an OIDC provider directly and another MSAL — so calibrate each project's =Program.cs= auth
   registration against its own auth pattern. When no project establishes a policy, apply standard
-  Blazor / MudBlazor practice.
+  Blazor practice, and standard MudBlazor practice in a project that references MudBlazor.
 - Cross-cutting .NET rules (file-scoped namespaces, =_camelCase= fields, =I=-prefixed interfaces,
   primary constructors for DI, =using= order, disposal of =IDisposable=) are *stated* in
-  =csharp.org= and *applied here by =mz-blazor-reviewer=*. Where no other reviewer runs on these
-  paths, a =csharp.org= rule with no BZ entry is this reviewer's to raise, citing the CS id. "Flag
+  =csharp.org= and *applied here by =mz-blazor-reviewer=*, the one reviewer for every file in a
+  Blazor project (=mz-suite.org= § Roster and delegation rule, the code bullet, which also states
+  =mz-csharp-reviewer='s second opinion). A =csharp.org= rule with no BZ entry is
+  =mz-blazor-reviewer='s to raise, citing the CS id. "Flag
   here only when the smell is Blazor-specific" governs where a *new rule is written*, not which
   rules are enforced: a BZ entry exists only where Blazor changes the parent (BZ-038 on CS-011,
   BZ-052 on CM-003), and its absence means the parent applies unmodified — never that the parent
@@ -32,12 +35,25 @@ coverage. Not a shared plain-.NET contracts library the Blazor project reference
   (its touched-unit clause, its carve-outs): widening which reviewer applies a rule does not widen
   what the rule reaches, and a parent rule over a mixed baseline is not turned into a finding
   against the established half of it.
+- *Every Blazor form.* The rules here apply to every form the Scope names, except an entry whose
+  =Applies to= ends "in a WebAssembly project (Calibration)". That entry applies only to code
+  that runs in the browser on WebAssembly — a standalone WebAssembly app, or the client project of
+  a Blazor Web App — and is not a finding in code that runs on the server, such as a Blazor Server
+  project or a Blazor Web App's server project.
 - A minimal =Theme/= folder is not a finding when the project does not customize MudBlazor's
   theme.
+- *MudBlazor is suggested, never required.* An entry or line here that names MudBlazor — its
+  components, providers, services, stylesheet, or namespaces — applies only in a project that
+  references the =MudBlazor= package; in any other project it is not a finding, and the entries
+  wholly about MudBlazor say so by pointing here. The absence of MudBlazor is not a finding under
+  any rule. Whether a repo adopts it is that repo's decision, and where it has decided against, the
+  repo contract (=AGENTS.md= or =CLAUDE.md=) records it.
 - bUnit-stack test conventions (the bUnit version and context base class, =JSRuntimeMode.Loose=,
-  =TestHost= wrapper shape, NSubstitute vs Moq, =Assert.*= vs Shouldly) live in the Test style group below
-  (BZ-065..BZ-076); cite those ids rather than deferring. It is NSubstitute + =Assert.*=, full
-  stop — the documented Blazor exception to the .NET Moq + Shouldly default (BZ-065).
+  =TestHost= wrapper shape, NSubstitute vs Moq, =Assert.*= vs Shouldly) live in the Test style
+  group below (BZ-065..BZ-076); cite those ids rather than deferring. NSubstitute + =Assert.*= is
+  the default for a Blazor test project with no established stack — the documented Blazor exception
+  to the .NET Moq + Shouldly default — and a project whose existing tests use another mocking or
+  assertion stack is matched (BZ-065).
 - Canonical references — a page component, a reusable component, a stateful service, a JSInterop
   wrapper, a typed client, and the =Program.cs= bootstrap — are the repo's own. Where the repo
   contract names them, calibrate against those; a canonical file that itself carries drift under
@@ -48,7 +64,7 @@ coverage. Not a shared plain-.NET contracts library the Blazor project reference
 
 * Framework-standard adherence
 
-** BZ-001 — CS-001 for Blazor WASM, ASP.NET Core, MSAL, System.Text.Json
+** BZ-001 — CS-001 for Blazor, ASP.NET Core, MSAL, System.Text.Json
 
 - *Severity:* Smell
 - *Applies to:* new or touched code only
@@ -267,12 +283,12 @@ coverage. Not a shared plain-.NET contracts library the Blazor project reference
 - *Not a finding:* none.
 - *Precedent:* none yet
 
-* MudBlazor / UI
+* UI component library and styling
 
 ** BZ-022 — MudBlazor providers live in =App.razor= only
 
 - *Severity:* Bug
-- *Applies to:* all code
+- *Applies to:* all code, in a project that references MudBlazor (Calibration)
 - *Rule:* Component introducing a new =MudPopoverProvider= / =MudDialogProvider= /
   =MudSnackbarProvider= outside =App.razor= — providers are global; duplicates fight each other
   and tests stop working without the =TestHost= wrapper.
@@ -282,18 +298,21 @@ coverage. Not a shared plain-.NET contracts library the Blazor project reference
 ** BZ-023 — Popover-using components are tested under =TestHost=
 
 - *Severity:* Smell
-- *Applies to:* test files reviewed alongside production
+- *Applies to:* test files reviewed alongside production, in a project that references MudBlazor
+  (Calibration)
 - *Rule:* Component using =MudSelect= / =MudDialog= / =MudMenu= without confirming the paired test
   uses =TestHost= with =MudPopoverProvider=. Flag in the test file.
 - *Not a finding:* none.
 - *Precedent:* none yet
 
-** BZ-024 — MudBlazor is the only UI library
+** BZ-024 — One UI component library per project
 
 - *Severity:* Bug
 - *Applies to:* all code
-- *Rule:* Alternative UI library introduced (anything not MudBlazor). Surface and ask.
-- *Not a finding:* none.
+- *Rule:* A second UI component library added beside the one the project already uses. Surface
+  and ask.
+- *Not a finding:* a project with no UI component library. The project's one library, whichever it
+  is — MudBlazor is suggested, never required (Calibration).
 - *Precedent:* none yet
 
 ** BZ-025 — Custom CSS classes match the project namespace
@@ -384,7 +403,7 @@ a sighted user sees. BZ-030 / BZ-031 / BZ-032 are interactive-element rules for 
 ** BZ-029 — Typed inputs use ~Immediate="true"~, not ~@bind-Value:event="oninput"~
 
 - *Severity:* Suggestion
-- *Applies to:* new or touched code only
+- *Applies to:* new or touched code only, in a project that references MudBlazor (Calibration)
 - *Rule:* =MudTextField= / =MudSelect= using ~@bind-Value:event="oninput"~ when the standard for
   search / typed inputs is ~Immediate="true"~ (plus =DebounceInterval= when typing-driven).
 - *Not a finding:* none.
@@ -582,7 +601,7 @@ is not a finding.
 ** BZ-042 — Auth services are =Singleton=
 
 - *Severity:* Smell
-- *Applies to:* all code
+- *Applies to:* all code, in a WebAssembly project (Calibration)
 - *Rule:* The auth service / =AuthStateProvider= (and any token service feeding the
   bearer-attaching handler) registered as =Scoped= instead of =Singleton=. The in-memory access
   token must be one instance shared between page components and the =HttpClientFactory=-managed
@@ -626,7 +645,7 @@ is not a finding.
 ** BZ-046 — Runtime config is committed =appsettings.{Environment}.json=, never injected
 
 - *Severity:* Smell
-- *Applies to:* new or touched code only
+- *Applies to:* new or touched code only, in a WebAssembly project (Calibration)
 - *Rule:* New deploy-time config injection or new =config.json=-style runtime config introduced for
   environment-varying WASM config. The prescribed standard is committed
   =appsettings.{Environment}.json= under =wwwroot/=, environment selected via the
@@ -1008,17 +1027,21 @@ records the request, never the token, and no rule asks for the token to be asser
 typed-client methods need that assertion is for the repo to decide; until then its absence is not
 a finding. CS-003 still governs whether the production method passes the token down.
 
-** BZ-065 — Test stack is bUnit + xUnit =Assert.*= + NSubstitute (overrides CS-060)
+** BZ-065 — Test stack is bUnit + xUnit =Assert.*= + NSubstitute by default, the project's own where established (overrides CS-060)
 
 - *Severity:* Smell
 - *Applies to:* new or touched test code in the Blazor test projects
-- *Rule:* CS-060 does *not* apply here. The stack is xUnit (=[Fact]=, =[Theory]= + =[InlineData]=,
+- *Rule:* CS-060 does *not* apply here. The default stack, for a Blazor test project with no
+  established one, is xUnit (=[Fact]=, =[Theory]= + =[InlineData]=,
   file-scoped namespaces), bUnit for component tests, NSubstitute for mocking
   (=Substitute.For<IX>()=, =_x.Method(...).Returns(value)=, =_x.Received(1).Method(args)=,
   =Arg.Any<T>()=, =Arg.Is<T>(predicate)=), and xUnit =Assert.*= for assertions (=Assert.Equal=,
   =Assert.Contains=, =Assert.Empty=, =Assert.Single=, =Assert.True=, =Assert.False=,
-  =Assert.Matches=, =Assert.NotNull=). Introducing Moq, Shouldly, or FluentAssertions here is the
-  finding. This is the documented Blazor-specific exception to the .NET Moq + Shouldly default.
+  =Assert.Matches=, =Assert.NotNull=). This default is the documented Blazor-specific exception to
+  the .NET Moq + Shouldly default. In a project whose existing tests use another mocking or
+  assertion stack (Moq + Shouldly, say), match that stack. A test written in a stack other than
+  the project's established one is the finding; so, in a project with no tests yet, is a stack
+  other than NSubstitute + =Assert.*=.
   *bUnit version:* bUnit 2 by default — component test classes derive =BunitContext= and render
   with =Render<T>()=. In a project that already has bUnit tests, match the bUnit version those
   tests use and the API names that version carries. A test written against a version other than
@@ -1026,6 +1049,8 @@ a finding. CS-003 still governs whether the production method passes the token d
   tests yet, is a pre-2 bUnit or its names (=Bunit.TestContext=, =RenderComponent<T>()=, which
   bUnit 2 marks obsolete).
 - *Not a finding:* API test projects using Moq + Shouldly (CS-060) — a different scope, not drift.
+  Moq, Shouldly, or another mocking or assertion library in a Blazor test project whose existing
+  tests use it — matching the project, not drift.
   =Bunit.TestContext= and =RenderComponent<T>()= in a project whose existing bUnit tests are on a
   pre-2 bUnit — matching the project, not drift.
 - *Precedent:* a component test on bUnit 2 written with the pre-2 names: deriving
@@ -1039,14 +1064,18 @@ a finding. CS-003 still governs whether the production method passes the token d
 - *Applies to:* new or touched component tests
 - *Rule:* A component test class deviating from the house layout — inherit the bUnit context base
   class for the project's bUnit version per BZ-065 (=BunitContext= on bUnit 2);
-  declare substitutes at field level as ~private readonly IX _x = Substitute.For<IX>();~ *named
+  declare substitutes at field level as ~private readonly IX _x = Substitute.For<IX>();~ (with
+  NSubstitute; another mocking library the project uses per BZ-065 declares its equivalent) *named
   after the dependency* (=_appService=, =_jsInterop=), not =_mockX= as CS-061 prescribes; register
   them in the constructor (=Services.AddSingleton(_x);=); add =Services.AddMudServices()= whenever
   the component renders MudBlazor primitives; set ~JSInterop.Mode = JSRuntimeMode.Loose;~ whenever
   the component invokes =IJSRuntime= directly or through a substituted wrapper. Standard render
   shape ~Render<T>(parameters => parameters.Add(p => p.X, value))~ on bUnit 2 (=RenderComponent<T>=
   in a project matched to a pre-2 bUnit, per BZ-065), event callbacks via
-  ~parameters.Add(p => p.OnY, EventCallback.Factory.Create(this, () => ...))~. Page-level tests
+  ~parameters.Add(p => p.OnY, EventCallback.Factory.Create(this, () => ...))~ for a plain
+  =EventCallback= parameter and ~parameters.Add(p => p.OnY, EventCallback.Factory.Create<T>(this, v => ...))~
+  for an =EventCallback<T>= parameter — the non-generic form does not compile against
+  =EventCallback<T>=. Page-level tests
   read navigation from bUnit's =BunitNavigationManager= on bUnit 2 (=FakeNavigationManager= in a
   project matched to a pre-2 bUnit, per BZ-065)
   (=Services.GetRequiredService<NavigationManager>()=, cast, assert on =nav.Uri=) rather than
@@ -1061,8 +1090,8 @@ a finding. CS-003 still governs whether the production method passes the token d
 - *Severity:* Smell
 - *Applies to:* new or touched service tests
 - *Rule:* A service or pure-logic test inheriting the bUnit context base class (BZ-065) or
-  spinning up a render context it doesn't need. Plain =public class XTests=; NSubstitute for external dependencies (typed-client
-  interfaces, =IHttpClientFactory=, =IJSRuntime=, and =NavigationManager= when used outside a
+  spinning up a render context it doesn't need. Plain =public class XTests=; the project's mocking
+  library (NSubstitute by default, BZ-065) for external dependencies (typed-client interfaces, =IHttpClientFactory=, =IJSRuntime=, and =NavigationManager= when used outside a
   render); common arrangement in a private helper (=BuildService()=, =BuildLoadedServiceAsync()=)
   or inline; locals named =expected= / =actual=; one logical act per test.
 - *Not a finding:* a stateful auth-service test that substitutes =IJSRuntime= and never renders —
@@ -1072,7 +1101,8 @@ a finding. CS-003 still governs whether the production method passes the token d
 ** BZ-068 — =TestHost= wrapper is copied verbatim, not re-invented
 
 - *Severity:* Smell
-- *Applies to:* new or touched component tests
+- *Applies to:* new or touched component tests, in a project that references MudBlazor
+  (Calibration)
 - *Rule:* A hand-rolled host component, or a provider registered some other way, where BZ-023
   requires =MudPopoverProvider= in the render tree. Copy the nested
   =private sealed class TestHost : ComponentBase= shape verbatim from the project's existing tests
@@ -1157,7 +1187,8 @@ a finding. CS-003 still governs whether the production method passes the token d
 - *Rule:* CS-048's =System.*= → project → third-party order does *not* apply in these test
   projects. The local order is =System.*= → =AngleSharp= / =AngleSharp.Dom= → =Bunit= /
   =Bunit.TestDoubles= → the project's own namespaces → =Microsoft.*= → =MudBlazor= /
-  =MudBlazor.Services= → =NSubstitute= → =static using= directives, blank-line separated,
+  =MudBlazor.Services= → =NSubstitute= (or the mocking and assertion namespaces of the stack the
+  project uses, per BZ-065) → =static using= directives, blank-line separated,
   alphabetical within each group. =System.*= is always its own first group. =Xunit= comes from
   ~<Using Include="Xunit" />~ in the =.csproj= — never add it per-file.
 - *Not a finding:* CS-048's order in the Blazor production projects, which is unchanged.
@@ -1185,7 +1216,8 @@ a finding. CS-003 still governs whether the production method passes the token d
   BZ-059, the SUT's test substitutes it (=Substitute.For<IFooHelper>()=) and asserts only that the
   substituted output flows through; the helper gets its own test class exercising its public
   methods directly. Component tests substitute the service the same way — never re-test service
-  logic through the component.
+  logic through the component. In a project matched to another mocking library per BZ-065, CS-071
+  applies the same way with that library's mocks.
 - *Not a finding:* test-local render / arrange / assert helpers kept private in the bUnit test
   class (BZ-059); promote only when shared across test classes. *A wire-format collaborator the
   SUT's own contract is defined in terms of* — an enveloped-response parser in a typed-client test.
@@ -1249,7 +1281,8 @@ a finding. CS-003 still governs whether the production method passes the token d
 ** BZ-083 — A log assertion reads the real =ILogger.Log= member off a substitute registered closed over the type under test
 
 - *Severity:* Smell
-- *Applies to:* new or touched test code in the Blazor test projects
+- *Applies to:* new or touched test code in the Blazor test projects that mock with NSubstitute
+  (BZ-065)
 - *Rule:* A test that needs to prove something was logged, arranged either of the two ways that do
   not work. *(a) Substituting =ILogger<T>= and asserting on =LogError= / =LogWarning= /
   =LogInformation=.* NSubstitute intercepts interface members, and those are not members — they are

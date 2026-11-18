@@ -42,6 +42,7 @@ All under =~/.claude/=, which is a git repo synced between machines.
 | =docs/runbooks/=                       | runbooks, each naming the repo or tool it is about | =mz-runbook-manager=  |
 | =docs/agents-md-checklist.org=         | what a repo's =AGENTS.md= should provide         | =mz-agent-builder= for the lines that ride with an agent change; otherwise Max |
 | =aptitude/<repo-key>.org=              | Max's per-repo familiarity calibration           | =mz-aptitude-scout=     |
+| =repo-notes/<repo-key>.org=            | Max's per-repo answers no repo file can hold      | the main agent, at Max's direction |
 
 Agent and skill files are =.md= because Claude Code requires it. Every other file the suite
 keeps is =.org=.
@@ -50,7 +51,7 @@ keeps is =.org=.
 no =origin=, the name of the directory =git rev-parse --show-toplevel= prints. It names the repo
 in the follow-up issue title.
 
-=<repo-key>= names the aptitude file: the owner and the repo name joined by =-=, taken from the
+=<repo-key>= names the aptitude file and the repo-notes file: the owner and the repo name joined by =-=, taken from the
 last two path segments of the =origin= URL with any =.git= removed, treating =:= as a separator
 and skipping a =_git= segment — so =git@github.com:WMaxZimmerman/gtd.git= gives
 =WMaxZimmerman-gtd= and =https://dev.azure.com/org/ai_studio/_git/ge-.claude= gives
@@ -58,7 +59,12 @@ and skipping a =_git= segment — so =git@github.com:WMaxZimmerman/gtd.git= give
 of one repo share one aptitude file; with none, each worktree's directory name is its own key.
 Two different repos can still produce one key — the same owner and name on two hosts, a =-= inside an owner or name (=a-b= + =c= and =a= + =b-c= both give =a-b-c=), or two repos
 with no =origin= in directories of one name; =mz-aptitude-scout= stops and asks when the file at
-the key describes another repo.
+the key describes another repo. A repo-notes file opens with the line =- Repo: <origin URL, or the
+=git rev-parse --show-toplevel= path with no origin>=, and an entry in it counts only for the repo
+that line names. Two origin URLs name the same repo when their host, owner, and name match, whatever
+the transport (SSH or HTTPS); two differing paths with no origin are put to Max as a question — same repo or
+not — and never decided by the agent; when Max answers "same repo", the main agent adds the second
+path to the =- Repo:= line, so the question is not asked again.
 
 Max's GTD workspace, =~/gtd= (=github.com:WMaxZimmerman/gtd=), is the subject of
 =mz-gtd-assistant= and outside =~/.claude/=. Its path and its layout are suite facts in that one
@@ -119,6 +125,14 @@ When the main agent is working through the suite, it does not edit these surface
 - *Code in the repo being worked on* → the stack writer for that path, gated by its paired
   reviewer. The pairing is named in each writer's own file. A path no stack agent covers is
   worked by the main agent directly, unless the repo's contract routes it elsewhere.
+  A /Blazor project/ is a project holding =.razor= components, in any Blazor form, that is not a
+  test project; the test project paired with it is its /Blazor test project/, named as such. In
+  a Blazor project and its Blazor test project, =mz-blazor-reviewer= is the one reviewer for every file, applying the
+  =csharp.org= rules with the =blazor.org= deltas. =mz-csharp-reviewer= gives a second opinion
+  once per branch, before the =mz-devils-advocate= gate, on the =.cs= files the branch changed in
+  Blazor projects; its findings go to the gate like any reviewer's, and one that duplicates an
+  =mz-blazor-reviewer= finding is merged with it. When such files change after its last report — a
+  fix round, a later commit — it runs again before the next gate, on those files only.
 - *Tech debt and follow-ups* → GitHub issues, filed by =mz-gh-issue-writer=; see Tracking.
 - *This file and =~/.claude/CLAUDE.md=* → Max, or the main agent at his explicit direction. A
   change to this file is reviewed by =mz-agent-auditor= in change review before it is committed,
@@ -252,6 +266,24 @@ Every accumulated finding plus the main agent's disposition of each goes to =mz-
   plan; its =P-n= challenges carry into the gate. On GitHub, hand it =mz-gh-scout='s search of
   open =tech-debt= issues for the files the plan names; put each pull-in it proposes to Max one at
   a time.
+- *Blazor work.* Before =mz-blazor-writer='s first cycle in a project that references no
+  UI component library, MudBlazor or another, and whose repo contract records no UI-library decision, hand it
+  =mz-gh-scout='s search of open =tech-debt= issues about adopting MudBlazor — or, in a repo not on
+  GitHub, say so. Put its one-time question to Max and carry out his answer: an issue through
+  =mz-gh-issue-writer=, a pull-in as the writer's own cycle, or a line in the repo contract written
+  by the main agent at his direction — offered only where the repo has an =AGENTS.md= or
+  =CLAUDE.md=; no contract file is created for it. When Max declines every answer offered, the
+  main agent adds the line =- MudBlazor: declined <YYYY-MM-DD>= to
+  =~/.claude/repo-notes/<repo-key>.org=; that record is the fourth trace, and the question is not
+  asked again in that repo. The main agent reads that file itself, checks its =- Repo:= line names
+  this repo by the rule above (putting a path mismatch, a different repo, or a missing =- Repo:= line
+  to Max), and hands the writer, with the search or the not-on-GitHub statement, one line: whether
+  a decline is recorded for this repo. The main agent writes the =- Repo:= line when it creates the
+  file; a missing file or folder records nothing. For a pull-in, hand the writer MudBlazor's own installation
+  instructions for the version the package add resolved. Before the =mz-devils-advocate= gate on a
+  branch that changed a =.cs= file in a Blazor project, run =mz-csharp-reviewer='s second opinion
+  (Roster and delegation rule), handing it the diff and its range (base and head commit), and hand
+  its report to the gate with the others.
 - *Trace before raising.* Before putting any claimed gap to Max, trace it end to end; say what was
   traced. A claim that could not be traced is one line under a "Could not trace" heading.
 

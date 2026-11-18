@@ -10,7 +10,7 @@ and plain-.NET contracts libraries (a contracts library consumed by a Blazor app
 here — it is not Blazor code); Aspire =*.AppHost= projects; EF entity, =DbContext=, entity
 configuration and migration code; and the project files (=*.csproj=, =Directory.Build.props=,
 =Directory.Packages.props=, =*.sln=). Not Blazor projects — =.razor= files and the C# supporting
-them in a Blazor WebAssembly or Server project are =blazor.org='s.
+them in a Blazor project of any form (=blazor.org= § Scope) are =blazor.org='s.
 
 The test projects for the above are in scope: production rules reach test code as each entry
 marks, and every entry under the *Test style* heading is test-only. That group is named by its
@@ -1484,8 +1484,8 @@ decided for these projects, raise the scope question once rather than a per-test
   integration host (CS-084), default loose behavior elsewhere. FluentAssertions, NSubstitute, and
   xUnit =Assert.*= are not introduced here; a new test dependency is surfaced and asked, never
   added.
-- *Not a finding:* Blazor test projects, which are bUnit + NSubstitute + =Assert.*= by documented
-  exception (BZ-065). =FakeTimeProvider= and other framework-supplied fakes alongside Moq.
+- *Not a finding:* Blazor test projects, which BZ-065 governs by documented exception — bUnit +
+  NSubstitute + =Assert.*= by default, the project's established stack where it has one. =FakeTimeProvider= and other framework-supplied fakes alongside Moq.
   WireMock.Net and the absence of Moq in a legacy island's test projects where that is the
   established approach (see the group preamble) — a /new/ test dependency there is still surfaced
   and asked.
