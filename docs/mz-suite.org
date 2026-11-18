@@ -41,14 +41,29 @@ All under =~/.claude/=, which is a git repo synced between machines.
 | =docs/house-rules/=                    | the rules-and-angles registry — see below        | =mz-house-rules-manager= |
 | =docs/runbooks/=                       | runbooks, each naming the repo or tool it is about | =mz-runbook-manager=  |
 | =docs/agents-md-checklist.org=         | what a repo's =AGENTS.md= should provide         | =mz-agent-builder= for the lines that ride with an agent change; otherwise Max |
-| =aptitude/<repo-name>.org=             | Max's per-repo familiarity calibration           | =mz-aptitude-scout=     |
+| =aptitude/<repo-key>.org=              | Max's per-repo familiarity calibration           | =mz-aptitude-scout=     |
 
 Agent and skill files are =.md= because Claude Code requires it. Every other file the suite
 keeps is =.org=.
 
 =<repo-name>= is the last path segment of the =origin= remote URL with any =.git= removed; with
-no =origin=, the name of the directory =git rev-parse --show-toplevel= prints. Worktrees of one
-repo therefore share one aptitude file.
+no =origin=, the name of the directory =git rev-parse --show-toplevel= prints. It names the repo
+in the follow-up issue title.
+
+=<repo-key>= names the aptitude file: the owner and the repo name joined by =-=, taken from the
+last two path segments of the =origin= URL with any =.git= removed, treating =:= as a separator
+and skipping a =_git= segment — so =git@github.com:WMaxZimmerman/gtd.git= gives
+=WMaxZimmerman-gtd= and =https://dev.azure.com/org/ai_studio/_git/ge-.claude= gives
+=ai_studio-ge-.claude=. With no =origin=, it is =<repo-name>= alone. With an =origin=, worktrees
+of one repo share one aptitude file; with none, each worktree's directory name is its own key.
+Two different repos can still produce one key — the same owner and name on two hosts, a =-= inside an owner or name (=a-b= + =c= and =a= + =b-c= both give =a-b-c=), or two repos
+with no =origin= in directories of one name; =mz-aptitude-scout= stops and asks when the file at
+the key describes another repo.
+
+Max's GTD workspace, =~/gtd= (=github.com:WMaxZimmerman/gtd=), is the subject of
+=mz-gtd-assistant= and outside =~/.claude/=. Its path and its layout are suite facts in that one
+agent's file, where AG-005 does not grade them; any other =mz-= agent hands GTD work to
+=mz-gtd-assistant= rather than naming the workspace.
 
 ** The house-rules registry
 
@@ -105,7 +120,9 @@ When the main agent is working through the suite, it does not edit these surface
   reviewer. The pairing is named in each writer's own file. A path no stack agent covers is
   worked by the main agent directly, unless the repo's contract routes it elsewhere.
 - *Tech debt and follow-ups* → GitHub issues, filed by =mz-gh-issue-writer=; see Tracking.
-- *This file and =~/.claude/CLAUDE.md=* → Max, or the main agent at his explicit direction.
+- *This file and =~/.claude/CLAUDE.md=* → Max, or the main agent at his explicit direction. A
+  change to this file is reviewed by =mz-agent-auditor= in change review before it is committed,
+  as a change to an agent file is.
 
 Read-only research is fine directly from the main agent. Local-git history beyond the change
 boundary — who introduced a line, bracketing a regression, what changed between two refs —
@@ -143,6 +160,9 @@ fences below bind every agent, main or delegate.
   house-rule rulings — are collected through the work and filed when the pull request opens (or,
   with no pull request, when the gate clears) as one issue in =WMaxZimmerman/.claude=, titled
   =mz follow-ups from <repo-name> <branch>=, labelled =mz-follow-up=. Nothing collected, no issue.
+  Before filing, the agent searches =WMaxZimmerman/.claude= for an open issue with that exact
+  title; when one exists (a later gate round of the same branch), the new items go on it as a
+  comment instead of a second issue.
 - Every issue description uses the six-heading layout in the =mz-issue-template= skill, except
   the follow-up issue, which keeps its own shape (the skill says how it is recognised).
 - *Every filing leaves the machine, so each one needs Max's explicit ask.* The agent shows the
@@ -161,7 +181,7 @@ review returns no Bug and no Smell the change wrote; otherwise the findings go b
 A fix round is reviewed the same way before it is committed, however small.
 
 Writers with no paired reviewer — =mz-aptitude-scout=, =mz-runbook-manager=,
-=mz-house-rules-manager=, =mz-gh-issue-writer=, =mz-gh-pr-operator=, =mz-erd-writer= — self-verify
+=mz-house-rules-manager=, =mz-gh-issue-writer=, =mz-gh-pr-operator=, =mz-erd-writer=, =mz-gtd-assistant= — self-verify
 against their own conventions.
 
 Two things still stop and wait for Max: the *interview* a builder runs for a new agent or skill,
@@ -191,7 +211,10 @@ Every accumulated finding plus the main agent's disposition of each goes to =mz-
   Bug or Smell is filed as tech debt (see Tracking) before the gate clears.
 - =mz-gh-pr-operator= refuses to open or update a pull request without a =Gate: CLEAR= ruling for
   the exact commit it publishes, ruled on a clean working tree, carrying the =### Angles= section.
-  The main agent likewise does not merge into or push to the integration branch without one.
+  A draft toggle on an existing pull request — marking it draft, or marking a draft ready for
+  review — is not an update for this rule: it publishes no commit and changes no text, so it needs
+  no ruling and no ruling post. The main agent likewise does not merge into or push to the
+  integration branch without a =Gate: CLEAR= ruling.
 - A suspicion no agent could trace to a path and a reachable trigger is not a finding: it goes
   under =### Could not trace=, with no gate weight, and is never fixed, filed, or put to Max.
 
@@ -223,7 +246,7 @@ Every accumulated finding plus the main agent's disposition of each goes to =mz-
 * Main-agent routines
 
 - *Aptitude check*, the first time the suite is used in a session: read
-  =~/.claude/aptitude/<repo-name>.org= and confirm it covers the current commit-author identity.
+  =~/.claude/aptitude/<repo-key>.org= and confirm it covers the current commit-author identity.
   If it is missing or for someone else, invoke =mz-aptitude-scout=. Pitch explanations to it.
 - *Plan pass*, on demand before a substantial piece of work: =mz-devils-advocate= attacks the
   plan; its =P-n= challenges carry into the gate. On GitHub, hand it =mz-gh-scout='s search of
@@ -247,6 +270,9 @@ them:
   or rolls back a release, mutates a cluster, pushes an image, or runs a migration against
   anything but a local database. A writer surfaces such a command for Max; it never runs it.
 - Nothing leaves the machine without Max's explicit ask: no push, no issue, no pull request, no
-  comment, no review. One permission is for one action.
+  comment, no review, no reviewer added or removed, no review thread resolved. One permission is
+  for one action. Four GitHub actions are the exception and need no ask: creating a label, linking
+  an existing issue as a sub-issue of another, marking a pull request draft, and marking a draft
+  pull request ready for review. Anything not named in that exception needs the ask.
 - No AI or =Co-Authored-By= attribution in anything an agent composes.
 - No agent edits =~/.claude/settings.json=, this file, or =~/.claude/CLAUDE.md= on its own.

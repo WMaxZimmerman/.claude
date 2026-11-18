@@ -193,7 +193,7 @@ section "The house-rules registry".
 - [[file:blazor.org::*BZ-063 — Typed client returns raw responses or unwraps the payload wrapper, never both][BZ-063]] — Typed client returns raw responses or unwraps the payload wrapper, never both
 - [[file:blazor.org::*BZ-064 — Delegating handlers are =Transient=][BZ-064]] — Delegating handlers are =Transient=
 - [[file:blazor.org::*BZ-065 — Test stack is bUnit + xUnit =Assert.*= + NSubstitute (overrides CS-060)][BZ-065]] — Test stack is bUnit + xUnit =Assert.*= + NSubstitute (overrides CS-060)
-- [[file:blazor.org::*BZ-066 — Component test layout: =TestContext=, dependency-named substitutes, constructor wiring][BZ-066]] — Component test layout: =TestContext=, dependency-named substitutes, constructor wiring
+- [[file:blazor.org::*BZ-066 — Component test layout: bUnit context base class, dependency-named substitutes, constructor wiring][BZ-066]] — Component test layout: bUnit context base class, dependency-named substitutes, constructor wiring
 - [[file:blazor.org::*BZ-067 — Service / pure-logic tests are plain classes with no render context][BZ-067]] — Service / pure-logic tests are plain classes with no render context
 - [[file:blazor.org::*BZ-068 — =TestHost= wrapper is copied verbatim, not re-invented][BZ-068]] — =TestHost= wrapper is copied verbatim, not re-invented
 - [[file:blazor.org::*BZ-069 — Semantic selectors before implementation-detail CSS][BZ-069]] — Semantic selectors before implementation-detail CSS

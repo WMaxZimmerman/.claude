@@ -106,7 +106,10 @@ The rules for code in the repo being worked on are in =common.org= and the stack
   =~/.claude/= in § Where the suite keeps things, the =tech-debt= and =mz-follow-up= labels and
   the follow-up repository in § Tracking. An agent or skill naming another =mz-= agent or skill.
   The suite's own docs under =~/.claude/docs/=, which are about the suite by definition and are
-  not agent files.
+  not agent files. The GTD workspace's path and layout written in =mz-gtd-assistant='s own file,
+  which =mz-suite.org= § Where the suite keeps things, the GTD workspace paragraph, makes suite
+  facts for that one agent. The exception reaches no other agent or skill file: there, naming the
+  workspace is this rule's finding, and the fix is to hand GTD work to =mz-gtd-assistant=.
 - *Precedent:* none yet
 
 ** AG-006 — The =mz-= prefix used outside the suite, or missing inside it

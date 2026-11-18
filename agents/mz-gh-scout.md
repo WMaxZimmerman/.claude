@@ -206,7 +206,7 @@ Use the **structured hand-off** shape when surfacing GitHub state is the bridge 
 > **GitHub state:** <one-line summary — e.g. "PR #412 open, one failing required check, closes #380">.
 >
 > **Recommended next step:**
-> 1. Invoke `mz-gh-issue-writer` to update the issue / `mz-gh-pr-operator` to update the pull request. Either one shows the exact `gh` command and sends it only on Max's explicit ask. (CI is read-only — rerunning a run is human-owned, not delegated to an agent.)
+> 1. Invoke `mz-gh-issue-writer` to update the issue / `mz-gh-pr-operator` to update the pull request. Either one shows the exact `gh` command and sends it only on Max's explicit ask — the four actions `mz-suite.org` § Safety fences excepts need none. (CI is read-only — rerunning a run is human-owned, not delegated to an agent.)
 
 **User wants CI detail or commit-level history:**
 

@@ -36,7 +36,7 @@ I organize Claude Code agents by scope:
 - **Repo-specific agents** that operate on one project's files →
   `<repo>/.claude/agents/` in that repo
 
-`gtd-assistant` is central (lives in `~/.claude/agents/`). A future sync
+`mz-gtd-assistant` is central (lives in `~/.claude/agents/`). A future sync
 agent for `~/gtd` would be repo-specific.
 
 `mz-` agents are personal fallbacks. When a session also has an agent
@@ -86,6 +86,10 @@ or editing a PR or issue, messaging another session, sending mail,
 pushing a branch — needs me to ask for it. Approving the *content* of
 something is not permission to send it. A one-time permission is one
 time only.
+
+Four GitHub actions are exempt and need no ask: creating a label,
+linking an existing issue as a sub-issue of another, marking a pull
+request draft, and marking a draft pull request ready for review.
 
 ## Say what you verified, and how
 

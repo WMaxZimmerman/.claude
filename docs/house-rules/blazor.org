@@ -34,8 +34,8 @@ coverage. Not a shared plain-.NET contracts library the Blazor project reference
   against the established half of it.
 - A minimal =Theme/= folder is not a finding when the project does not customize MudBlazor's
   theme.
-- bUnit-stack test conventions (=TestContext=, =JSRuntimeMode.Loose=, =TestHost= wrapper shape,
-  NSubstitute vs Moq, =Assert.*= vs Shouldly) live in the Test style group below
+- bUnit-stack test conventions (the bUnit version and context base class, =JSRuntimeMode.Loose=,
+  =TestHost= wrapper shape, NSubstitute vs Moq, =Assert.*= vs Shouldly) live in the Test style group below
   (BZ-065..BZ-076); cite those ids rather than deferring. It is NSubstitute + =Assert.*=, full
   stop — the documented Blazor exception to the .NET Moq + Shouldly default (BZ-065).
 - Canonical references — a page component, a reusable component, a stateful service, a JSInterop
@@ -1013,28 +1013,42 @@ a finding. CS-003 still governs whether the production method passes the token d
 - *Severity:* Smell
 - *Applies to:* new or touched test code in the Blazor test projects
 - *Rule:* CS-060 does *not* apply here. The stack is xUnit (=[Fact]=, =[Theory]= + =[InlineData]=,
-  file-scoped namespaces), bUnit for component tests (=Bunit.TestContext=), NSubstitute for mocking
+  file-scoped namespaces), bUnit for component tests, NSubstitute for mocking
   (=Substitute.For<IX>()=, =_x.Method(...).Returns(value)=, =_x.Received(1).Method(args)=,
   =Arg.Any<T>()=, =Arg.Is<T>(predicate)=), and xUnit =Assert.*= for assertions (=Assert.Equal=,
   =Assert.Contains=, =Assert.Empty=, =Assert.Single=, =Assert.True=, =Assert.False=,
   =Assert.Matches=, =Assert.NotNull=). Introducing Moq, Shouldly, or FluentAssertions here is the
   finding. This is the documented Blazor-specific exception to the .NET Moq + Shouldly default.
+  *bUnit version:* bUnit 2 by default — component test classes derive =BunitContext= and render
+  with =Render<T>()=. In a project that already has bUnit tests, match the bUnit version those
+  tests use and the API names that version carries. A test written against a version other than
+  the one the project's existing bUnit tests use is the finding; so, in a project with no bUnit
+  tests yet, is a pre-2 bUnit or its names (=Bunit.TestContext=, =RenderComponent<T>()=, which
+  bUnit 2 marks obsolete).
 - *Not a finding:* API test projects using Moq + Shouldly (CS-060) — a different scope, not drift.
-- *Precedent:* none yet
+  =Bunit.TestContext= and =RenderComponent<T>()= in a project whose existing bUnit tests are on a
+  pre-2 bUnit — matching the project, not drift.
+- *Precedent:* a component test on bUnit 2 written with the pre-2 names: deriving
+  =Bunit.TestContext= warned obsolete ("Use BunitContext instead") and =RenderComponent<T>()=
+  failed to compile ("Use Render instead"); the same tests deriving =BunitContext= and calling
+  =Render<T>()= compiled and passed.
 
-** BZ-066 — Component test layout: =TestContext=, dependency-named substitutes, constructor wiring
+** BZ-066 — Component test layout: bUnit context base class, dependency-named substitutes, constructor wiring
 
 - *Severity:* Smell
 - *Applies to:* new or touched component tests
-- *Rule:* A component test class deviating from the house layout — inherit =Bunit.TestContext=;
+- *Rule:* A component test class deviating from the house layout — inherit the bUnit context base
+  class for the project's bUnit version per BZ-065 (=BunitContext= on bUnit 2);
   declare substitutes at field level as ~private readonly IX _x = Substitute.For<IX>();~ *named
   after the dependency* (=_appService=, =_jsInterop=), not =_mockX= as CS-061 prescribes; register
   them in the constructor (=Services.AddSingleton(_x);=); add =Services.AddMudServices()= whenever
   the component renders MudBlazor primitives; set ~JSInterop.Mode = JSRuntimeMode.Loose;~ whenever
   the component invokes =IJSRuntime= directly or through a substituted wrapper. Standard render
-  shape ~RenderComponent<T>(parameters => parameters.Add(p => p.X, value))~, event callbacks via
+  shape ~Render<T>(parameters => parameters.Add(p => p.X, value))~ on bUnit 2 (=RenderComponent<T>=
+  in a project matched to a pre-2 bUnit, per BZ-065), event callbacks via
   ~parameters.Add(p => p.OnY, EventCallback.Factory.Create(this, () => ...))~. Page-level tests
-  read navigation from bUnit's =FakeNavigationManager=
+  read navigation from bUnit's =BunitNavigationManager= on bUnit 2 (=FakeNavigationManager= in a
+  project matched to a pre-2 bUnit, per BZ-065)
   (=Services.GetRequiredService<NavigationManager>()=, cast, assert on =nav.Uri=) rather than
   substituting =NavigationManager=.
 - *Not a finding:* the rest of CS-061 (one SUT, =expected= / =actual=, constructor arrangement) — it
@@ -1046,8 +1060,8 @@ a finding. CS-003 still governs whether the production method passes the token d
 
 - *Severity:* Smell
 - *Applies to:* new or touched service tests
-- *Rule:* A service or pure-logic test inheriting =TestContext= or spinning up a render context it
-  doesn't need. Plain =public class XTests=; NSubstitute for external dependencies (typed-client
+- *Rule:* A service or pure-logic test inheriting the bUnit context base class (BZ-065) or
+  spinning up a render context it doesn't need. Plain =public class XTests=; NSubstitute for external dependencies (typed-client
   interfaces, =IHttpClientFactory=, =IJSRuntime=, and =NavigationManager= when used outside a
   render); common arrangement in a private helper (=BuildService()=, =BuildLoadedServiceAsync()=)
   or inline; locals named =expected= / =actual=; one logical act per test.

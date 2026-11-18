@@ -29,7 +29,7 @@ not graded against this list.
 * 1. Repository layout
 
 Read by: mz-aptitude-scout, mz-git-historian, mz-runbook-manager, mz-house-rules-manager,
-mz-devils-advocate, mz-skill-builder, every stack writer and reviewer.
+mz-devils-advocate, mz-skill-builder, mz-gtd-assistant, every stack writer and reviewer.
 
 - The top-level areas of the repo and what each holds. These are the paths =mz-aptitude-scout=
   scores.
