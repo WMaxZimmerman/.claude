@@ -10,7 +10,7 @@ section "The house-rules registry".
 |-+-+-|
 | [[file:agents.org][agents.org]] | Agent and skill file house rules (AG) | 15 |
 | [[file:angles.org][angles.org]] | Attack angles (A) | 28 |
-| [[file:angular.org][angular.org]] | Angular house rules (NG) | 46 |
+| [[file:angular.org][angular.org]] | Angular house rules (NG) | 47 |
 | [[file:blazor.org][blazor.org]] | Blazor house rules (BZ) | 86 |
 | [[file:common.org][common.org]] | Common house rules (CM) | 11 |
 | [[file:csharp.org][csharp.org]] | C# / .NET house rules (CS) | 107 |
@@ -19,7 +19,7 @@ section "The house-rules registry".
 | [[file:pipeline.org][pipeline.org]] | Azure Pipelines house rules (PL) | 58 |
 | [[file:python.org][python.org]] | Python house rules (PY) | 3 |
 | [[file:terraform.org][terraform.org]] | Terraform house rules (TF) | 31 |
-| Total | | 499 |
+| Total | | 500 |
 
 * Agent and skill file house rules (AG)
 
@@ -83,7 +83,7 @@ section "The house-rules registry".
 - [[file:angular.org::*NG-009 — Lazy routes for non-default features][NG-009]] — Lazy routes for non-default features
 - [[file:angular.org::*NG-010 — Bootstrapping via =provideX()= application config][NG-010]] — Bootstrapping via =provideX()= application config
 - [[file:angular.org::*NG-011 — Signals for component-local state, not Subjects][NG-011]] — Signals for component-local state, not Subjects
-- [[file:angular.org::*NG-012 — Cross-component state lives in NgRx SignalStore][NG-012]] — Cross-component state lives in NgRx SignalStore
+- [[file:angular.org::*NG-012 — Cross-component state lives in the project's state library, NgRx SignalStore by default][NG-012]] — Cross-component state lives in the project's state library, NgRx SignalStore by default
 - [[file:angular.org::*NG-013 — Async state is one result type, not separate flags][NG-013]] — Async state is one result type, not separate flags
 - [[file:angular.org::*NG-015 — Subscriptions end with =takeUntilDestroyed()=][NG-015]] — Subscriptions end with =takeUntilDestroyed()=
 - [[file:angular.org::*NG-016 — =async= pipe or =toSignal()= over manual =subscribe()=][NG-016]] — =async= pipe or =toSignal()= over manual =subscribe()=
@@ -100,6 +100,7 @@ section "The house-rules registry".
 - [[file:angular.org::*NG-027 — Name predicts behavior][NG-027]] — Name predicts behavior
 - [[file:angular.org::*NG-028 — Non-trivial private methods become injectable helpers][NG-028]] — Non-trivial private methods become injectable helpers
 - [[file:angular.org::*NG-029 — No =console.log= for diagnostics][NG-029]] — No =console.log= for diagnostics
+- [[file:angular.org::*NG-048 — CM-003 in Angular constructs, including JSDoc and template comments][NG-048]] — CM-003 in Angular constructs, including JSDoc and template comments
 - [[file:angular.org::*NG-030 — Fresh behavioral code arrives with a covering test][NG-030]] — Fresh behavioral code arrives with a covering test
 - [[file:angular.org::*NG-031 — Test at the user-visible seam][NG-031]] — Test at the user-visible seam
 - [[file:angular.org::*NG-032 — One behavior per =it=][NG-032]] — One behavior per =it=
@@ -107,9 +108,9 @@ section "The house-rules registry".
 - [[file:angular.org::*NG-034 — The auth library is faked via the shared testing library][NG-034]] — The auth library is faked via the shared testing library
 - [[file:angular.org::*NG-035 — Use the shared testing setup helpers][NG-035]] — Use the shared testing setup helpers
 - [[file:angular.org::*NG-036 — Drive and read signals directly][NG-036]] — Drive and read signals directly
-- [[file:angular.org::*NG-037 — =vi.fn()= in modern-stack specs][NG-037]] — =vi.fn()= in modern-stack specs
+- [[file:angular.org::*NG-037 — The project's spy API in modern-stack specs, =vi.fn()= by default][NG-037]] — The project's spy API in modern-stack specs, =vi.fn()= by default
 - [[file:angular.org::*NG-038 — File naming by role][NG-038]] — File naming by role
-- [[file:angular.org::*NG-039 — Modern test stack is Vitest + =@testing-library/angular=][NG-039]] — Modern test stack is Vitest + =@testing-library/angular=
+- [[file:angular.org::*NG-039 — Modern test stack is the project's own, Vitest + =@testing-library/angular= by default][NG-039]] — Modern test stack is the project's own, Vitest + =@testing-library/angular= by default
 - [[file:angular.org::*NG-040 — =userEvent= over =fireEvent=][NG-040]] — =userEvent= over =fireEvent=
 - [[file:angular.org::*NG-041 — Spec layout: one =sut=, dependency-named mocks, =expected= / =actual=][NG-041]] — Spec layout: one =sut=, dependency-named mocks, =expected= / =actual=
 - [[file:angular.org::*NG-042 — =describe= names the SUT; =it= reads as a behavioral sentence][NG-042]] — =describe= names the SUT; =it= reads as a behavioral sentence

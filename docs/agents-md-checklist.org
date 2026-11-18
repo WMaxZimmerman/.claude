@@ -247,14 +247,20 @@ build, test, lint, and format commands, the directory each runs from, and where 
 - Which paths are applications and which are shared libraries.
 - Whether a legacy subtree exists, and that every file in it is legacy by default.
 - Per application or subtree: the Angular version, the test runner and therefore the spy
-  interface, and the state-management library.
+  interface, the testing utilities — Testing Library or =TestBed= alone — with the matchers the
+  test setup wires, and the state-management library.
+- The package manager, and that agents surface dependency commands rather than run them.
+- The logger — the logging service the applications use in place of =console.log= (=angular.org=
+  NG-029), or that there is none.
 - The user-interface component library, if the applications use one, and the element or
   directive names the reviewers may hold a template to. Without this the reviewers cannot grade a
   missing label or a misplaced validation message.
 - The generated API client path and its regeneration command, which an agent surfaces and never
   runs.
 - The shared test-helper library, and whether it reaches the legacy subtree.
-- The end-of-feature verification sequence and its order.
+- The lint and format commands in both forms — the fix form, which rewrites files, and the check
+  form, which changes none — and the end-of-feature verification sequence and its order. The
+  writer runs the fix forms on each cycle's changed files and the check forms at end of feature.
 - Any per-application contract file to read after the root contract.
 - Any application or path marked unused or off-limits.
 

@@ -3,7 +3,8 @@
 Rules that apply to every stack, read by every reviewer and writer. Read with the stack's own file
 (=csharp.org=, =blazor.org=, and the rest). Stack files reference these by id instead of restating
 them; a stack that restates or loosens one does so with its own delta entry (=csharp.org= CS-027,
-=blazor.org= BZ-052, and =python.org= PY-003 restate CM-003 for their own constructs;
+=blazor.org= BZ-052, =python.org= PY-003, and =angular.org= NG-048 restate CM-003 for their own
+constructs;
 =helm-chart.org= HC-042 softens it to Suggestion for =values.yaml=).
 
 * Scope
@@ -58,11 +59,10 @@ Python, HCL, CI pipeline YAML, Helm templates and values, Dockerfiles and entryp
 ** CM-003 — No comments at all, every stack
 
 - *Severity:* Smell
-- *Applies to:* new or touched code, every stack. =csharp.org= (CS-027), =blazor.org= (BZ-052), and
-  =python.org= (PY-003) restate this for their own constructs, carrying their own carve-outs
-  forward; =helm-chart.org=
-  (HC-042) softens =values.yaml= comments to Suggestion; =angular.org=, =terraform.org=,
-  =dockerfile.org=, and =pipeline.org= take the rule unmodified.
+- *Applies to:* new or touched code, every stack. =csharp.org= (CS-027), =blazor.org= (BZ-052),
+  =python.org= (PY-003), and =angular.org= (NG-048) restate this for their own constructs, carrying
+  their own carve-outs forward; =helm-chart.org= (HC-042) softens =values.yaml= comments to
+  Suggestion; =terraform.org=, =dockerfile.org=, and =pipeline.org= take the rule unmodified.
 - *Rule:* Any comment in source — explanatory =//= / =#= lines, =///= doc comments, block comments,
   markup comments. Design rationale — why this default, why this deviation — belongs in the pull
   request description, the issue, or =docs/=, not in the source. A comment is the exception a
@@ -70,8 +70,8 @@ Python, HCL, CI pipeline YAML, Helm templates and values, Dockerfiles and entryp
 - *Not a finding:* none at the common level. The carve-outs that survive are stack-local: the
   one-line data-mutation comment and generated migration content in =csharp.org= (CS-027, inherited
   by =blazor.org= BZ-052), tooling directives and Alembic-generated migration content in
-  =python.org= (PY-003), and Helm =values.yaml= comments graded Suggestion rather than Smell in
-  =helm-chart.org= (HC-042).
+  =python.org= (PY-003), tool directives in =angular.org= (NG-048), and Helm =values.yaml= comments
+  graded Suggestion rather than Smell in =helm-chart.org= (HC-042).
 - *Precedent:* none yet
 
 ** CM-004 — Magic numbers and strings carrying business meaning

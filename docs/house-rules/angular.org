@@ -2,7 +2,8 @@
 
 Read with =common.org=. These rules encode the target state (the signals-era Angular stack:
 standalone components, signals, NgRx SignalStore, typed forms, Vitest); a codebase that predates
-it carries drift, and the Calibration section decides when a rule fires.
+it carries drift, a project that has established its own state library or test stack is graded
+against what it established, and the Calibration section decides when a rule fires.
 
 * Scope
 
@@ -55,10 +56,23 @@ the target state:
   =component.method()= invocation when a user-visible seam exists (NG-031), a single =it= covering
   unrelated behaviors (NG-032), =as Type= fabrication when a builder would do (NG-033).
 
+*Match the project's established stack.* The test runner, testing utilities, mocking / spy API,
+state library, and UI component library a project has established are the ones its code is graded
+against. The tools this file names — Vitest, =@testing-library/angular= with
+=@testing-library/user-event= and =@testing-library/jest-dom=, =vi.fn()=, NgRx SignalStore — are
+the default only for a project that has established none. A project has established a tool when
+its existing code or specs use it. Fresh code that brings in a second tool beside the established
+one is the finding; fresh code that uses the established tool rather than this file's default is
+not. Moving such a project onto the default is a migration asked for explicitly, never a review
+finding. NG-012, NG-013, NG-037, NG-039, NG-040, NG-046 and NG-047 carry this scoping in their own
+fields. It is
+separate from the legacy-subtree exemption above, which stands as written.
+
 *Not findings anywhere:* missing =ChangeDetectionStrategy.OnPush= in a zoneless app — OnPush is
 irrelevant there; never flag it either way. A =Result<T>= type the repo uses as a deliberate house
-pattern for async state — flag only misuse (NG-013). NgRx SignalStore, Vitest,
-=@testing-library/angular=, and =inject()= in modern code — all house best practices.
+pattern for async state — flag only misuse (NG-013). NgRx SignalStore, Vitest, and
+=@testing-library/angular= in a project that has established no other state library or test stack
+(the established-stack paragraph above), and =inject()= in modern code — all house defaults.
 
 Rules lifted from =mz-angular-writer= conventions with no reviewer rule yet carry Smell severity
 unless the entry states otherwise.
@@ -171,13 +185,17 @@ unless the entry states otherwise.
 - *Not a finding:* none.
 - *Precedent:* none yet
 
-** NG-012 — Cross-component state lives in NgRx SignalStore
+** NG-012 — Cross-component state lives in the project's state library, NgRx SignalStore by default
 
 - *Severity:* Smell
 - *Applies to:* fresh code
-- *Rule:* Cross-component state outside NgRx SignalStore in fresh code. SignalStore is the house
-  pattern — one =*.store.ts= per domain with =withState=, =withComputed=, =withMethods=.
-- *Not a finding:* none.
+- *Rule:* Cross-component state in fresh code held outside the state library the project has
+  established for it, or a second state library brought in beside that one. In a project that has
+  established none, the default is NgRx SignalStore — one =*.store.ts= per domain with
+  =withState=, =withComputed=, =withMethods= — and cross-component state outside it is the finding.
+- *Not a finding:* cross-component state in fresh code held in the state library the project's
+  existing code already uses for it, whichever library that is — matching the project, not drift
+  (Calibration).
 - *Precedent:* none yet
 
 ** NG-013 — Async state is one result type, not separate flags
@@ -185,9 +203,14 @@ unless the entry states otherwise.
 - *Severity:* Smell
 - *Applies to:* fresh code
 - *Rule:* Async state managed with separate =loading= / =error= flags in fresh code. Use a single
-  result type — the repo's =Result<T>= where it has one; =withCallState()= for single-result
-  domains, a manual =Result<T>= via =withState= for multi-resource stores.
-- *Not a finding:* the =Result<T>= type itself.
+  result type — the repo's =Result<T>= where it has one. How the store holds it follows the
+  project's established state library (NG-012): the shape that library's existing stores in the
+  project already use for a single result. In a project on NgRx SignalStore, or one that has
+  established no state library, the default is =withCallState()= for single-result domains and a
+  manual =Result<T>= via =withState= for multi-resource stores.
+- *Not a finding:* the =Result<T>= type itself. A single result held in a store on the project's
+  established state library, in the shape that library's existing stores use rather than
+  =withCallState()= / =withState= — matching the project, not drift (Calibration).
 - *Precedent:* none yet
 
 ** NG-015 — Subscriptions end with =takeUntilDestroyed()=
@@ -297,7 +320,7 @@ unless the entry states otherwise.
 - Magic numbers / strings carrying business meaning — the =common.org= magic-values rule (a
   feature constant or settings entry as the widening target; CSS pixel values are trivial).
 - =TODO= / =FIXME= / =HACK= — the =common.org= rule against them.
-- No comments at all — the =common.org= comments rule.
+- No comments at all — the =common.org= comments rule, restated for Angular constructs in NG-048.
 
 ** NG-026 — Components and services do one thing
 
@@ -333,6 +356,20 @@ unless the entry states otherwise.
 - *Rule:* =console.log= for diagnostics. Use the project logger or remove; if no logger exists,
   the writer surfaces the gap.
 - *Not a finding:* none.
+- *Precedent:* none yet
+
+** NG-048 — CM-003 in Angular constructs, including JSDoc and template comments
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only, production and test code, including a legacy subtree
+- *Rule:* CM-003 applies — explanatory =//= lines, =/* */= block comments, JSDoc =/** */= on a
+  class, member, function, or type, and =<!-- -->= comments in a component template are all
+  comments here. Recommend a more descriptive name or extracting a small well-named function, with
+  design rationale moved to the pull-request description or the issue.
+- *Not a finding:* one carve-out, and no other. A tool directive — a =//= or =/* */= line that
+  instructs a tool, such as =// eslint-disable-next-line=, =// eslint-disable=,
+  =// @ts-expect-error=, or =// prettier-ignore= — is not a comment for this rule; whether the
+  warning it suppresses was justified is graded on its own, not under CM-003.
 - *Precedent:* none yet
 
 * Test code
@@ -403,13 +440,17 @@ unless the entry states otherwise.
 - *Not a finding:* a legacy subtree.
 - *Precedent:* none yet
 
-** NG-037 — =vi.fn()= in modern-stack specs
+** NG-037 — The project's spy API in modern-stack specs, =vi.fn()= by default
 
 - *Severity:* Smell
 - *Applies to:* modern-stack test code
-- *Rule:* Use of =jest.fn()= / =jasmine.createSpy()= instead of =vi.fn()= in a modern-stack spec —
-  likely a copied template; check the rest of the file.
-- *Not a finding:* a legacy subtree, where Jest is the local norm.
+- *Rule:* A modern-stack spec using a spy / mock API other than the one the project's existing
+  specs use — =jest.fn()= / =jasmine.createSpy()= in a project on =vi.fn()=, or the reverse —
+  likely a copied template; check the rest of the file. In a project with no specs yet, the
+  default is =vi.fn()=, and another spy API is the finding.
+- *Not a finding:* a legacy subtree, where Jest is the local norm. =jest.fn()=,
+  =jasmine.createSpy()=, or another spy API in a project whose existing specs use it — matching the
+  project, not drift (Calibration).
 - *Precedent:* none yet
 
 * Writer conventions (from =mz-angular-writer=, no reviewer rule yet)
@@ -432,7 +473,7 @@ These are authoring conventions; the Test code group above (NG-030..NG-037) is w
 =mz-angular-reviewer= applies. Not restated here: a covering test for fresh behavior (NG-030), the
 user-visible seam (NG-031), one behavior per =it= (NG-032), builders over =as Type= fabrication
 (NG-033), the auth library faked via the shared testing library (NG-034), the shared testing setup
-helpers (NG-035), driving and reading signals directly (NG-036), =vi.fn()= vs =jest.fn()= (NG-037).
+helpers (NG-035), driving and reading signals directly (NG-036), the project's spy API (NG-037).
 
 Fresh-vs-legacy per the Calibration section. In a legacy subtree the local file's conventions win:
 Jest + =jest-preset-angular=, =jest.fn()= / =jest.spyOn()= / =jest.mock(...)=, =MockStore= +
@@ -441,17 +482,21 @@ Jest + =jest-preset-angular=, =jest.fn()= / =jest.spyOn()= / =jest.mock(...)=, =
 available there, the seam, interaction, and matcher rules below fire in the subtree; the stack
 rule does not.
 
-** NG-039 — Modern test stack is Vitest + =@testing-library/angular=
+** NG-039 — Modern test stack is the project's own, Vitest + =@testing-library/angular= by default
 
 - *Severity:* Smell
 - *Applies to:* modern-stack test code
-- *Rule:* A modern-stack spec reaching outside the house stack — Vitest as the runner,
-  =@testing-library/angular= (=render=, =screen=, =within=, =waitFor=) plus
-  =@testing-library/user-event= for component tests, Vitest's built-in =expect= with the
-  =@testing-library/jest-dom= matchers the project already exposes. No additional assertion
-  library, test framework, or mocking library is introduced without asking.
-- *Not a finding:* a legacy subtree, where Jest + =jest-preset-angular= is the local norm. Spy /
-  mock API choice is NG-037.
+- *Rule:* A modern-stack spec reaching outside the test stack the project's existing specs
+  establish — runner, component-testing utilities, interaction library, assertion matchers. In a
+  project with no specs yet, the default is Vitest as the runner, =@testing-library/angular=
+  (=render=, =screen=, =within=, =waitFor=) plus =@testing-library/user-event= for component
+  tests, and Vitest's built-in =expect= with the =@testing-library/jest-dom= matchers; a stack
+  other than that is the finding. Either way, no additional assertion library, test framework, or
+  mocking library is introduced beside the established ones without asking.
+- *Not a finding:* a legacy subtree, where Jest + =jest-preset-angular= is the local norm. Jest,
+  Karma + Jasmine, =TestBed=-driven component tests, or another runner or testing utility in a
+  project whose existing specs use it — matching the project, not drift (Calibration). Spy / mock
+  API choice is NG-037.
 - *Precedent:* none yet
 
 ** NG-040 — =userEvent= over =fireEvent=
@@ -460,8 +505,12 @@ rule does not.
 - *Applies to:* all test code, including a legacy subtree
 - *Rule:* =fireEvent= used for a human-shaped interaction — typing, clicking, tabbing. Set up
   ~const user = userEvent.setup();~ and drive through =user.type(...)= / =user.click(...)=;
-  =fireEvent= is for synthetic events =userEvent= doesn't model.
-- *Not a finding:* =fireEvent= for an event =userEvent= genuinely doesn't model.
+  =fireEvent= is for synthetic events =userEvent= doesn't model. Fires where
+  =@testing-library/user-event= is available — a project whose specs or test dependencies carry it,
+  or a project with no specs yet, where it is part of the NG-039 default.
+- *Not a finding:* =fireEvent= for an event =userEvent= genuinely doesn't model. =fireEvent= in a
+  project whose test stack carries no =@testing-library/user-event= — matching the project, not
+  drift (Calibration); adding =user-event= there is a question under NG-039, not this finding.
 - *Precedent:* none yet
 
 ** NG-041 — Spec layout: one =sut=, dependency-named mocks, =expected= / =actual=
@@ -537,18 +586,26 @@ rule does not.
   is the user-truthful claim. "X is not there" → a =queryBy*= query (never =getBy*=, which throws)
   plus =not.toBeInTheDocument()=; =toBeVisible()= cannot express absence. Presence genuinely under
   test independent of visibility (an off-screen ARIA live region, a deliberately hidden element) →
-  =toBeInTheDocument()= stays correct.
+  =toBeInTheDocument()= stays correct. Fires where =@testing-library/jest-dom= is wired into the
+  test setup — a project whose specs or test setup carry it, or a project with no specs yet, where
+  it is part of the NG-039 default.
 - *Not a finding:* =toBeInTheDocument()= where presence is the stated intent — visibility is the
   default for user-facing assertions, not a ban on presence checks. Wherever =jest-dom= is wired
-  into a stack's test setup, =toBeVisible()= is available there.
+  into a stack's test setup, =toBeVisible()= is available there. A spec in a project whose test
+  setup carries no =jest-dom= — the matchers this rule names are not there to choose between;
+  matching the project, not drift (Calibration), and adding =jest-dom= there is a question under
+  NG-039, not this finding.
 - *Precedent:* none yet
 
 ** NG-047 — Spec import grouping: test libs → Angular → workspace
 
 - *Severity:* Smell
 - *Applies to:* new or touched test files, including a legacy subtree
-- *Rule:* Spec imports not grouped, blank-line separated, alphabetical within each group: Vitest /
-  testing-library first, then Angular framework imports, then project workspace imports (the
-  workspace path aliases and relative imports).
+- *Rule:* Spec imports not grouped, blank-line separated, alphabetical within each group: the test
+  stack's imports first — the project's established runner and testing utilities (NG-039), Vitest
+  and testing-library in a project with no specs yet — then Angular framework imports, then
+  project workspace imports (the workspace path aliases and relative imports).
 - *Not a finding:* an existing spec's grouping when a targeted edit doesn't touch the import block.
+  A first group holding Jest, Jasmine, or another runner or testing utility the project's existing
+  specs use — matching the project, not drift (Calibration).
 - *Precedent:* none yet
