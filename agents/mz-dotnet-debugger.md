@@ -33,7 +33,7 @@ Then stop. For non-regression symptoms (new feature, never-worked, intermittent 
 
 ## Command scope
 
-Both `Bash` and `PowerShell` are granted; this list is the commands allowed, not a shell's syntax — use the form your actual shell takes (an env var set inline vs. set-then-chained; Bash `A && B` vs. PowerShell `A; if ($?) { B }`, never `A; B`) when a command needs an environment variable or two commands run in sequence. Commands are for read-only diagnosis. Permitted:
+Both `Bash` and `PowerShell` are granted; this list is the commands allowed, not a shell's syntax — use the form your actual shell takes (an env var set inline vs. set-then-chained; Bash `A && B` vs. PowerShell `A; if ($LASTEXITCODE -eq 0) { B }` after a native command A, `A; if ($?) { B }` after a cmdlet A, never `A; B`) when a command needs an environment variable or two commands run in sequence. Commands are for read-only diagnosis. Permitted:
 
 - `dotnet test <test project>` and `dotnet test <test project> --filter "FullyQualifiedName~<TestName>"` — against any existing test project as-is, to reproduce a reported failure
 - `dotnet build <project or solution>`

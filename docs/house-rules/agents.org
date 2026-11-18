@@ -80,14 +80,20 @@ The rules for code in the repo being worked on are in =common.org= and the stack
 - *Rule:* A command written into a doc, an agent file, or a skill file runs in both PowerShell and
   a POSIX shell — no variable set as a command prefix, no =&&= chaining — or both forms are given.
   Where both are given, they stop or continue on a failed step the same way: Bash =A && B= pairs
-  with PowerShell =A; if ($?) { B }=, never =A; B=, which runs =B= after =A= fails. An agent on
-  Windows may have only PowerShell.
+  with PowerShell =A; if ($LASTEXITCODE -eq 0) { B }= when =A= is a native command, never =A; B=,
+  which runs =B= after =A= fails, and never =A; if ($?) { B }=, because in PowerShell 5.1 a native
+  command whose stderr is redirected (=2>&1=) sets =$?= false even when it succeeded, so =B= is
+  skipped; =$LASTEXITCODE= does not depend on stderr. When =A= is a cmdlet, =if ($?)= is the
+  check, since a cmdlet leaves =$LASTEXITCODE= unchanged and stderr redirection affects only
+  native commands. An agent on Windows may have only PowerShell.
 - *Not a finding:* A command quoted from a repo's pipeline or workflow file, shown as that file's
   content rather than as an instruction to run. A shell-specific form where the text names the
   shell it requires and why.
 - *Precedent:* a local-reset step given as a Bash and PowerShell pair, where the Bash form used
   =&&= and the PowerShell form used =;=, so only the PowerShell form ran the second step after the
-  first failed.
+  first failed. Then a migration reset step whose PowerShell form chained with =if ($?)=: it ran
+  both steps at the prompt, but inside a wrapper redirecting stderr with =2>&1= it ran the
+  downgrade and not the upgrade, because the migration tool writes its info lines to stderr.
 
 ** AG-005 — A repo fact written into a suite agent or skill file
 

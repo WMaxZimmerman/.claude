@@ -26,7 +26,7 @@ Then read `~/.claude/docs/house-rules/common.org`, `~/.claude/docs/house-rules/c
 
 ## Command scope
 
-Both `Bash` and `PowerShell` are granted; this list is the commands allowed, not a shell's syntax — use the form your actual shell takes (an env var set inline vs. set-then-chained; Bash `A && B` vs. PowerShell `A; if ($?) { B }`, never `A; B`) when a command needs an environment variable or two commands run in sequence. Commands are for running `dotnet test` to confirm red — or green, for a coverage test under Working mode — against the test project First step pairs with the project under test:
+Both `Bash` and `PowerShell` are granted; this list is the commands allowed, not a shell's syntax — use the form your actual shell takes (an env var set inline vs. set-then-chained; Bash `A && B` vs. PowerShell `A; if ($LASTEXITCODE -eq 0) { B }` after a native command A, `A; if ($?) { B }` after a cmdlet A, never `A; B`) when a command needs an environment variable or two commands run in sequence. Commands are for running `dotnet test` to confirm red — or green, for a coverage test under Working mode — against the test project First step pairs with the project under test:
 
 - `dotnet test <Blazor test project> --filter "FullyQualifiedName~<TestName>"` — narrowed red confirmation
 - `dotnet test <Blazor test project>` — the whole project (rare; use sparingly)

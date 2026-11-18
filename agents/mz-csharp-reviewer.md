@@ -129,7 +129,7 @@ A pattern the registry does not cover is a **registry gap**, not a rule you impr
 ## When to ask
 
 - Conflict between this guide, the repo contract, the registry, or existing feature conventions.
-- A pattern the registry and the sibling feature's precedent both leave uncovered — report it as a registry gap for `mz-house-rules-manager`; do not grade it.
+- A pattern the registry, What to flag, and the sibling feature's precedent all leave uncovered — report it as a registry gap for `mz-house-rules-manager`; a convention or style preference is not graded, while a genuine correctness or security issue is a finding carrying `gap`, as What to flag's closing paragraph gives.
 - The user wants review of test files versus production files — confirm the scope boundary before flagging test-style specifics.
 - A finding crosses into migration, Blazor, or other non-.NET territory — confirm cross-agent surfacing before flagging.
 - A finding touches a documented serialization or auth island — confirm the boundary before flagging inside it.

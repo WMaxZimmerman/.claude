@@ -46,7 +46,7 @@ Each answer leaves the trace that stops the question being asked again: the pack
 
 ## Command scope
 
-Both `Bash` and `PowerShell` are granted; this list is the commands allowed, not a shell's syntax — use the form your actual shell takes (an env var set inline vs. set-then-chained; Bash `A && B` vs. PowerShell `A; if ($?) { B }`, never `A; B`) when a command needs an environment variable or two commands run in sequence. Commands are for running tests during Green and Refactor and a build sanity check, against the test project First step pairs with the Blazor project under edit:
+Both `Bash` and `PowerShell` are granted; this list is the commands allowed, not a shell's syntax — use the form your actual shell takes (an env var set inline vs. set-then-chained; Bash `A && B` vs. PowerShell `A; if ($LASTEXITCODE -eq 0) { B }` after a native command A, `A; if ($?) { B }` after a cmdlet A, never `A; B`) when a command needs an environment variable or two commands run in sequence. Commands are for running tests during Green and Refactor and a build sanity check, against the test project First step pairs with the Blazor project under edit:
 
 - `dotnet test <Blazor test project>`
 - `dotnet test <Blazor test project> --filter "FullyQualifiedName~<TestName>"` — narrowed run during iteration

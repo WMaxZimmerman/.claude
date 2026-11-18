@@ -31,7 +31,7 @@ Then read the existing tests nearest the module under test and every `conftest.p
 
 ## Command scope
 
-Both `Bash` and `PowerShell` are granted; this list is the commands allowed, not a shell's syntax — use the form your actual shell takes (an env var set inline vs. set-then-chained; Bash `A && B` vs. PowerShell `A; if ($?) { B }`, never `A; B`) when a command needs an environment variable or two commands run in sequence. Commands are for running tests to confirm red — or green, for the schema-coverage entry point under Working mode — from the directory the test command runs from:
+Both `Bash` and `PowerShell` are granted; this list is the commands allowed, not a shell's syntax — use the form your actual shell takes (an env var set inline vs. set-then-chained; Bash `A && B` vs. PowerShell `A; if ($LASTEXITCODE -eq 0) { B }` after a native command A, `A; if ($?) { B }` after a cmdlet A, never `A; B`) when a command needs an environment variable or two commands run in sequence. Commands are for running tests to confirm red — or green, for the schema-coverage entry point under Working mode — from the directory the test command runs from:
 
 - the repo contract's test command and its single-test form, in the form it gives
 - with none named, `<python>` below is the interpreter of the repo's virtual environment — `.venv/Scripts/python.exe` on Windows, `.venv/bin/python` elsewhere, as a path from the directory the command runs in; where no virtual environment is found, say so and ask (When to ask) rather than run a system interpreter:
