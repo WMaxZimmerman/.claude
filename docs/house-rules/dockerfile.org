@@ -118,7 +118,9 @@ severity unless the entry states otherwise.
   pipeline run. Use ~--mount=type=secret,id=<id>,required=true~ on every step that needs
   package-feed credential-provider auth, with the feed-endpoints variable (for Azure Artifacts,
   =VSS_NUGET_EXTERNAL_FEED_ENDPOINTS=) inlined reading from =/run/secrets/<id>=. A rename is a
-  paired change with =mz-pipeline-writer= (PL-038 in =pipeline.org=).
+  paired change with the CI writer for the repo's CI system. On Azure Pipelines, PL-038 in
+  =pipeline.org= grades the CI side. On GitHub Actions the writer is =mz-pipeline-writer=, and no
+  =github-actions.org= rule grades the CI side of the secret id yet — a registry gap.
 - *Not a finding:* more than one mount block for the same id in one Dockerfile (restore and EF
   bundle steps both need it). The credential-provider shape in a project that restores no NuGet
   packages from an authenticated feed — no subject (Calibration).

@@ -80,8 +80,11 @@ agent's file, where AG-005 does not grade them; any other =mz-= agent hands GTD 
 - =agents.org= (prefix =AG=) — rules for agent and skill files. Read only by =mz-agent-builder=,
   =mz-agent-auditor=, =mz-skill-builder=, and =mz-skill-auditor=.
 - One file per stack — =csharp.org=, =blazor.org=, =angular.org=, =python.org=,
-  =dockerfile.org=, =helm-chart.org=, =pipeline.org=, =terraform.org= — read by that stack's
-  writer and reviewer, each named in the agent's own First step.
+  =dockerfile.org=, =helm-chart.org=, =github-actions.org=, =terraform.org= — read by that
+  stack's writer and reviewer, each named in the agent's own First step. =pipeline.org= holds the
+  Azure Pipelines rules; no =mz-= writer or reviewer applies it. The =mz-= pipeline agents cover GitHub Actions
+  only; Azure Pipelines work goes to a plugin agent where the session has one, else to the main
+  agent.
 - =angles.org= (ids =A-nn=) — the attack angles =mz-devils-advocate= reports against. An angle
   marked =:agent-files:= applies only when the change touches an agent or skill file; on any
   other change it is reported as =Not applicable — no agent or skill file changed=.

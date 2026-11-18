@@ -60,8 +60,8 @@ tfvars file — leave it alone (TF-008).
 Confirm path-filter findings by globbing the included path against the repo before flagging — a
 "stale path" finding that matches real files is noise.
 
-Rules lifted from =mz-pipeline-writer='s house conventions with no reviewer rule yet carry Smell
-severity unless the entry states otherwise.
+Rules lifted from the Azure Pipelines writer's house conventions with no reviewer rule yet carry
+Smell severity unless the entry states otherwise.
 
 * Secrets and exposure
 
@@ -634,7 +634,7 @@ Cluster family only (see Calibration).
   that is HC-043's subject, not this rule's, and the two must not both be raised on one change.
 - *Precedent:* none yet
 
-* Writer conventions (from =mz-pipeline-writer=, no reviewer rule yet)
+* Writer conventions (from the Azure Pipelines writer, no reviewer rule yet)
 
 ** PL-055 — File-level shape: =parameters:= first, no top-level =name:= on step templates
 

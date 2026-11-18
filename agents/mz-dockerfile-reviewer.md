@@ -22,7 +22,7 @@ What you take from the contract, each with its fallback. Whatever you read from 
 - **Whether compose review is yours** — only where the repo contract says so.
 - **The non-root user convention on shipped stages** — the repo contract's. Otherwise what the precedent Dockerfile sets; where no image in the repo sets a user, the images run as root today.
 - **Which writers route through you** — the repo contract's delegation rule. Otherwise `mz-dockerfile-writer`, which names you as its reviewer in its own file (`mz-suite.org` § Roster and delegation rule).
-- **The reviewer and writer for a path that is not yours** — the ones the repo contract's delegation rule names for that path. With no such rule: `mz-helm-chart-reviewer` and `mz-helm-chart-writer` for a chart; for a CI workflow or pipeline file, application source, or migrations, the `mz-` reviewer or writer for that stack, or the main agent where the suite has none (`mz-suite.org` § Roster and delegation rule).
+- **The reviewer and writer for a path that is not yours** — the ones the repo contract's delegation rule names for that path. With no such rule: `mz-helm-chart-reviewer` and `mz-helm-chart-writer` for a chart; `mz-pipeline-reviewer` and `mz-pipeline-writer` for a GitHub Actions workflow, reusable workflow, or local composite action; for another CI system's pipeline file, application source, or migrations, the `mz-` reviewer or writer for that stack, or the main agent where the suite has none (`mz-suite.org` § Roster and delegation rule).
 - **States ruled out by design** — only a repo contract can list one; `mz-suite.org` names none.
 - **The review-scope rule, how a gated writer runs, and the safety fences** — `mz-suite.org` § Review scope, § How a gated writer runs, and § Safety fences, plus anything the repo contract adds. You are read-only: you never mutate anything.
 
@@ -189,7 +189,7 @@ The baseline the registry sharpens; where the registry has a rule, its id, sever
 - A legacy Dockerfile's pre-BuildKit style — the registry's Calibration section names what doesn't fire there.
 - Comments in lines the change did not write or touch — the Pre-existing tail, not a finding.
 - Chart YAML — `mz-helm-chart-reviewer`'s. Surface a Dockerfile-to-chart contract mismatch as a finding, but don't review chart shape.
-- Pipeline YAML — the reviewer First step settles for it. Surface contract mismatches, don't review pipeline shape.
+- Pipeline YAML — `mz-pipeline-reviewer`, or the reviewer First step settles for another CI system. Surface contract mismatches, don't review pipeline shape.
 - `docker-compose*.yml` shape — out of scope unless First step settles compose review as yours; surface contract impact only.
 - Execution, production-data, time, and cross-boundary-sequencing concerns — anything that needs a build, real runtime state, a clock, or pipeline / chart ordering to see is `mz-devils-advocate`'s. You flag what a static read of the diff shows.
 
@@ -208,7 +208,7 @@ The baseline the registry sharpens; where the registry has a rule, its id, sever
 ## Out of scope
 
 - **Writing or applying fixes** — findings only. → `mz-dockerfile-writer`.
-- **Pipeline YAML review** — the reviewer First step settles for it. Surface contract mismatches but don't review pipeline shape.
+- **Pipeline YAML review** — `mz-pipeline-reviewer`, or the reviewer First step settles for another CI system. Surface contract mismatches but don't review pipeline shape.
 - **Chart YAML review** — `mz-helm-chart-reviewer`.
 - **Application-source review** — migrations, schema, framework code are not Dockerfile concerns. This agent reviews the build steps that bake and run them, not their content. → the reviewer First step settles for that path.
 - **`docker-compose*.yml` review** — out of scope unless First step settles it as yours.

@@ -15,11 +15,12 @@ section "The house-rules registry".
 | [[file:common.org][common.org]] | Common house rules (CM) | 11 |
 | [[file:csharp.org][csharp.org]] | C# / .NET house rules (CS) | 107 |
 | [[file:dockerfile.org][dockerfile.org]] | Dockerfile house rules (DK) | 56 |
+| [[file:github-actions.org][github-actions.org]] | GitHub Actions house rules (GA) | 42 |
 | [[file:helm-chart.org][helm-chart.org]] | Helm chart house rules (HC) | 60 |
 | [[file:pipeline.org][pipeline.org]] | Azure Pipelines house rules (PL) | 58 |
 | [[file:python.org][python.org]] | Python house rules (PY) | 3 |
-| [[file:terraform.org][terraform.org]] | Terraform house rules (TF) | 31 |
-| Total | | 502 |
+| [[file:terraform.org][terraform.org]] | Terraform house rules (TF) | 32 |
+| Total | | 545 |
 
 * Agent and skill file house rules (AG)
 
@@ -392,6 +393,51 @@ section "The house-rules registry".
 - [[file:dockerfile.org::*DK-054 — =.dockerignore= at the build-context root][DK-054]] — =.dockerignore= at the build-context root
 - [[file:dockerfile.org::*DK-055 — Base-image versions on multi-stage images follow the project's form, =ARG=-parameterized by default][DK-055]] — Base-image versions on multi-stage images follow the project's form, =ARG=-parameterized by default
 
+* GitHub Actions house rules (GA)
+
+- [[file:github-actions.org::*GA-001 — Secrets never echoed to logs][GA-001]] — Secrets never echoed to logs
+- [[file:github-actions.org::*GA-002 — Secrets never passed as positional command-line args][GA-002]] — Secrets never passed as positional command-line args
+- [[file:github-actions.org::*GA-003 — A secret reaches a =run:= script only through =env:=][GA-003]] — A secret reaches a =run:= script only through =env:=
+- [[file:github-actions.org::*GA-004 — Credentials live in secrets, never in literals or =vars=][GA-004]] — Credentials live in secrets, never in literals or =vars=
+- [[file:github-actions.org::*GA-005 — =secrets: inherit= into a reusable workflow needs a stated reason][GA-005]] — =secrets: inherit= into a reusable workflow needs a stated reason
+- [[file:github-actions.org::*GA-006 — OIDC federation over long-lived cloud credentials][GA-006]] — OIDC federation over long-lived cloud credentials
+- [[file:github-actions.org::*GA-007 — Least-privilege =permissions:=][GA-007]] — Least-privilege =permissions:=
+- [[file:github-actions.org::*GA-008 — Privileged events never run pull-request code][GA-008]] — Privileged events never run pull-request code
+- [[file:github-actions.org::*GA-009 — Untrusted event text never interpolated into a script][GA-009]] — Untrusted event text never interpolated into a script
+- [[file:github-actions.org::*GA-010 — Third-party actions pinned to a full commit SHA][GA-010]] — Third-party actions pinned to a full commit SHA
+- [[file:github-actions.org::*GA-011 — A workflow's events match its purpose][GA-011]] — A workflow's events match its purpose
+- [[file:github-actions.org::*GA-012 — =paths= entries exist in the repo][GA-012]] — =paths= entries exist in the repo
+- [[file:github-actions.org::*GA-013 — Path filters not too broad][GA-013]] — Path filters not too broad
+- [[file:github-actions.org::*GA-014 — Path filters not too narrow][GA-014]] — Path filters not too narrow
+- [[file:github-actions.org::*GA-015 — Docs-only changes don't run CI][GA-015]] — Docs-only changes don't run CI
+- [[file:github-actions.org::*GA-016 — A verification workflow doesn't double-fire][GA-016]] — A verification workflow doesn't double-fire
+- [[file:github-actions.org::*GA-017 — =needs:= targets exist][GA-017]] — =needs:= targets exist
+- [[file:github-actions.org::*GA-018 — No job or step id collisions][GA-018]] — No job or step id collisions
+- [[file:github-actions.org::*GA-019 — =if:= conditions are well-formed][GA-019]] — =if:= conditions are well-formed
+- [[file:github-actions.org::*GA-020 — Outputs are referenced where they exist][GA-020]] — Outputs are referenced where they exist
+- [[file:github-actions.org::*GA-021 — Cleanup steps run =if: always()=][GA-021]] — Cleanup steps run =if: always()=
+- [[file:github-actions.org::*GA-022 — No =continue-on-error= or =always()= on a gating or deploy step][GA-022]] — No =continue-on-error= or =always()= on a gating or deploy step
+- [[file:github-actions.org::*GA-023 — Jobs set =timeout-minutes=][GA-023]] — Jobs set =timeout-minutes=
+- [[file:github-actions.org::*GA-024 — Deploy workflows set =concurrency:=][GA-024]] — Deploy workflows set =concurrency:=
+- [[file:github-actions.org::*GA-025 — A local action runs after the checkout that brings it][GA-025]] — A local action runs after the checkout that brings it
+- [[file:github-actions.org::*GA-026 — Reuse reusable workflows and composite actions; don't copy][GA-026]] — Reuse reusable workflows and composite actions; don't copy
+- [[file:github-actions.org::*GA-027 — Reusable workflows and composite actions take inputs, not hardcoded values][GA-027]] — Reusable workflows and composite actions take inputs, not hardcoded values
+- [[file:github-actions.org::*GA-028 — Workflow inputs are typed][GA-028]] — Workflow inputs are typed
+- [[file:github-actions.org::*GA-029 — Required inputs have no empty default][GA-029]] — Required inputs have no empty default
+- [[file:github-actions.org::*GA-030 — The repo's own reusable workflows and actions are referenced locally][GA-030]] — The repo's own reusable workflows and actions are referenced locally
+- [[file:github-actions.org::*GA-031 — New workflow files follow the repo's established naming and layout][GA-031]] — New workflow files follow the repo's established naming and layout
+- [[file:github-actions.org::*GA-032 — Steps carry =name:=][GA-032]] — Steps carry =name:=
+- [[file:github-actions.org::*GA-033 — No re-fetching dependencies a sibling step already restored][GA-033]] — No re-fetching dependencies a sibling step already restored
+- [[file:github-actions.org::*GA-034 — Dependency restores are cached][GA-034]] — Dependency restores are cached
+- [[file:github-actions.org::*GA-035 — =dotnet test= after =dotnet build= uses =--no-restore= (and ideally =--no-build=)][GA-035]] — =dotnet test= after =dotnet build= uses =--no-restore= (and ideally =--no-build=)
+- [[file:github-actions.org::*GA-036 — Gate unaffected work on change detection][GA-036]] — Gate unaffected work on change detection
+- [[file:github-actions.org::*GA-037 — Runners match the repo's established labels][GA-037]] — Runners match the repo's established labels
+- [[file:github-actions.org::*GA-038 — Environments match the repo's established names][GA-038]] — Environments match the repo's established names
+- [[file:github-actions.org::*GA-039 — Real-environment jobs declare =environment:=][GA-039]] — Real-environment jobs declare =environment:=
+- [[file:github-actions.org::*GA-040 — Tool versions don't drift across workflows][GA-040]] — Tool versions don't drift across workflows
+- [[file:github-actions.org::*GA-041 — CM-003 in workflow YAML and its =run:= scripts, tool directives excepted][GA-041]] — CM-003 in workflow YAML and its =run:= scripts, tool directives excepted
+- [[file:github-actions.org::*GA-042 — =name:= carries signal][GA-042]] — =name:= carries signal
+
 * Helm chart house rules (HC)
 
 - [[file:helm-chart.org::*HC-001 — No hardcoded secrets in =values.yaml= or templates][HC-001]] — No hardcoded secrets in =values.yaml= or templates
@@ -533,8 +579,8 @@ section "The house-rules registry".
 - [[file:terraform.org::*TF-007 — App Service, Function App, SQL Server, Key Vault not publicly addressable without justification][TF-007]] — App Service, Function App, SQL Server, Key Vault not publicly addressable without justification
 - [[file:terraform.org::*TF-008 — No broad =azurerm_mssql_firewall_rule= source ranges][TF-008]] — No broad =azurerm_mssql_firewall_rule= source ranges
 - [[file:terraform.org::*TF-009 — No wildcard inbound NSG rules on non-public-facing resources][TF-009]] — No wildcard inbound NSG rules on non-public-facing resources
-- [[file:terraform.org::*TF-010 — Stateful production resources carry =prevent_destroy=][TF-010]] — Stateful production resources carry =prevent_destroy=
-- [[file:terraform.org::*TF-011 — Removing =prevent_destroy= needs a written rationale][TF-011]] — Removing =prevent_destroy= needs a written rationale
+- [[file:terraform.org::*TF-010 — Stateful production resources carry destroy protection, =prevent_destroy= by default][TF-010]] — Stateful production resources carry destroy protection, =prevent_destroy= by default
+- [[file:terraform.org::*TF-011 — Removing destroy protection needs a written rationale][TF-011]] — Removing destroy protection needs a written rationale
 - [[file:terraform.org::*TF-012 — =moved {}= / =removed {}= blocks are coherent][TF-012]] — =moved {}= / =removed {}= blocks are coherent
 - [[file:terraform.org::*TF-013 — No stale =import= blocks][TF-013]] — No stale =import= blocks
 - [[file:terraform.org::*TF-014 — Module variables are typed][TF-014]] — Module variables are typed
@@ -547,11 +593,12 @@ section "The house-rules registry".
 - [[file:terraform.org::*TF-021 — Tags are consistent within a module][TF-021]] — Tags are consistent within a module
 - [[file:terraform.org::*TF-022 — =for_each= over =count= for keyed resource sets][TF-022]] — =for_each= over =count= for keyed resource sets
 - [[file:terraform.org::*TF-023 — Implicit dependencies over rote =depends_on=][TF-023]] — Implicit dependencies over rote =depends_on=
-- [[file:terraform.org::*TF-024 — =required_version= present and matching the pipeline][TF-024]] — =required_version= present and matching the pipeline
+- [[file:terraform.org::*TF-024 — =required_version= present and matching the project's pinned CLI version][TF-024]] — =required_version= present and matching the project's pinned CLI version
 - [[file:terraform.org::*TF-025 — Providers are pinned][TF-025]] — Providers are pinned
 - [[file:terraform.org::*TF-026 — Provider bumps are their own change][TF-026]] — Provider bumps are their own change
-- [[file:terraform.org::*TF-027 — Azure-side names carry the =-${var.env}= suffix][TF-027]] — Azure-side names carry the =-${var.env}= suffix
+- [[file:terraform.org::*TF-027 — Cloud-side names follow the project's naming pattern, =-${var.env}= suffix by default][TF-027]] — Cloud-side names follow the project's naming pattern, =-${var.env}= suffix by default
 - [[file:terraform.org::*TF-028 — Resource block names are =snake_case= and consistent][TF-028]] — Resource block names are =snake_case= and consistent
 - [[file:terraform.org::*TF-029 — Module variable order matches the caller][TF-029]] — Module variable order matches the caller
+- [[file:terraform.org::*TF-032 — CM-003 in =*.tf= and =*.tfvars= files, tool directives excepted][TF-032]] — CM-003 in =*.tf= and =*.tfvars= files, tool directives excepted
 - [[file:terraform.org::*TF-030 — Dashboard templates are flagged only when clearly broken][TF-030]] — Dashboard templates are flagged only when clearly broken
 - [[file:terraform.org::*TF-031 — Resources land in the file matching their type][TF-031]] — Resources land in the file matching their type

@@ -3,9 +3,10 @@
 Rules that apply to every stack, read by every reviewer and writer. Read with the stack's own file
 (=csharp.org=, =blazor.org=, and the rest). Stack files reference these by id instead of restating
 them; a stack that restates or loosens one does so with its own delta entry (=csharp.org= CS-027,
-=blazor.org= BZ-052, =python.org= PY-003, =angular.org= NG-048, =dockerfile.org= DK-056, and
-=helm-chart.org= HC-060 restate CM-003 for their own constructs; =helm-chart.org= HC-042 softens it
-to Suggestion for =values.yaml=).
+=blazor.org= BZ-052, =python.org= PY-003, =angular.org= NG-048, =dockerfile.org= DK-056,
+=helm-chart.org= HC-060, =github-actions.org= GA-041, and =terraform.org= TF-032 restate CM-003
+for their own constructs;
+=helm-chart.org= HC-042 softens it to Suggestion for =values.yaml=).
 
 * Scope
 
@@ -60,10 +61,11 @@ Python, HCL, CI pipeline YAML, Helm templates and values, Dockerfiles and entryp
 
 - *Severity:* Smell
 - *Applies to:* new or touched code, every stack. =csharp.org= (CS-027), =blazor.org= (BZ-052),
-  =python.org= (PY-003), =angular.org= (NG-048), =dockerfile.org= (DK-056), and =helm-chart.org=
-  (HC-060) restate this for their own constructs, carrying their own carve-outs forward;
-  =helm-chart.org= (HC-042) softens =values.yaml= comments to Suggestion; =terraform.org= and
-  =pipeline.org= take the rule unmodified.
+  =python.org= (PY-003), =angular.org= (NG-048), =dockerfile.org= (DK-056), =helm-chart.org=
+  (HC-060), =github-actions.org= (GA-041), and =terraform.org= (TF-032) restate this for their own
+  constructs, carrying their own carve-outs forward;
+  =helm-chart.org= (HC-042) softens =values.yaml= comments to Suggestion; =pipeline.org= takes the
+  rule unmodified.
 - *Rule:* Any comment in source — explanatory =//= / =#= lines, =///= doc comments, block comments,
   markup comments. Design rationale — why this default, why this deviation — belongs in the pull
   request description, the issue, or =docs/=, not in the source. A comment is the exception a
@@ -73,8 +75,9 @@ Python, HCL, CI pipeline YAML, Helm templates and values, Dockerfiles and entryp
   by =blazor.org= BZ-052), tooling directives and Alembic-generated migration content in
   =python.org= (PY-003), tool directives in =angular.org= (NG-048), parser and tool directives in
   =dockerfile.org= (DK-056), tool directives in =helm-chart.org= (HC-060, held for =values.yaml= by
-  HC-042), and Helm =values.yaml= comments graded Suggestion rather than Smell in =helm-chart.org=
-  (HC-042).
+  HC-042), tool directives in =github-actions.org= (GA-041), tool directives in =terraform.org=
+  (TF-032), and Helm =values.yaml= comments graded
+  Suggestion rather than Smell in =helm-chart.org= (HC-042).
 - *Precedent:* none yet
 
 ** CM-004 — Magic numbers and strings carrying business meaning

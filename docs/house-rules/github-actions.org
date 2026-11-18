@@ -1,0 +1,526 @@
+#+title: GitHub Actions house rules (GA)
+
+Read with =common.org=. Paths are repo-root-relative. Ids are never reused. Azure Pipelines YAML is
+=pipeline.org='s, not this file's.
+
+* Scope
+
+GitHub Actions YAML in any repo: workflow files under =.github/workflows/= (=*.yml=, =*.yaml=),
+reusable workflows (=on: workflow_call=) wherever they sit in that folder, local composite actions
+under =.github/actions/<name>/= (=action.yml=, =action.yaml=), and the shell or script text inline
+in their =run:= steps and =actions/github-script= =script:= inputs. Not Azure Pipelines
+(=pipeline.org=), not Terraform (=terraform.org=), not Helm charts (=helm-chart.org=), not
+Dockerfiles (=dockerfile.org=), not standalone scripts a workflow calls, not the source code of a
+local JavaScript or container action — only its =action.yml=. Not =dependabot.yml= or other
+=.github/= configuration. Reusable workflows and actions from another repo are surfaced for impact
+only, never reviewed for shape.
+
+* Calibration
+
+Fresh vs legacy:
+
+- *Fresh workflow YAML violating a best practice* → Smell by default; Bug for secrets, untrusted
+  input reaching a privileged context or a script, triggers that won't fire, and conditions that
+  mask failures.
+- *Long-standing legacy patterns shared across several workflow files* (stale path filters, steps
+  copied between workflows before a composite action existed, a missing docs-only exclude on older
+  workflows) → mention once at the top (CM-005), not per file.
+- *Mixing old and new in fresh code* (a brand-new workflow with correct path filters that inlines
+  steps the rest of the repo gets from a composite action; a new reusable workflow with typed
+  inputs beside siblings copied unchanged) → Smell.
+- *A targeted edit to a legacy workflow* that follows the file's existing style for minimum diff →
+  not a finding.
+- When in doubt whether a file is fresh or legacy, ask before reviewing.
+
+*Match the project's established choices.* The runners, action versions, reusable-workflow and
+composite-action layout, file and job naming, caching approach, environment names and deploy
+mechanism a repo's existing workflows have established are the ones its workflows are graded
+against. The choices this file names — the setup action's own cache input, a read-only workflow
+=permissions:= baseline, a deploy =concurrency:= group keyed on the environment — are the default
+only for a repo that has established none. A repo has established a choice when its existing
+workflows use it. A fresh workflow that brings in a second shape beside the established one is the
+finding; one that follows the established shape rather than this file's default is not. Moving such
+a repo onto the default is a migration asked for explicitly, never a review finding. A rule written
+for one toolchain or cloud — .NET build and test, a cloud provider's OIDC login — has no subject in
+a repo that does not use it, and its =Applies to= names that toolchain or cloud. GA-006 and GA-035
+carry this scoping in their own fields.
+
+The secrets and untrusted-input rules (GA-001 through GA-010) are not established choices: a repo's
+existing workflows breaking one is drift, surfaced once (CM-005), never the precedent a fresh
+workflow is graded against. The version of an action the repo uses is an established choice; the
+pin form GA-010 requires for a third-party action is not.
+
+Not findings — GitHub's required shape: workflows living in =.github/workflows/=; a composite
+action's =action.yml= in its own folder; a first-party =actions/*= action referenced by major-version
+tag in a repo that does not pin first-party actions by commit SHA (GA-010).
+
+Confirm path-filter findings by globbing the filtered path against the repo before flagging — a
+"stale path" finding that matches real files is noise.
+
+* Secrets and credentials
+
+** GA-001 — Secrets never echoed to logs
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* A secret, or a value derived from one, written where it can be read: =echo= of a secret
+  variable, =env= / =printenv= dumps, =set -x= in a script that handles a secret, a secret written
+  to =$GITHUB_STEP_SUMMARY= or =$GITHUB_OUTPUT=. Masking covers the registered secret's exact value
+  only; a derived value — decoded, re-encoded, a field pulled out of a JSON secret — is masked with
+  =::add-mask::= before anything can print it.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** GA-002 — Secrets never passed as positional command-line args
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* A secret passed to a command or script as a positional argument or flag value, where it
+  shows in process listings and in any log that echoes the command line. Pass it through an
+  environment variable or stdin.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** GA-003 — A secret reaches a =run:= script only through =env:=
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* =${{ secrets.* }}= written into the text of a =run:= script or a =github-script=
+  =script:=. The expression is substituted into the script before it runs, so the value becomes
+  part of the script text. Declare it under the step's =env:= and read the environment variable,
+  quoted, in the script.
+- *Not a finding:* a secret passed to an action's input through =with:=; a secret mapped under a
+  job- or step-level =env:=.
+- *Precedent:* none yet
+
+** GA-004 — Credentials live in secrets, never in literals or =vars=
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* A credential — token, password, key, connection string, client secret — written as a
+  literal in a workflow or composite action, or held in a configuration variable (=vars.*=), which
+  is not masked. Store it as a repository, environment or organization secret.
+- *Not a finding:* non-sensitive identifiers in =vars.*= or literals — a client id, tenant id,
+  subscription id, account id or role name used for an OIDC login (GA-006).
+- *Precedent:* none yet
+
+** GA-005 — =secrets: inherit= into a reusable workflow needs a stated reason
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* A reusable-workflow call passing =secrets: inherit= — every secret the caller can read —
+  with no reason stated in the pull request. Pass the secrets the called workflow declares, by
+  name.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** GA-006 — OIDC federation over long-lived cloud credentials
+
+- *Severity:* Smell
+- *Applies to:* new or touched steps that authenticate to a cloud provider supporting GitHub's OIDC
+  federation — Azure, AWS, Google Cloud
+- *Rule:* A login using a long-lived credential stored as a secret — a client secret, an access-key
+  pair, a service-account key file — where the provider accepts a federated identity. Grant the job
+  =id-token: write= and log in with the provider's login action against a federated identity.
+- *Not a finding:* a provider, registry or service with no OIDC federation; a targeted edit to an
+  existing workflow that keeps its credential for minimum diff — moving it is a migration, surfaced
+  once (CM-005).
+- *Precedent:* none yet
+
+** GA-007 — Least-privilege =permissions:=
+
+- *Severity:* Smell
+- *Applies to:* new or touched workflows and jobs
+- *Rule:* A workflow with no =permissions:= key, which then takes the repo's or organization's
+  default token permissions; =permissions: write-all=; or a write scope no step in the job uses.
+  Set a read-only baseline at workflow level and widen per job to the scopes that job's steps use.
+- *Not a finding:* a write scope the job's steps use — =id-token: write= for an OIDC login,
+  =pull-requests: write= for a step that comments on the pull request, =contents: write= for a
+  step that pushes or creates a release.
+- *Precedent:* none yet
+
+* Untrusted input
+
+** GA-008 — Privileged events never run pull-request code
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* A =pull_request_target= workflow, or a =workflow_run= workflow triggered by a
+  pull-request run, that checks out the pull request's head ref or commit, or downloads that run's
+  artifacts, and then builds, tests, installs, sources or executes anything from them. These events
+  run with the base repo's secrets and a write-capable token, so the pull request's code runs
+  privileged. Run pull-request code under =pull_request=.
+- *Not a finding:* a =pull_request_target= workflow that labels, comments or reads metadata and
+  checks out nothing, or only the base ref; a =workflow_run= workflow that reads an artifact as
+  data and never executes it or interpolates it into a script (GA-009).
+- *Precedent:* none yet
+
+** GA-009 — Untrusted event text never interpolated into a script
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* A =${{ }}= value an outside contributor can set — an issue, pull-request, comment or
+  review title or body, a head branch name (=github.head_ref=,
+  =github.event.pull_request.head.ref=), a commit message, an author name or email — written into
+  a =run:= script or a =github-script= =script:=. The expression is substituted before the script
+  runs, so the text runs as code. Map it under =env:= and read the environment variable, quoted.
+- *Not a finding:* values no outside contributor can set — =github.sha=, =github.run_id=,
+  =github.repository=, a pull-request number.
+- *Precedent:* none yet
+
+** GA-010 — Third-party actions pinned to a full commit SHA
+
+- *Severity:* Smell
+- *Applies to:* new or touched =uses:= lines
+- *Rule:* A third-party action or reusable workflow — any owner other than =actions= — referenced by
+  tag or branch. Tags and branches move; only a full-length commit SHA fixes the code that runs.
+  Pin it to the full SHA.
+- *Not a finding:* a local action or reusable workflow (=./...=); a first-party =actions/*= action
+  referenced by major-version tag in a repo whose workflows do not pin first-party actions by SHA —
+  where they do, a fresh =actions/*= reference pins by SHA too; the version comment trailing a SHA
+  pin (=uses: owner/action@<sha> # v4.1.0=), which GA-041 carves out of CM-003.
+- *Precedent:* none yet
+
+* Triggers and path filters
+
+** GA-011 — A workflow's events match its purpose
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* A verification workflow that does not trigger on =pull_request= for the branch pull
+  requests target, or a =branches= filter naming a branch pull requests never target — the check
+  never runs. A deploy workflow that triggers on =pull_request= or =pull_request_target= — a pull
+  request deploys unmerged code. A deploy fires on =push= to the branch it deploys from,
+  =workflow_dispatch=, or the release or tag event the repo established.
+- *Not a finding:* a verification workflow that also runs on =push= to the integration branch.
+- *Precedent:* none yet
+
+** GA-012 — =paths= entries exist in the repo
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* A =paths= or =paths-ignore= entry naming a directory or glob that matches nothing in the
+  repo (a typo, a leftover from a rename) — an included path that never matches means the workflow
+  never fires for it. Both =paths= and =paths-ignore= on one event, which GitHub rejects; put
+  exclusions in =paths= as =!= entries instead. Glob the path to confirm before flagging.
+- *Not a finding:* a path that globs to real files.
+- *Precedent:* none yet
+
+** GA-013 — Path filters not too broad
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Path filters that fire the workflow on directories its jobs neither build nor test.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** GA-014 — Path filters not too narrow
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* Path filters missing a path the workflow's result depends on, so a change there runs
+  nothing: a shared library the project consumes in the same repo, the shared root build files,
+  the workflow file itself, and the local reusable workflows and composite actions it uses.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** GA-015 — Docs-only changes don't run CI
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* A build, test or deploy workflow with no docs-only exclusion —
+  =paths-ignore: ['**/*.md']=, or a =!**/*.md= entry in =paths= — spending a run on a change that
+  touches only documentation.
+- *Not a finding:* a few older workflows missing the exclusion — legacy drift, surface once; a
+  workflow whose check branch protection requires, which takes no workflow-level path filter,
+  because a workflow skipped by its filter leaves the required check pending and blocks the merge —
+  it skips unaffected work inside the run instead (GA-036).
+- *Precedent:* none yet
+
+** GA-016 — A verification workflow doesn't double-fire
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* A workflow triggering on =push= to every branch and on =pull_request=, so each push to a
+  pull request's branch runs it twice. Limit =push= to the integration branch.
+- *Not a finding:* =push= limited to the integration branch alongside =pull_request=.
+- *Precedent:* none yet
+
+* Correctness and runtime hazards
+
+** GA-017 — =needs:= targets exist
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* =needs:= naming a job id that does not exist in the workflow (a typo, a rename leftover).
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** GA-018 — No job or step id collisions
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* Two jobs with one id in a workflow, or two steps with one =id:= in a job.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** GA-019 — =if:= conditions are well-formed
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* An =if:= that cannot mean what it says: text outside =${{ }}= beside an expression, which
+  makes the whole value a non-empty string that is always true; =secrets.*= referenced directly,
+  which =if:= cannot read — map the secret to =env:= and test =env.<NAME>=; unbalanced parentheses,
+  unquoted string literals, comparison against the wrong case or shape of a context value. Prefer
+  an explicit =if:= over implicit ordering for environment-, branch- or prior-output-specific
+  steps.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** GA-020 — Outputs are referenced where they exist
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* =steps.<id>.outputs.<name>= naming a step id that does not exist or an output the step
+  never writes; =needs.<job>.outputs.<name>= naming a job missing from the job's =needs:= or an
+  output that job does not declare under =outputs:=. Each evaluates to an empty string and fails
+  nowhere.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** GA-021 — Cleanup steps run =if: always()=
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* A step that collects failure evidence or releases something — uploading test results or
+  logs, stopping a service a step started, deleting a temporary credential or resource — without
+  =if: always()=, so a failure earlier in the job skips it.
+- *Not a finding:* an upload gated on =failure()= that exists only to capture failure output.
+- *Precedent:* none yet
+
+** GA-022 — No =continue-on-error= or =always()= on a gating or deploy step
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* =continue-on-error: true= on a step or job whose result gates later work (build, test,
+  lint, a security scan) or that deploys or publishes; =if: always()= or
+  =if: success() || failure()= on a deploy or publish step, which then runs after a failed build.
+  Either masks a real failure.
+- *Not a finding:* best-effort uploads and reports (screenshots, coverage publish); a matrix leg
+  marked experimental whose result gates nothing — flag and ask intent if unclear.
+- *Precedent:* none yet
+
+** GA-023 — Jobs set =timeout-minutes=
+
+- *Severity:* Smell
+- *Applies to:* new or touched jobs
+- *Rule:* A job without =timeout-minutes= sized to its expected run; the platform default lets a
+  hung job hold a runner for hours.
+- *Not a finding:* a job that calls a reusable workflow (=uses:= at job level) — the timeout belongs
+  on the called workflow's jobs.
+- *Precedent:* none yet
+
+** GA-024 — Deploy workflows set =concurrency:=
+
+- *Severity:* Smell
+- *Applies to:* new or touched deploy workflows and deploy jobs
+- *Rule:* A deploy workflow or job with no =concurrency:= group keyed on its target environment, so
+  two deploys to one environment can overlap. =cancel-in-progress: true= on a deploy stops a deploy
+  midway; set it there only where the repo's deploy workflows established it.
+- *Not a finding:* a verification workflow without =concurrency:=, or one using
+  =cancel-in-progress: true= to drop superseded runs.
+- *Precedent:* none yet
+
+** GA-025 — A local action runs after the checkout that brings it
+
+- *Severity:* Bug
+- *Applies to:* all code
+- *Rule:* A step using a local action (=uses: ./.github/actions/<name>=) in a job with no earlier
+  checkout of the repo — the action's files are not in the workspace and the step fails.
+- *Not a finding:* a job-level call to a local reusable workflow
+  (=uses: ./.github/workflows/<file>.yml=), which needs no checkout.
+- *Precedent:* none yet
+
+* Reuse and structure
+
+** GA-026 — Reuse reusable workflows and composite actions; don't copy
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* Steps or jobs copied from another workflow where the repo already has a reusable workflow
+  or composite action for them, or where the same sequence now sits in three or more workflows.
+  Call the reusable workflow or composite action with inputs; extract one when none fits, in the
+  form — reusable workflow or composite action — the repo established.
+- *Not a finding:* long-standing copies across several workflows that pre-date an extraction —
+  drift, surfaced once at the top.
+- *Precedent:* none yet
+
+** GA-027 — Reusable workflows and composite actions take inputs, not hardcoded values
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* A reusable workflow or composite action that hardcodes paths, project names or
+  environment names instead of taking them as inputs.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** GA-028 — Workflow inputs are typed
+
+- *Severity:* Smell
+- *Applies to:* new or touched input declarations
+- *Rule:* A =workflow_call= or =workflow_dispatch= input declared without =type:=; a
+  =workflow_dispatch= input taking one of a fixed set of values declared as a string instead of
+  =type: choice= with =options:=.
+- *Not a finding:* composite action inputs, which take no type — they carry =description:= and
+  =required:=.
+- *Precedent:* none yet
+
+** GA-029 — Required inputs have no empty default
+
+- *Severity:* Smell
+- *Applies to:* new or touched input declarations
+- *Rule:* An input the workflow or action cannot work without, declared with =default: ''= (a
+  silent-failure shape) or marked =required: false= to carry one. Defaults only for inputs that
+  have a sensible one; required inputs are =required: true= with no default.
+- *Not a finding:* pre-existing =default: ''= declarations on untouched lines — legacy drift. A
+  touched declaration is fixed.
+- *Precedent:* none yet
+
+** GA-030 — The repo's own reusable workflows and actions are referenced locally
+
+- *Severity:* Smell
+- *Applies to:* new or touched =uses:= lines
+- *Rule:* A reusable workflow or composite action from the same repo referenced as
+  =<owner>/<repo>/...@<ref>= rather than =./...= — it runs that ref's copy, so a change to it is
+  not exercised by the pull request that makes it.
+- *Not a finding:* a reference into another repo, such as a shared-workflows repo, pinned per
+  GA-010.
+- *Precedent:* none yet
+
+** GA-031 — New workflow files follow the repo's established naming and layout
+
+- *Severity:* Smell
+- *Applies to:* new files
+- *Rule:* A new workflow, reusable workflow or composite action whose file name, job ids or folder
+  layout depart from the ones the repo's existing workflows use. Extend, don't restructure; a
+  fundamentally new shape is surfaced and confirmed first.
+- *Not a finding:* any naming in a repo that has established none — this file names no default.
+- *Precedent:* none yet
+
+** GA-032 — Steps carry =name:=
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Steps without =name:= — a failure in the run log is harder to find.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Performance and caching
+
+** GA-033 — No re-fetching dependencies a sibling step already restored
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* A step that re-fetches dependencies an earlier step in the same job already restored.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** GA-034 — Dependency restores are cached
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* A job restoring packages (npm, NuGet, pip, Go modules and the like) with no cache, or with
+  a caching approach other than the one the repo's workflows established — the setup action's own
+  cache input, =actions/cache=, a shared composite action. In a repo that has established none, use
+  the setup action's own cache input where it has one.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** GA-035 — =dotnet test= after =dotnet build= uses =--no-restore= (and ideally =--no-build=)
+
+- *Severity:* Smell
+- *Applies to:* jobs that build and test .NET with the =dotnet= CLI
+- *Rule:* =dotnet build= followed by =dotnet test= without =--no-restore= (and ideally
+  =--no-build=) on the test step — re-restores or re-builds everything.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** GA-036 — Gate unaffected work on change detection
+
+- *Severity:* Suggestion
+- *Applies to:* all code
+- *Rule:* A job or step that runs unconditionally where an =if:= on the output of the repo's
+  change-detection step or action would skip it for unaffected changes.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Runners, environments and versions
+
+** GA-037 — Runners match the repo's established labels
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* A =runs-on= label other than the ones the repo's workflows already use. Surface, don't
+  auto-accept.
+- *Not a finding:* the repo's established labels themselves, hosted or self-hosted.
+- *Precedent:* none yet
+
+** GA-038 — Environments match the repo's established names
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* A new =environment:= name other than the per-environment names the repo's workflows
+  already use. Surface, don't auto-accept.
+- *Not a finding:* the repo's established names.
+- *Precedent:* none yet
+
+** GA-039 — Real-environment jobs declare =environment:=
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* A job that deploys to, migrates or otherwise changes a real environment without an
+  =environment:= naming it — the environment's protection rules and environment secrets then do not
+  apply to the run.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** GA-040 — Tool versions don't drift across workflows
+
+- *Severity:* Smell
+- *Applies to:* all code
+- *Rule:* Inconsistent runtime or tool versions across workflows, or against the repo's own version
+  file (=.nvmrc=, =global.json=, =.python-version= and the like) — Node 20 in one setup step while
+  another pins 22. Surface the drift; don't pick a side silently.
+- *Not a finding:* a version pin the repo contract records as deliberate; a matrix testing several
+  versions on purpose.
+- *Precedent:* none yet
+
+* Style
+
+- Commented-out jobs, steps or conditions — CM-002.
+- =TODO= / =FIXME= / =HACK= — CM-001.
+
+** GA-041 — CM-003 in workflow YAML and its =run:= scripts, tool directives excepted
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only, in workflow files, reusable workflows, composite
+  =action.yml= files and the scripts inline in their =run:= steps
+- *Rule:* CM-003 applies — an explanatory =#= line in the YAML, and an explanatory =#= line inside a
+  =run:= script, are both comments here. Name the job, the step or the input so it reads without
+  one, with design rationale moved to the pull-request description or the issue.
+- *Not a finding:* one carve-out, and no other. A tool directive — =#= text a tool reads and acts
+  on, such as =# yamllint disable...= or =# yaml-language-server: ...= in the YAML,
+  ~# shellcheck disable=...~ in a =run:= script, or the version comment trailing a SHA-pinned
+  =uses:= (=uses: owner/action@<sha> # v4.1.0=), which Dependabot and Renovate read and rewrite —
+  is not a comment for this rule. Whether the warning a directive suppresses was justified is graded
+  on its own, not under CM-003.
+- *Precedent:* none yet
+
+** GA-042 — =name:= carries signal
+
+- *Severity:* Suggestion
+- *Applies to:* all code
+- *Rule:* A step =name:= that repeats the action reference (=name: actions/checkout=) or says
+  nothing (=name: Run script=).
+- *Not a finding:* none.
+- *Precedent:* none yet

@@ -21,7 +21,7 @@ What you take from the contract, each with its fallback. Whatever you read from 
 - **The image pull secret, the label key set, the namespace source, the migration pattern, which secrets the chart creates and which it references, whether workload identity is the default for cloud-backed services, the routing resource and the gateway or ingress class it attaches to, and the topic resource where topics exist** — the repo contract's. Otherwise what the precedent chart's templates show; where no chart in the repo shows one, there is no precedent, and the registry's choice is the default.
 - **The Dockerfiles that build the images the chart runs** — the repo contract's paths. Otherwise found with `Glob` (`**/Dockerfile`, `**/*.Dockerfile`, `**/Dockerfile.*`).
 - **Which writers route through you** — the repo contract's delegation rule. Otherwise `mz-helm-chart-writer`, which names you as its reviewer in its own file (`mz-suite.org` § Roster and delegation rule).
-- **The reviewer and writer for a path that is not yours** — the ones the repo contract's delegation rule names for that path. With no such rule: `mz-dockerfile-reviewer` and `mz-dockerfile-writer` for a Dockerfile or entrypoint script; for a CI workflow or pipeline file, infrastructure code, migrations, or application source, the `mz-` reviewer or writer for that stack, or the main agent where the suite has none (`mz-suite.org` § Roster and delegation rule).
+- **The reviewer and writer for a path that is not yours** — the ones the repo contract's delegation rule names for that path. With no such rule: `mz-dockerfile-reviewer` and `mz-dockerfile-writer` for a Dockerfile or entrypoint script; `mz-terraform-reviewer` and `mz-terraform-writer` for Terraform (`*.tf`, `*.tfvars`); `mz-pipeline-reviewer` and `mz-pipeline-writer` for a GitHub Actions workflow, reusable workflow, or local composite action; for another CI system's pipeline file, other infrastructure code, migrations, or application source, the `mz-` reviewer or writer for that stack, or the main agent where the suite has none (`mz-suite.org` § Roster and delegation rule).
 - **States ruled out by design** — only a repo contract can list one; `mz-suite.org` names none.
 - **The review-scope rule, how a gated writer runs, and the safety fences** — `mz-suite.org` § Review scope, § How a gated writer runs, and § Safety fences, plus anything the repo contract adds. You are read-only: you never mutate anything.
 
@@ -207,7 +207,7 @@ The baseline the registry sharpens; where the registry has a rule, its id, sever
 - A fresh value a lookup-or-generate secret shows in a `helm template` render — the render contacts no cluster.
 - Comments in lines the change did not write or touch — the Pre-existing tail, not a finding.
 - Dockerfiles — `mz-dockerfile-reviewer`'s. Surface a chart-to-Dockerfile contract mismatch, don't review Dockerfile shape.
-- Pipeline YAML — the reviewer First step settles for it. Surface deploy-contract mismatches, don't review pipeline shape.
+- Pipeline YAML — `mz-pipeline-reviewer`, or the reviewer First step settles for another CI system. Surface deploy-contract mismatches, don't review pipeline shape.
 - Infrastructure code (federated credentials, cluster resources) — the reviewer First step settles for it. Don't flag a chart for "should be in infrastructure code" or the reverse; calibrate against the boundary the repo contract draws.
 - Application source — out of tree.
 - Execution, production-data, time, and cross-boundary-sequencing concerns — anything that needs a deploy, real cluster state, a clock, or rollout ordering to see is `mz-devils-advocate`'s. You flag what a static read of the diff and the render shows.
@@ -227,7 +227,7 @@ The baseline the registry sharpens; where the registry has a rule, its id, sever
 ## Out of scope
 
 - **Writing or applying fixes** — findings only. → `mz-helm-chart-writer`.
-- **Pipeline YAML review** — the reviewer First step settles for it. Surface deploy-contract mismatches as findings; don't review pipeline shape.
+- **Pipeline YAML review** — `mz-pipeline-reviewer`, or the reviewer First step settles for another CI system. Surface deploy-contract mismatches as findings; don't review pipeline shape.
 - **Dockerfile review** — `mz-dockerfile-reviewer`. This agent reviews the init-container / image / port references against the Dockerfile, not the Dockerfile itself.
 - **Infrastructure review** — the reviewer First step settles for it.
 - **Migration content review** — the reviewer First step settles for migrations. This agent reviews the init-container or hook shape only.

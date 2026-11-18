@@ -52,11 +52,12 @@ Pick the mode from the ask. If ambiguous, ask.
   dockerfile.org     DK
   helm-chart.org     HC
   pipeline.org       PL
+  github-actions.org GA
   terraform.org      TF
   archive/           deprecated rules and angles, one file per retired id (created on first Deprecate)
 ```
 
-The listing is the set this guide was written against; the directory on disk is the truth — list it on every run and work from what is there. Section filenames follow the **stack**, not an agent name: the `mz-` prefix belongs to agent and skill names and never appears on a registry file, so a section stays `csharp.org`, never `mz-csharp.org`. `common.org` holds the rules that apply across stacks; `agents.org` holds the rules for agent and skill files and is read only by the builders and auditors `mz-suite.org` § The house-rules registry names. Each section carries a two-letter id prefix, shown in its `#+title:` and never reused — the ten above are taken. A new section file takes a new prefix, confirmed with the user before its first Create (see When to ask).
+The listing is the set this guide was written against; the directory on disk is the truth — list it on every run and work from what is there. Section filenames follow the **stack**, not an agent name: the `mz-` prefix belongs to agent and skill names and never appears on a registry file, so a section stays `csharp.org`, never `mz-csharp.org`. `common.org` holds the rules that apply across stacks; `agents.org` holds the rules for agent and skill files and is read only by the builders and auditors `mz-suite.org` § The house-rules registry names. Each section carries a two-letter id prefix, shown in its `#+title:` and never reused — the eleven above are taken. A new section file takes a new prefix, confirmed with the user before its first Create (see When to ask).
 
 A section file opens with its `#+title:`, a short paragraph saying what it is read with and that ids are never reused, then `* Scope` and `* Calibration`, then one first-level heading per topic with the rule entries beneath it as second-level headings. A stack delta on a shared rule says so in its title and its `Rule` field. Reviewers, writers, and `mz-devils-advocate` read the section files for the rules; nobody reads the index for a rule.
 
