@@ -41,6 +41,25 @@ there. Never review the out-of-tree chart those values feed; review only the val
   workflow, and appears nowhere else, is the contract working, not a gap. A values file that holds
   only secret-store paths, roles and mounts — never secret values — passes HC-001; a literal
   credential there is still a Bug.
+- *Match the project's established choices.* The routing API, namespace handling, label keys,
+  resource and template naming, ServiceAccount layout, migration mechanism, =values.yaml= layout,
+  env-var naming and probe shape a project's charts have established are the ones its charts are
+  graded against. The choices this file names — Gateway-API =HTTPRoute=,
+  ={{ .Release.Namespace }}= on every resource, the =app: <service>-<workload>= label key,
+  =<service>-<workload>= resource names, =<workload>-<kind>.yaml= template names, one
+  ServiceAccount per chart, the migration hook-Job, the =values.yaml= block order,
+  =<APP>__<SECTION>__<KEY>= env vars, TCP probes — are the default only for a project that has
+  established none. A project has established a choice when its existing charts use it. A fresh
+  chart or template that brings in a second shape beside the established one is the finding; one
+  that follows the established shape rather than this file's default is not. Moving such a project
+  onto the default is a migration asked for explicitly, never a review finding. A rule written for
+  one toolchain or cloud — Azure AD Workload Identity, an EF Core migration bundle, .NET
+  configuration binding — has no subject in a project that does not use it, and its =Applies to=
+  names that toolchain or cloud. HC-001, HC-006, HC-007, HC-008, HC-014, HC-024, HC-026, HC-027,
+  HC-032 through HC-037, HC-046, HC-048, HC-055, HC-056, HC-058 and HC-059 carry this scoping in
+  their own fields.
+  It is separate from the legacy-chart and CI-runner calibration in this section, which stands as
+  written.
 - When in doubt whether a values key is consumed: glob the chart's =values.yaml= keys against its
   templates — mismatches between values defaults and template references are a recurring bug
   source.
@@ -54,7 +73,8 @@ there. Never review the out-of-tree chart those values feed; review only the val
 - *Severity:* Bug
 - *Applies to:* all code
 - *Rule:* Hardcoded secrets, connection strings, tokens, keys, passwords in =values.yaml= or
-  templates. Use the Secret + =existingSecret= pattern, or Workload Identity for AAD-backed services.
+  templates. Use the Secret + =existingSecret= pattern, or, in a chart deployed to Azure, Workload
+  Identity for AAD-backed services (HC-006).
 - *Not a finding:* none.
 - *Precedent:* none yet
 
@@ -100,30 +120,33 @@ there. Never review the out-of-tree chart those values feed; review only the val
 ** HC-006 — AAD-backed services use Workload Identity on the ServiceAccount
 
 - *Severity:* Bug
-- *Applies to:* all code
+- *Applies to:* charts deployed to Azure whose workloads call AAD-backed Azure services
 - *Rule:* ServiceAccount talking to an AAD-backed Azure service (Key Vault, Storage, Service Bus,
   MSSQL via AAD) without the =azure.workload.identity/client-id= annotation. The federated identity
   credential lives in Terraform — the writer surfaces the missing Terraform side when adding the
   first Workload-Identity-bound chart.
 - *Not a finding:* a static K8s Secret for a service that is not AAD-backed (for example a Postgres
-  password or S3-compatible keys).
+  password or S3-compatible keys). A chart not deployed to Azure, or calling no AAD-backed service —
+  no subject (Calibration).
 - *Precedent:* none yet
 
 ** HC-007 — Workload Identity pods carry the =use= label
 
 - *Severity:* Bug
-- *Applies to:* all code
+- *Applies to:* charts deployed to Azure whose pods use Azure AD Workload Identity
 - *Rule:* Pod consuming Workload Identity without the =azure.workload.identity/use: "true"= label.
-- *Not a finding:* none.
+- *Not a finding:* a chart not deployed to Azure, or using no Azure AD Workload Identity — no
+  subject (Calibration).
 - *Precedent:* none yet
 
 ** HC-008 — No new static Secret where Workload Identity fits
 
 - *Severity:* Smell
-- *Applies to:* new or touched code
+- *Applies to:* new or touched code in charts deployed to Azure
 - *Rule:* New static K8s Secret introduced for a service that is AAD-backed when Workload Identity
   would fit. Surface, confirm the exception is intentional.
-- *Not a finding:* the non-AAD exception (HC-006).
+- *Not a finding:* the non-AAD exception (HC-006). A chart not deployed to Azure — no subject
+  (Calibration).
 - *Precedent:* none yet
 
 * Image hygiene
@@ -177,10 +200,13 @@ there. Never review the out-of-tree chart those values feed; review only the val
 
 - *Severity:* Smell
 - *Applies to:* all code
-- *Rule:* Deployment / Job missing =serviceAccountName=. The default SA shouldn't run workloads. One
-  ServiceAccount per chart (=serviceaccount.yaml=), gated on =.Values.serviceAccount.create=, named
-  via =.Values.serviceAccount.name=.
-- *Not a finding:* none.
+- *Rule:* Deployment / Job missing =serviceAccountName=. The default SA shouldn't run workloads. The
+  ServiceAccount layout is the one the project's existing charts use; in a project that has
+  established none, one ServiceAccount per chart (=serviceaccount.yaml=), gated on
+  =.Values.serviceAccount.create=, named via =.Values.serviceAccount.name=.
+- *Not a finding:* a ServiceAccount layout other than one per chart that the project's existing
+  charts use — matching the project, not drift (Calibration). A missing =serviceAccountName= is
+  still the finding there.
 - *Precedent:* none yet
 
 ** HC-015 — =securityContext.runAsNonRoot: true=
@@ -201,16 +227,25 @@ there. Never review the out-of-tree chart those values feed; review only the val
 - *Severity:* Bug
 - *Applies to:* all code
 - *Rule:* Deployment / Job / Pod with =runAsUser: 0= or =privileged: true= or
-  =allowPrivilegeEscalation: true= without an explicit comment / values gate.
-- *Not a finding:* none.
+  =allowPrivilegeEscalation: true= without an explicit gate. The gate is a values gate — a values
+  key that must be set to turn the setting on, off by default — or Max's answer at
+  =mz-helm-chart-writer='s Gate 1, recorded in the writer's plan. A comment is never the gate: a
+  template comment is itself a CM-003 finding (HC-060), and the setting behind it stays this Bug.
+- *Not a finding:* the setting behind a values gate that is off by default, or one the writer's plan
+  records as put to Max at Gate 1 with Max choosing it.
 - *Precedent:* none yet
 
 ** HC-017 — No host namespaces
 
 - *Severity:* Bug
 - *Applies to:* all code
-- *Rule:* Pod with =hostNetwork: true=, =hostPID: true=, =hostIPC: true=.
-- *Not a finding:* a host namespace with an explicit justification.
+- *Rule:* Pod with =hostNetwork: true=, =hostPID: true=, =hostIPC: true= without an explicit gate.
+  The gate is a values gate — a values key that must be set to turn the setting on, off by default
+  — or Max's answer at =mz-helm-chart-writer='s Gate 1, recorded in the writer's plan. A comment is
+  never the gate: a template comment is itself a CM-003 finding (HC-060), and the setting behind it
+  stays this Bug.
+- *Not a finding:* a host namespace behind a values gate that is off by default, or one the
+  writer's plan records as put to Max at Gate 1 with Max choosing it.
 - *Precedent:* none yet
 
 ** HC-018 — Every container has a =readinessProbe=
@@ -265,13 +300,17 @@ there. Never review the out-of-tree chart those values feed; review only the val
 
 * Namespacing and labels
 
-** HC-024 — Every resource sets =metadata.namespace: {{ .Release.Namespace }}=
+** HC-024 — Resource namespaces follow the project's convention, ={{ .Release.Namespace }}= by default
 
 - *Severity:* Bug
 - *Applies to:* all code
-- *Rule:* Resource missing =metadata.namespace: {{ .Release.Namespace }}=. The deploy supplies the
-  namespace.
-- *Not a finding:* none.
+- *Rule:* Resource whose namespace handling departs from the one the project's existing charts use.
+  In a project that has established none, every resource sets
+  =metadata.namespace: {{ .Release.Namespace }}=, and a resource missing it is the finding. The
+  deploy supplies the namespace.
+- *Not a finding:* a resource that omits =metadata.namespace= in a project whose existing charts
+  omit it and leave the namespace to the deploy's =--namespace= — matching the project, not drift
+  (Calibration).
 - *Precedent:* none yet
 
 ** HC-025 — Labels agree across metadata, selector, and pod template
@@ -284,23 +323,30 @@ there. Never review the out-of-tree chart those values feed; review only the val
 - *Not a finding:* none.
 - *Precedent:* none yet
 
-** HC-026 — Label key is =app: <service>-<workload>=
+** HC-026 — Label key follows the project's convention, =app: <service>-<workload>= by default
 
 - *Severity:* Smell
 - *Applies to:* all code
-- *Rule:* Label keys deviating from =app: <service>-<workload>= without explanation.
-- *Not a finding:* the key itself.
+- *Rule:* Label keys deviating from the label key the project's existing charts use — in a project
+  that has established none, from =app: <service>-<workload>= — without the deviation explained in
+  =mz-helm-chart-writer='s Gate 1 plan or the pull-request description. A template comment is never
+  the explanation; it is itself a CM-003 finding (HC-060).
+- *Not a finding:* the key itself. A label key the project's existing charts use instead of
+  =app: <service>-<workload>= — matching the project, not drift (Calibration).
 - *Precedent:* none yet
 
 * Ingress (Gateway-API HTTPRoute)
 
-** HC-027 — =HTTPRoute=, not =Ingress=
+** HC-027 — Routes use the project's routing API, =HTTPRoute= by default
 
 - *Severity:* Bug
 - *Applies to:* new charts
-- *Rule:* =kind: Ingress= instead of =HTTPRoute= for new charts — Gateway-API is the house standard
-  (=HTTPRoute= is the Gateway-API replacement for =Ingress=).
-- *Not a finding:* none.
+- *Rule:* A new chart routing through an API other than the one the project's existing charts use —
+  =kind: Ingress= in a project on Gateway-API =HTTPRoute=, or the reverse. In a project that has
+  established none, Gateway-API is the default (=HTTPRoute= is the Gateway-API replacement for
+  =Ingress=), and =kind: Ingress= is the finding.
+- *Not a finding:* =kind: Ingress= in a new chart in a project whose existing charts route through
+  =Ingress= — matching the project, not drift (Calibration).
 - *Precedent:* none yet
 
 ** HC-028 — =HTTPRoute= is =gateway.networking.k8s.io/v1=
@@ -316,7 +362,9 @@ there. Never review the out-of-tree chart those values feed; review only the val
 - *Severity:* Smell
 - *Applies to:* all code
 - *Rule:* =parentRefs= pointing at a gateway, or a gateway namespace, other than the one the repo's
-  existing routes use, without explanation.
+  existing routes use, without the deviation explained in =mz-helm-chart-writer='s Gate 1 plan or
+  the pull-request description. A template comment is never the explanation; it is itself a CM-003
+  finding (HC-060).
 - *Not a finding:* none.
 - *Precedent:* none yet
 
@@ -342,55 +390,58 @@ there. Never review the out-of-tree chart those values feed; review only the val
 ** HC-032 — Charts whose API runs EF migrations have a migrate hook-Job
 
 - *Severity:* Smell
-- *Applies to:* all code
-- *Rule:* Chart whose API runs EF migrations but no =<workload>-migrate-job.yaml= hook-Job. Runs the
-  =efbundle= baked into the API image via the documented entrypoint; on failure the release fails
-  and old pods keep serving.
-- *Not a finding:* none.
+- *Applies to:* charts whose API runs EF Core migrations
+- *Rule:* Chart whose API runs EF migrations but no =<workload>-migrate-job.yaml= hook-Job, in a
+  project that has established no other way to run them. Runs the =efbundle= baked into the API
+  image via the documented entrypoint; on failure the release fails and old pods keep serving.
+- *Not a finding:* a chart whose API runs no EF Core migrations — no subject. Migrations run the way
+  the project's existing charts or deploy run them, when that is not a hook-Job — matching the
+  project, not drift (Calibration).
 - *Precedent:* none yet
 
 ** HC-033 — Migration Job is =helm.sh/hook: pre-install,pre-upgrade=
 
 - *Severity:* Bug
-- *Applies to:* all code
+- *Applies to:* charts that run migrations as a Helm hook-Job
 - *Rule:* Migration Job missing =helm.sh/hook: pre-install,pre-upgrade= — without the hook, the Job
   races the Deployment rollout.
-- *Not a finding:* none.
+- *Not a finding:* a chart that runs no migration hook-Job — no subject (Calibration, HC-032).
 - *Precedent:* none yet
 
 ** HC-034 — Migration Job has a negative =hook-weight=
 
 - *Severity:* Smell
-- *Applies to:* all code
+- *Applies to:* charts that run migrations as a Helm hook-Job
 - *Rule:* Migration Job missing =hook-weight: "-5"= (or analogous negative weight) when ordering
   against other pre-install hooks matters.
-- *Not a finding:* none.
+- *Not a finding:* a chart that runs no migration hook-Job — no subject (Calibration, HC-032).
 - *Precedent:* none yet
 
 ** HC-035 — Migration Job has =hook-delete-policy: before-hook-creation,hook-succeeded=
 
 - *Severity:* Smell
-- *Applies to:* all code
+- *Applies to:* charts that run migrations as a Helm hook-Job
 - *Rule:* Migration Job missing =hook-delete-policy: before-hook-creation,hook-succeeded= — stale
   completed Jobs accumulate.
-- *Not a finding:* the policy itself — documented pattern.
+- *Not a finding:* the policy itself — documented pattern. A chart that runs no migration hook-Job
+  — no subject (Calibration, HC-032).
 - *Precedent:* none yet
 
 ** HC-036 — Migration Job fails fast: =backoffLimit: 0=, =restartPolicy: Never=
 
 - *Severity:* Bug
-- *Applies to:* all code
+- *Applies to:* charts that run migrations as a Helm hook-Job
 - *Rule:* Migration Job with =backoffLimit > 0= or =restartPolicy: OnFailure= — a failing migration
   should fail the release immediately, not retry and mask the cause.
-- *Not a finding:* none.
+- *Not a finding:* a chart that runs no migration hook-Job — no subject (Calibration, HC-032).
 - *Precedent:* none yet
 
 ** HC-037 — Migration Job carries the API's =imagePullSecrets=
 
 - *Severity:* Bug
-- *Applies to:* all code
+- *Applies to:* charts that run migrations as a Helm hook-Job
 - *Rule:* Migration Job sharing the API's =envFrom= but not its =imagePullSecrets= — Job won't pull.
-- *Not a finding:* none.
+- *Not a finding:* a chart that runs no migration hook-Job — no subject (Calibration, HC-032).
 - *Precedent:* none yet
 
 * Values shape
@@ -438,9 +489,13 @@ there. Never review the out-of-tree chart those values feed; review only the val
 - *Severity:* Suggestion
 - *Applies to:* =values.yaml=
 - *Rule:* A comment in =values.yaml= — on a field, its default, or its shape. CM-003 applies here at
-  Suggestion severity rather than Smell; templates keep CM-003 at Smell (see Style).
+  Suggestion severity rather than Smell; templates keep CM-003 at Smell (HC-060).
 - *Not a finding:* none beyond the Suggestion grading itself — a =values.yaml= comment carries no
-  gate weight. Leaving a sensitive field blank by default with a comment noting why.
+  gate weight. Leaving a sensitive field blank by default (HC-005); a comment noting why is graded
+  Suggestion like any other =values.yaml= comment, the reason belonging in the pull-request
+  description. A tool
+  directive (=# yamllint disable...=, =# yaml-language-server: ...=) is not a comment at all, not
+  even at Suggestion — HC-060's carve-out holds here too.
 - *Precedent:* none yet
 
 * Per-environment values contract
@@ -487,11 +542,12 @@ there. Never review the out-of-tree chart those values feed; review only the val
 - *Severity:* Bug
 - *Applies to:* all code
 - *Rule:* The namespace the deploy installs into (the namespace variable or parameter passed as
-  =--namespace=) doesn't match what the chart expects. Templates read ={{ .Release.Namespace }}=
-  rather than hardcoding, so a wrong namespace installs a second, silently parallel release instead
-  of failing. Surface it even though the value is deploy-side.
-- *Not a finding:* templates that reference ={{ .Release.Namespace }}= rather than a values key —
-  that is the house pattern, and the namespace is supplied by the deploy.
+  =--namespace=) doesn't match what the chart expects. Templates take the namespace from the release
+  (HC-024) rather than hardcoding, so a wrong namespace installs a second, silently parallel release
+  instead of failing. Surface it even though the value is deploy-side.
+- *Not a finding:* templates that take the namespace the way the project's existing charts do —
+  ={{ .Release.Namespace }}= by default, per HC-024 — rather than from a values key; the namespace
+  is supplied by the deploy.
 - *Precedent:* none yet
 
 * Reuse and structure
@@ -505,13 +561,15 @@ there. Never review the out-of-tree chart those values feed; review only the val
 - *Not a finding:* none.
 - *Precedent:* none yet
 
-** HC-048 — Template names follow =<workload>-<kind>.yaml=
+** HC-048 — Template names follow the project's convention, =<workload>-<kind>.yaml= by default
 
 - *Severity:* Smell
 - *Applies to:* new charts
-- *Rule:* A new chart whose template names deviate from the =<workload>-<kind>.yaml= convention
-  (shared templates use the bare kind: =serviceaccount.yaml=, =httproute.yaml=).
-- *Not a finding:* none.
+- *Rule:* A new chart whose template names deviate from the naming the project's existing charts
+  use. In a project that has established none, the convention is =<workload>-<kind>.yaml= (shared
+  templates use the bare kind: =serviceaccount.yaml=, =httproute.yaml=).
+- *Not a finding:* template names following the naming the project's existing charts use —
+  matching the project, not drift (Calibration).
 - *Precedent:* none yet
 
 ** HC-049 — No cluster-scoped resources in a service chart
@@ -529,7 +587,8 @@ there. Never review the out-of-tree chart those values feed; review only the val
 - *Applies to:* new or touched code
 - *Rule:* New hook shapes (=post-install=, =pre-delete=) without explanation — the
   =pre-install,pre-upgrade= migration hook is the established precedent. Writers surface other hook
-  patterns in their proposal.
+  patterns in their proposal: the explanation is in =mz-helm-chart-writer='s Gate 1 plan or the
+  pull-request description, never a template comment, which is itself a CM-003 finding (HC-060).
 - *Not a finding:* none.
 - *Precedent:* none yet
 
@@ -545,7 +604,8 @@ there. Never review the out-of-tree chart those values feed; review only the val
 * Style
 
 - =TODO= / =FIXME= / =HACK= — CM-001.
-- No comments at all — CM-003 (Smell in templates; Suggestion in =values.yaml= per HC-042).
+- No comments at all — CM-003, restated for templates and the chart's other files in HC-060
+  (Smell); Suggestion in =values.yaml= per HC-042.
 
 ** HC-052 — Whitespace control on helpers and partials
 
@@ -574,27 +634,46 @@ there. Never review the out-of-tree chart those values feed; review only the val
 - *Not a finding:* none.
 - *Precedent:* none yet
 
+** HC-060 — CM-003 in chart templates and chart YAML, tool directives excepted
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only, in a chart's templates and its YAML files other than
+  =values.yaml= (HC-042 grades =values.yaml=)
+- *Rule:* CM-003 applies — an explanatory =#= line in a template or other chart YAML, and a
+  ={{/* ... */}}= template comment, a helper in =_helpers.tpl= included, are all comments here. Name
+  the helper, the key, or the template so it reads without one, with design rationale moved to the
+  pull-request description or the issue.
+- *Not a finding:* one carve-out, and no other. A tool directive — a =#= line that instructs a
+  tool, such as =# yamllint disable...= or =# yaml-language-server: ...= — is not a comment for
+  this rule; whether the warning it suppresses was justified is graded on its own, not under
+  CM-003.
+- *Precedent:* none yet
+
 * Writer conventions (no reviewer rule yet)
 
 ** HC-055 — =values.yaml= ordering and =camelCase= keys
 
 - *Severity:* Smell
 - *Applies to:* new or touched =values.yaml=
-- *Rule:* Top-level shared blocks first (=imagePullSecrets=, =serviceAccount=, =securityContext=),
-  then per-workload blocks (=api=, =web=, ...), then shared infrastructure (=ingress=), then
-  scheduling escape hatches (=nodeSelector=, =tolerations=, =affinity=). Values keys are
-  =camelCase= (=apiBaseUrl=, =presignedUrlExpirySeconds=, =frameAncestors=). Defaults are neutral;
-  per-environment overrides come from the per-environment overlays.
-- *Not a finding:* none.
+- *Rule:* =values.yaml= block order and key casing follow the ones the project's existing charts
+  use. In a project that has established none: top-level shared blocks first (=imagePullSecrets=,
+  =serviceAccount=, =securityContext=), then per-workload blocks (=api=, =web=, ...), then shared
+  infrastructure (=ingress=), then scheduling escape hatches (=nodeSelector=, =tolerations=,
+  =affinity=); values keys are =camelCase= (=apiBaseUrl=, =presignedUrlExpirySeconds=,
+  =frameAncestors=). Defaults are neutral; per-environment overrides come from the
+  per-environment overlays.
+- *Not a finding:* a block order or key casing the project's existing =values.yaml= files use —
+  matching the project, not drift (Calibration).
 - *Precedent:* none yet
 
-** HC-056 — Env vars are =<APP>__<SECTION>__<KEY>=
+** HC-056 — Env vars for .NET workloads are =<APP>__<SECTION>__<KEY>=
 
 - *Severity:* Smell
-- *Applies to:* new or touched ConfigMaps / Secrets
+- *Applies to:* new or touched ConfigMaps / Secrets that feed .NET workloads
 - *Rule:* Env var names use double-underscore segments in .NET configuration style
   (=<APP>__<SECTION>__<KEY>=).
-- *Not a finding:* none.
+- *Not a finding:* env vars for a workload that is not .NET — no subject; they follow that
+  workload's own configuration convention (Calibration).
 - *Precedent:* none yet
 
 ** HC-057 — =envFrom= order: =configMapRef= then =secretRef=
@@ -610,18 +689,22 @@ there. Never review the out-of-tree chart those values feed; review only the val
 
 - *Severity:* Smell
 - *Applies to:* new or touched workloads
-- *Rule:* TCP socket probes by default; =httpGet= against a static path (=/index.html= for Blazor
-  WASM) when the workload serves a known unauthenticated endpoint. =periodSeconds: 10= readiness,
-  =30= liveness.
-- *Not a finding:* none.
+- *Rule:* Probe shape and timing follow the ones the project's existing charts use. In a project
+  that has established none: TCP socket probes by default; =httpGet= against a static path
+  (=/index.html= for Blazor WASM) when the workload serves a known unauthenticated endpoint.
+  =periodSeconds: 10= readiness, =30= liveness.
+- *Not a finding:* =httpGet= probes against a health endpoint, or other probe timings, in a project
+  whose existing charts use them — matching the project, not drift (Calibration).
 - *Precedent:* an API container probed with =tcpSocket=, and a static web container probed with
   =httpGet= on =/index.html=.
 
-** HC-059 — Resource names are =<service>-<workload>=
+** HC-059 — Resource names follow the project's convention, =<service>-<workload>= by default
 
 - *Severity:* Smell
 - *Applies to:* new or touched resources
-- *Rule:* Resource names follow =<service>-<workload>= (=myapp-api=, =myapp-web=,
+- *Rule:* Resource names follow the naming the project's existing charts use. In a project that has
+  established none, they follow =<service>-<workload>= (=myapp-api=, =myapp-web=,
   =myapp-api-migrate=), matching the =app:= label (HC-026).
-- *Not a finding:* none.
+- *Not a finding:* resource names following the naming the project's existing charts use —
+  matching the project, not drift (Calibration).
 - *Precedent:* none yet

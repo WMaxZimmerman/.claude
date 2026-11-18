@@ -51,6 +51,25 @@ Fresh vs legacy:
     =:latest=), DK-014 (ends non-root), DK-023 / DK-024 (if no mounts are used, the absence of a
     =# syntax= directive is correct, not a gap).
 
+*Match the project's established choices.* The base images, Dockerfile layout and naming, =USER=
+form, entrypoint permission shape, base-version parameterization, =# syntax= pin, and web-server
+runtime-config mechanism a project has established are the ones its Dockerfiles are graded
+against. The choices this file names — =docker/dockerfile:1.7= as the =# syntax= pin,
+=nginxinc/nginx-unprivileged:*=, the =api.Dockerfile= / =web.Dockerfile= / =migrate.Dockerfile=
+split, a numeric =USER= uid:gid, ~--chmod=0755~ on the COPY, ~ARG DOTNET_VERSION~
+parameterization, the =/docker-entrypoint.d/= render-config script — are the default only for a
+project that has established none. A project has established a choice when its existing
+Dockerfiles use it. A fresh Dockerfile that brings in a second shape beside the established one is
+the finding; one that follows the established shape rather than this file's default is not. Moving
+such a project onto the default is a migration asked for explicitly, never a review finding. A rule
+written for one toolchain or cloud — .NET restore and publish, an EF Core migration bundle, Azure
+Artifacts feed auth through the NuGet credential provider, an nginx base — has no subject in a
+project that does not use it, and its =Applies to= names that toolchain or cloud. DK-003, DK-006,
+DK-007, DK-008, DK-009, DK-011, DK-014, DK-021, DK-023, DK-025, DK-027, DK-031, DK-034, DK-036,
+DK-039, DK-041, DK-042, DK-043, DK-046, DK-049, DK-052 and DK-055 carry this scoping in their own
+fields. It is
+separate from the legacy and tool-image calibration above, which stand as written.
+
 Not findings — house style: the lack of =HEALTHCHECK= on an image whose health is owned by
 Kubernetes probes (DK-022); an ~ARG DOTNET_VERSION=<version>~ default literal (the pipeline may
 accept the default — flagging the literal version is noise); several secret-mount blocks in one
@@ -91,7 +110,8 @@ severity unless the entry states otherwise.
 ** DK-003 — The BuildKit secret id matches what the pipeline passes
 
 - *Severity:* Bug
-- *Applies to:* all production Dockerfiles
+- *Applies to:* all production Dockerfiles that take a BuildKit secret from the pipeline; the
+  credential-provider shape, only those restoring NuGet packages from an authenticated feed
 - *Rule:* BuildKit secret =id= renamed on a production Dockerfile without the matching pipeline
   change. The pipeline passes the secret by id (for example
   ~--secret id=feed_token,env=FEED_ACCESSTOKEN~); a rename breaks the build silently on the next
@@ -100,7 +120,8 @@ severity unless the entry states otherwise.
   =VSS_NUGET_EXTERNAL_FEED_ENDPOINTS=) inlined reading from =/run/secrets/<id>=. A rename is a
   paired change with =mz-pipeline-writer= (PL-038 in =pipeline.org=).
 - *Not a finding:* more than one mount block for the same id in one Dockerfile (restore and EF
-  bundle steps both need it).
+  bundle steps both need it). The credential-provider shape in a project that restores no NuGet
+  packages from an authenticated feed — no subject (Calibration).
 - *Precedent:* none yet
 
 ** DK-004 — A feed token is never baked at build time
@@ -128,38 +149,41 @@ severity unless the entry states otherwise.
 ** DK-006 — Restore before =COPY . .=
 
 - *Severity:* Bug
-- *Applies to:* fresh Dockerfiles
+- *Applies to:* fresh Dockerfiles that restore .NET (=dotnet restore=) or npm (=npm ci=)
+  dependencies
 - *Rule:* =COPY . .= before =dotnet restore= — invalidates the restore cache on every source change.
   COPY =.csproj=, =Directory.Packages.props=, =global.json=, =NuGet.Config=, =*.sln= first;
   =dotnet restore=; then =COPY . .=. Same shape for npm: =package.json= + =package-lock.json=
   first, =npm ci=, then =COPY . .=.
-- *Not a finding:* a legacy single-stage restore-then-source COPY (see Calibration).
+- *Not a finding:* a legacy single-stage restore-then-source COPY (see Calibration). A Dockerfile
+  that restores neither .NET nor npm dependencies — no subject (Calibration).
 - *Precedent:* none yet
 
 ** DK-007 — Restore, build, and publish use the package cache mount
 
 - *Severity:* Smell
-- *Applies to:* fresh production Dockerfiles
+- *Applies to:* fresh production Dockerfiles that restore .NET or npm dependencies
 - *Rule:* Restore step missing ~--mount=type=cache,target=/root/.nuget/packages~ (on every restore,
   build, and publish step in the build stage). Same for npm: missing
   ~--mount=type=cache,target=/root/.npm~.
-- *Not a finding:* legacy files.
+- *Not a finding:* legacy files. A Dockerfile that restores neither .NET nor npm dependencies — no
+  subject (Calibration).
 - *Precedent:* none yet
 
 ** DK-008 — Build steps don't re-run restore
 
 - *Severity:* Smell
-- *Applies to:* all code
+- *Applies to:* Dockerfiles that build .NET projects
 - *Rule:* Build / publish steps re-running =dotnet restore= instead of =--no-restore=.
-- *Not a finding:* none.
+- *Not a finding:* a Dockerfile that builds no .NET project — no subject (Calibration).
 - *Precedent:* none yet
 
 ** DK-009 — =dotnet publish= is =--no-restore= after an explicit restore
 
 - *Severity:* Smell
-- *Applies to:* all code
+- *Applies to:* Dockerfiles that build .NET projects
 - *Rule:* =dotnet publish= missing =--no-restore= after an explicit restore step.
-- *Not a finding:* none.
+- *Not a finding:* a Dockerfile that builds no .NET project — no subject (Calibration).
 - *Precedent:* none yet
 
 ** DK-010 — Only restore inputs in the restore-cache COPY layer
@@ -174,9 +198,9 @@ severity unless the entry states otherwise.
 ** DK-011 — Targeted =.csproj= COPY
 
 - *Severity:* Suggestion
-- *Applies to:* fresh code
+- *Applies to:* fresh code in Dockerfiles that build .NET projects
 - *Rule:* Restore step that COPYs every project's =.csproj= when only one project is published.
-- *Not a finding:* none.
+- *Not a finding:* a Dockerfile that builds no .NET project — no subject (Calibration).
 - *Precedent:* none yet
 
 * Image hygiene
@@ -204,8 +228,11 @@ severity unless the entry states otherwise.
 - *Severity:* Bug
 - *Applies to:* fresh production Dockerfiles
 - *Rule:* Runtime stage missing a =USER= directive on an =aspnet:*= / =sdk:*= / generic Debian base
-  — runs as root. Use a numeric uid:gid (for example =USER 1000:1000=) for =aspnet:*=.
-- *Not a finding:* a legacy file's named =USER app=.
+  — runs as root. The =USER= takes the form the project's runtime stages have established; in a
+  project that has established none, use a numeric uid:gid (for example =USER 1000:1000=) for
+  =aspnet:*=.
+- *Not a finding:* a legacy file's named =USER app=. A named non-root =USER= in a project whose
+  existing runtime stages use the named form — matching the project, not drift (Calibration).
 - *Precedent:* none yet
 
 ** DK-015 — No =USER root= in a production runtime stage
@@ -265,10 +292,11 @@ severity unless the entry states otherwise.
 ** DK-021 — No dev tooling in a production stage
 
 - *Severity:* Bug
-- *Applies to:* all production Dockerfiles
-- *Rule:* Dev tooling (=dotnet-ef=, =dotnet watch=, debugging symbols, IDE bridges) in a production
-  stage — bloats image and surface area.
-- *Not a finding:* none.
+- *Applies to:* all production Dockerfiles, every toolchain; the named tools are the .NET ones
+- *Rule:* Dev tooling (for .NET: =dotnet-ef=, =dotnet watch=; for any toolchain: debugging symbols,
+  IDE bridges) in a production stage — bloats image and surface area.
+- *Not a finding:* none. On a non-.NET image the .NET tools named here have no subject; that
+  toolchain's own dev tooling is what the rule grades there (Calibration).
 - *Precedent:* none yet
 
 ** DK-022 — =HEALTHCHECK= is opt-in on Kubernetes-deployed images
@@ -283,14 +311,21 @@ severity unless the entry states otherwise.
 
 * BuildKit features
 
-** DK-023 — ~# syntax=docker/dockerfile:1.7~ whenever mounts are used
+** DK-023 — A =# syntax= directive whenever mounts are used, =docker/dockerfile:1.7= by default
 
 - *Severity:* Bug
 - *Applies to:* all code
-- *Rule:* ~# syntax=docker/dockerfile:1.7~ missing from a Dockerfile that uses
-  ~--mount=type=secret~ or ~--mount=type=cache~ — won't parse. Required on every production
-  Dockerfile.
-- *Not a finding:* legacy files (no BuildKit features).
+- *Rule:* =# syntax= directive missing from a Dockerfile that uses ~--mount=type=secret~ or
+  ~--mount=type=cache~. The directive pins the Dockerfile frontend version, so the file builds the
+  same on every builder rather than on whichever frontend a builder ships with, and it supplies the
+  mount syntax on a builder whose built-in frontend lacks it. A recent builder accepts and builds
+  =--mount= without the directive; that an older builder rejects the file without it is not
+  verified here. The directive carries the pin the project's existing Dockerfiles use; in a project
+  that has established none, it is ~# syntax=docker/dockerfile:1.7~ and is required on every
+  production Dockerfile.
+- *Not a finding:* legacy files (no BuildKit features). A =# syntax= pin other than =1.7= that the
+  project's existing Dockerfiles use — matching the project, not drift (Calibration; DK-025 grades
+  the pin's age). The directive under CM-003 — a parser directive is not a comment (DK-056).
 - *Precedent:* none yet
 
 ** DK-024 — No unused =# syntax= directive
@@ -302,12 +337,14 @@ severity unless the entry states otherwise.
 - *Not a finding:* none.
 - *Precedent:* none yet
 
-** DK-025 — =# syntax= pinned to =1.7= or newer
+** DK-025 — =# syntax= pinned no older than the project's pin, =1.7= by default
 
 - *Severity:* Smell
 - *Applies to:* new Dockerfiles
-- *Rule:* ~# syntax=~ pinned to a version older than =1.7= on a new Dockerfile.
-- *Not a finding:* none.
+- *Rule:* ~# syntax=~ on a new Dockerfile pinned to a version older than the one the project's
+  existing Dockerfiles use, or, in a project that has established none, older than =1.7=.
+- *Not a finding:* a new Dockerfile carrying the pin the project's existing Dockerfiles use —
+  matching the project, not drift (Calibration).
 - *Precedent:* none yet
 
 * Multi-stage
@@ -324,9 +361,12 @@ severity unless the entry states otherwise.
 ** DK-027 — Runtime stage COPYs =/publish=
 
 - *Severity:* Bug
-- *Applies to:* all code
-- *Rule:* Build stage runs publish but the runtime stage doesn't ~COPY --from=build /publish ./~.
-- *Not a finding:* none.
+- *Applies to:* Dockerfiles that build .NET projects with =dotnet publish=
+- *Rule:* Build stage runs publish but the runtime stage doesn't ~COPY --from=build /publish ./~
+  (or the publish output path and stage name the project's existing Dockerfiles use).
+- *Not a finding:* a Dockerfile that runs no =dotnet publish= — no subject (Calibration). A
+  publish output path or build-stage name other than =/publish= / =build= that the project's
+  existing Dockerfiles use, copied consistently — matching the project, not drift.
 - *Precedent:* none yet
 
 ** DK-028 — ~COPY --from=<stage>~ targets exist
@@ -343,7 +383,9 @@ severity unless the entry states otherwise.
 - *Applies to:* dev images
 - *Rule:* Multi-stage on a dev image (the dev pattern is single-stage; multi-stage defeats the
   =docker watch= workflow). (Stated under both Multi-stage and Dev-image discipline; one rule here.)
-- *Not a finding:* a multi-stage dev image with an explicit justification.
+- *Not a finding:* a multi-stage dev image the writer's plan records as put to Max at
+  =mz-dockerfile-writer='s Gate 1, with Max choosing it. A justifying comment in the Dockerfile is
+  never that justification; it is itself a CM-003 finding (DK-056).
 - *Precedent:* none yet
 
 * Entrypoint discipline
@@ -357,13 +399,15 @@ severity unless the entry states otherwise.
 - *Not a finding:* none.
 - *Precedent:* none yet
 
-** DK-031 — Entrypoint scripts are COPYed ~--chmod=0755~
+** DK-031 — Entrypoint scripts are executable, ~--chmod=0755~ on the COPY by default
 
 - *Severity:* Bug
 - *Applies to:* all code
 - *Rule:* Entrypoint script COPYed without ~--chmod=0755~ and no subsequent =RUN chmod +x= — won't
-  execute. House shape is ~--chmod=0755~ on the COPY, no separate =chmod= step.
-- *Not a finding:* none.
+  execute. The shape is the one the project's existing Dockerfiles use; in a project that has
+  established none, it is ~--chmod=0755~ on the COPY, no separate =chmod= step.
+- *Not a finding:* a separate =RUN chmod +x= step in a project whose existing Dockerfiles use that
+  form — matching the project, not drift (Calibration).
 - *Precedent:* none yet
 
 ** DK-032 — Entrypoint scripts live beside their Dockerfile
@@ -385,11 +429,15 @@ severity unless the entry states otherwise.
 ** DK-034 — nginx runtime config renders from =/docker-entrypoint.d/=
 
 - *Severity:* Smell
-- *Applies to:* all code
+- *Applies to:* web images on an =nginx-unprivileged:*= base that render runtime config
 - *Rule:* Runtime config rendering not in =/docker-entrypoint.d/= on an =nginx-unprivileged:*= base
   — a wrapper entrypoint instead. The base auto-runs scripts there before nginx starts; no wrapper
-  =ENTRYPOINT= needed.
-- *Not a finding:* a numeric prefix on the render-config script (for example =40-=) — house style.
+  =ENTRYPOINT= needed. Where the project's existing web images render config another way, that
+  mechanism is the bar; =/docker-entrypoint.d/= is the default only where the project has
+  established none.
+- *Not a finding:* a numeric prefix on the render-config script (for example =40-=) — house style. A
+  web image on another base or web server — no subject (Calibration). A render mechanism the
+  project's existing web images use — matching the project, not drift.
 - *Precedent:* none yet
 
 ** DK-035 — Migration entrypoints validate required env vars
@@ -411,9 +459,12 @@ severity unless the entry states otherwise.
 
 - *Severity:* Bug
 - *Applies to:* all code
-- *Rule:* An =ARG= (for example =ARG DOTNET_VERSION=) removed while the pipeline passes it as
-  ~--build-arg DOTNET_VERSION=...~ (check the pipeline) — the pipeline build fails on an unknown
-  ARG.
+- *Rule:* An =ARG= removed while the pipeline passes it as ~--build-arg <name>=...~ (check the
+  pipeline) — the builder silently ignores a =--build-arg= the Dockerfile does not declare, so the
+  value the pipeline means to set (a base-image version, a feed URL) no longer takes effect, the
+  build still succeeds, and nothing reports it. =ARG DOTNET_VERSION= with
+  ~--build-arg DOTNET_VERSION=...~ is an example only; the rule holds for any build =ARG= in any
+  toolchain.
 - *Not a finding:* the =ARG='s default literal.
 - *Precedent:* none yet
 
@@ -437,13 +488,13 @@ severity unless the entry states otherwise.
 ** DK-039 — The EF bundle output path is fixed
 
 - *Severity:* Bug
-- *Applies to:* all code
+- *Applies to:* Dockerfiles that bake an EF Core migration bundle
 - *Rule:* The EF bundle output path (for example =/publish/efbundle=) renamed — the migration
   entrypoint won't find the bundle. The build stage runs
   =dotnet ef migrations bundle --no-build --output /publish/efbundle=; ~COPY --from=build /publish ./~
   lands it at =/app/efbundle=, which the chart's migration Job entrypoint references. Renaming
   requires the matching entrypoint and chart change.
-- *Not a finding:* none.
+- *Not a finding:* a Dockerfile that bakes no EF Core migration bundle — no subject (Calibration).
 - *Precedent:* none yet
 
 ** DK-040 — Build context matches what the pipeline passes
@@ -457,33 +508,43 @@ severity unless the entry states otherwise.
 
 * Static-asset / nginx-unprivileged
 
-** DK-041 — Web images use =nginxinc/nginx-unprivileged:*=
+** DK-041 — Web images use the project's non-root web base, =nginxinc/nginx-unprivileged:*= by default
 
 - *Severity:* Smell
-- *Applies to:* all code
-- *Rule:* Web image using =nginx:*= instead of =nginxinc/nginx-unprivileged:*= — requires root
-  configuration; use the unprivileged base (=<version>-alpine=).
-- *Not a finding:* none.
+- *Applies to:* nginx-based web images
+- *Rule:* Web image using =nginx:*= instead of the non-root web base the project's existing web
+  images use — requires root configuration. In a project that has established none, use the
+  unprivileged base, =nginxinc/nginx-unprivileged:*= (=<version>-alpine=).
+- *Not a finding:* a web image on the non-root web base the project's existing web images use —
+  matching the project, not drift (Calibration). A web image on a web server other than nginx — no
+  subject.
 - *Precedent:* none yet
 
 ** DK-042 — Web images needing runtime config ship the render-config script
 
 - *Severity:* Bug
-- *Applies to:* all code
-- *Rule:* Web image missing a render-config script in =/docker-entrypoint.d/= (for example
-  =/docker-entrypoint.d/40-render-config.sh=) when runtime config is needed — the bundle ships
-  without =config.json=.
-- *Not a finding:* none.
+- *Applies to:* nginx-based web images that need runtime config
+- *Rule:* Web image missing the runtime-config render step when runtime config is needed — the
+  bundle ships without =config.json=. The step takes the mechanism the project's existing web images
+  use; in a project that has established none, it is a render-config script in
+  =/docker-entrypoint.d/= (for example =/docker-entrypoint.d/40-render-config.sh=).
+- *Not a finding:* a render step through the mechanism the project's existing web images use —
+  matching the project, not drift (Calibration). A web image on a web server other than nginx — no
+  subject.
 - *Precedent:* none yet
 
 ** DK-043 — Web images COPY =nginx.conf= to =/etc/nginx/conf.d/default.conf=
 
 - *Severity:* Bug
-- *Applies to:* all code
+- *Applies to:* nginx-based web images
 - *Rule:* Web image missing the =nginx.conf= COPY to =/etc/nginx/conf.d/default.conf= — the default
   config doesn't know about SPA fallback or =/config.json= cache rules. Published assets go to
-  =/usr/share/nginx/html=.
-- *Not a finding:* none.
+  =/usr/share/nginx/html=. Where the project's existing web images place their nginx config or
+  assets elsewhere, that placement is the bar; these paths are the default only where the project
+  has established none.
+- *Not a finding:* an nginx config carrying the SPA fallback and cache rules at the place the
+  project's existing web images put it — matching the project, not drift (Calibration). A web image
+  on a web server other than nginx — no subject.
 - *Precedent:* none yet
 
 ** DK-044 — =EXPOSE 8080= on =nginx-unprivileged:*=
@@ -511,12 +572,14 @@ severity unless the entry states otherwise.
 ** DK-046 — Dev images translate the feed token to the credential provider's env at start
 
 - *Severity:* Bug
-- *Applies to:* dev images
+- *Applies to:* dev images that restore NuGet packages from an authenticated feed through the NuGet
+  credential provider (Azure Artifacts and the like)
 - *Rule:* Dev image needing private-feed auth without an =ENTRYPOINT= calling a =dev-entrypoint.sh=
   or an analogous PAT-to-env translation — the credential provider can't auth. The entrypoint
   exports the feed-endpoints variable (for Azure Artifacts, =VSS_NUGET_EXTERNAL_FEED_ENDPOINTS=)
   from the feed token so =dotnet watch= restores authenticate.
-- *Not a finding:* none.
+- *Not a finding:* a dev image that restores no NuGet packages from an authenticated feed — no
+  subject (Calibration).
 - *Precedent:* none yet
 
 ** DK-047 — Dev entrypoint validates the feed token
@@ -544,9 +607,11 @@ severity unless the entry states otherwise.
 
 - *Severity:* Smell
 - *Applies to:* new Dockerfiles
-- *Rule:* New Dockerfile diverging from the per-workload split (=api.Dockerfile=, =web.Dockerfile=,
-  =migrate.Dockerfile=).
-- *Not a finding:* none.
+- *Rule:* New Dockerfile diverging from the Dockerfile layout and naming the project's existing
+  Dockerfiles use. In a project that has established none, the default is the per-workload split
+  (=api.Dockerfile=, =web.Dockerfile=, =migrate.Dockerfile=).
+- *Not a finding:* a new Dockerfile that follows the layout and naming the project's existing
+  Dockerfiles use — matching the project, not drift (Calibration).
 - *Precedent:* none yet
 
 ** DK-050 — Tool installs are version-pinned
@@ -572,15 +637,17 @@ severity unless the entry states otherwise.
 
 - =TODO= / =FIXME= / =HACK= — CM-001.
 - Commented-out lines — CM-002.
-- No comments at all — CM-003.
+- No comments at all — CM-003, restated for Dockerfiles and their entrypoint scripts in DK-056.
 
 ** DK-052 — Long =VSS_NUGET_EXTERNAL_FEED_ENDPOINTS= JSON uses escape-newline continuation
 
 - *Severity:* Suggestion
-- *Applies to:* all code
+- *Applies to:* Dockerfiles that authenticate to Azure Artifacts through the NuGet credential
+  provider
 - *Rule:* Long inline ~VSS_NUGET_EXTERNAL_FEED_ENDPOINTS=...~ JSON without escape-newline
   continuation — the continued shape is intentionally hard to misread.
-- *Not a finding:* none.
+- *Not a finding:* a Dockerfile that sets no =VSS_NUGET_EXTERNAL_FEED_ENDPOINTS= — no subject
+  (Calibration).
 - *Precedent:* none yet
 
 ** DK-053 — =COPY --link= is consistent within a file
@@ -590,6 +657,23 @@ severity unless the entry states otherwise.
 - *Rule:* =--link= flag on =COPY= (=COPY --link ...=) — both styles are acceptable; inconsistency
   within a single file is the finding, not a project-wide one.
 - *Not a finding:* the flag's presence or absence in isolation.
+- *Precedent:* none yet
+
+** DK-056 — CM-003 in Dockerfiles and their entrypoint scripts, directives excepted
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only, in Dockerfiles and the entrypoint scripts they COPY
+- *Rule:* CM-003 applies — an explanatory =#= line in a Dockerfile, and an explanatory =#= line in
+  an entrypoint script it COPYs (=*-entrypoint.sh=, a script under =/docker-entrypoint.d/=), are
+  both comments here. Name the stage, the script, or the variable so the step reads without one,
+  with design rationale moved to the pull-request description or the issue.
+- *Not a finding:* one carve-out, and no other. A directive is not a comment for this rule: a
+  Dockerfile parser directive (~# syntax=...~, ~# escape=...~, ~# check=...~), or a tool directive
+  such as ~# hadolint ignore=...~ in a Dockerfile or ~# shellcheck disable=...~ in an entrypoint
+  script, or an entrypoint script's first-line interpreter directive (=#!/bin/sh=,
+  =#!/usr/bin/env bash=). Whether the warning a tool directive suppresses was justified is graded
+  on its own, not under CM-003. The =# syntax= directive itself is graded by DK-023, DK-024 and
+  DK-025.
 - *Precedent:* none yet
 
 * Writer conventions (no reviewer rule yet)
@@ -604,13 +688,17 @@ severity unless the entry states otherwise.
 - *Not a finding:* none.
 - *Precedent:* none yet
 
-** DK-055 — Base-image versions are =ARG=-parameterized on multi-stage images
+** DK-055 — Base-image versions on multi-stage images follow the project's form, =ARG=-parameterized by default
 
 - *Severity:* Smell
 - *Applies to:* new multi-stage Dockerfiles
-- *Rule:* ~ARG DOTNET_VERSION=<version>~ (or the analogous =NODE_VERSION= / =JAVA_VERSION=)
+- *Rule:* Base-image versions on a new multi-stage image set the way the project's existing
+  Dockerfiles set them. In a project that has established none, the default is
+  ~ARG DOTNET_VERSION=<version>~ (or the analogous =NODE_VERSION= / =JAVA_VERSION=)
   parameterization on every multi-stage image; both build and runtime stages reference
   =${DOTNET_VERSION}=. The default is committed in the file; the pipeline may override via
   =--build-arg=.
-- *Not a finding:* the default literal itself.
+- *Not a finding:* the default literal itself. Literal base tags, or another =ARG= name, on a new
+  multi-stage image in a project whose existing Dockerfiles use that form — matching the project,
+  not drift (Calibration).
 - *Precedent:* none yet

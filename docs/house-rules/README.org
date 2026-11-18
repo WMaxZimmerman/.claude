@@ -14,12 +14,12 @@ section "The house-rules registry".
 | [[file:blazor.org][blazor.org]] | Blazor house rules (BZ) | 86 |
 | [[file:common.org][common.org]] | Common house rules (CM) | 11 |
 | [[file:csharp.org][csharp.org]] | C# / .NET house rules (CS) | 107 |
-| [[file:dockerfile.org][dockerfile.org]] | Dockerfile house rules (DK) | 55 |
-| [[file:helm-chart.org][helm-chart.org]] | Helm chart house rules (HC) | 59 |
+| [[file:dockerfile.org][dockerfile.org]] | Dockerfile house rules (DK) | 56 |
+| [[file:helm-chart.org][helm-chart.org]] | Helm chart house rules (HC) | 60 |
 | [[file:pipeline.org][pipeline.org]] | Azure Pipelines house rules (PL) | 58 |
 | [[file:python.org][python.org]] | Python house rules (PY) | 3 |
 | [[file:terraform.org][terraform.org]] | Terraform house rules (TF) | 31 |
-| Total | | 500 |
+| Total | | 502 |
 
 * Agent and skill file house rules (AG)
 
@@ -357,15 +357,15 @@ section "The house-rules registry".
 - [[file:dockerfile.org::*DK-020 — apt lists cleaned in the same =RUN=][DK-020]] — apt lists cleaned in the same =RUN=
 - [[file:dockerfile.org::*DK-021 — No dev tooling in a production stage][DK-021]] — No dev tooling in a production stage
 - [[file:dockerfile.org::*DK-022 — =HEALTHCHECK= is opt-in on Kubernetes-deployed images][DK-022]] — =HEALTHCHECK= is opt-in on Kubernetes-deployed images
-- [[file:dockerfile.org::*DK-023 — ~# syntax=docker/dockerfile:1.7~ whenever mounts are used][DK-023]] — ~# syntax=docker/dockerfile:1.7~ whenever mounts are used
+- [[file:dockerfile.org::*DK-023 — A =# syntax= directive whenever mounts are used, =docker/dockerfile:1.7= by default][DK-023]] — A =# syntax= directive whenever mounts are used, =docker/dockerfile:1.7= by default
 - [[file:dockerfile.org::*DK-024 — No unused =# syntax= directive][DK-024]] — No unused =# syntax= directive
-- [[file:dockerfile.org::*DK-025 — =# syntax= pinned to =1.7= or newer][DK-025]] — =# syntax= pinned to =1.7= or newer
+- [[file:dockerfile.org::*DK-025 — =# syntax= pinned no older than the project's pin, =1.7= by default][DK-025]] — =# syntax= pinned no older than the project's pin, =1.7= by default
 - [[file:dockerfile.org::*DK-026 — Production images are multi-stage][DK-026]] — Production images are multi-stage
 - [[file:dockerfile.org::*DK-027 — Runtime stage COPYs =/publish=][DK-027]] — Runtime stage COPYs =/publish=
 - [[file:dockerfile.org::*DK-028 — ~COPY --from=<stage>~ targets exist][DK-028]] — ~COPY --from=<stage>~ targets exist
 - [[file:dockerfile.org::*DK-029 — Dev images stay single-stage][DK-029]] — Dev images stay single-stage
 - [[file:dockerfile.org::*DK-030 — Exec-form =ENTRYPOINT= and =CMD=][DK-030]] — Exec-form =ENTRYPOINT= and =CMD=
-- [[file:dockerfile.org::*DK-031 — Entrypoint scripts are COPYed ~--chmod=0755~][DK-031]] — Entrypoint scripts are COPYed ~--chmod=0755~
+- [[file:dockerfile.org::*DK-031 — Entrypoint scripts are executable, ~--chmod=0755~ on the COPY by default][DK-031]] — Entrypoint scripts are executable, ~--chmod=0755~ on the COPY by default
 - [[file:dockerfile.org::*DK-032 — Entrypoint scripts live beside their Dockerfile][DK-032]] — Entrypoint scripts live beside their Dockerfile
 - [[file:dockerfile.org::*DK-033 — =CMD= targets exist in the final image][DK-033]] — =CMD= targets exist in the final image
 - [[file:dockerfile.org::*DK-034 — nginx runtime config renders from =/docker-entrypoint.d/=][DK-034]] — nginx runtime config renders from =/docker-entrypoint.d/=
@@ -375,7 +375,7 @@ section "The house-rules registry".
 - [[file:dockerfile.org::*DK-038 — Entrypoint moves travel with the chart Job][DK-038]] — Entrypoint moves travel with the chart Job
 - [[file:dockerfile.org::*DK-039 — The EF bundle output path is fixed][DK-039]] — The EF bundle output path is fixed
 - [[file:dockerfile.org::*DK-040 — Build context matches what the pipeline passes][DK-040]] — Build context matches what the pipeline passes
-- [[file:dockerfile.org::*DK-041 — Web images use =nginxinc/nginx-unprivileged:*=][DK-041]] — Web images use =nginxinc/nginx-unprivileged:*=
+- [[file:dockerfile.org::*DK-041 — Web images use the project's non-root web base, =nginxinc/nginx-unprivileged:*= by default][DK-041]] — Web images use the project's non-root web base, =nginxinc/nginx-unprivileged:*= by default
 - [[file:dockerfile.org::*DK-042 — Web images needing runtime config ship the render-config script][DK-042]] — Web images needing runtime config ship the render-config script
 - [[file:dockerfile.org::*DK-043 — Web images COPY =nginx.conf= to =/etc/nginx/conf.d/default.conf=][DK-043]] — Web images COPY =nginx.conf= to =/etc/nginx/conf.d/default.conf=
 - [[file:dockerfile.org::*DK-044 — =EXPOSE 8080= on =nginx-unprivileged:*=][DK-044]] — =EXPOSE 8080= on =nginx-unprivileged:*=
@@ -388,8 +388,9 @@ section "The house-rules registry".
 - [[file:dockerfile.org::*DK-051 — One concern per =RUN=][DK-051]] — One concern per =RUN=
 - [[file:dockerfile.org::*DK-052 — Long =VSS_NUGET_EXTERNAL_FEED_ENDPOINTS= JSON uses escape-newline continuation][DK-052]] — Long =VSS_NUGET_EXTERNAL_FEED_ENDPOINTS= JSON uses escape-newline continuation
 - [[file:dockerfile.org::*DK-053 — =COPY --link= is consistent within a file][DK-053]] — =COPY --link= is consistent within a file
+- [[file:dockerfile.org::*DK-056 — CM-003 in Dockerfiles and their entrypoint scripts, directives excepted][DK-056]] — CM-003 in Dockerfiles and their entrypoint scripts, directives excepted
 - [[file:dockerfile.org::*DK-054 — =.dockerignore= at the build-context root][DK-054]] — =.dockerignore= at the build-context root
-- [[file:dockerfile.org::*DK-055 — Base-image versions are =ARG=-parameterized on multi-stage images][DK-055]] — Base-image versions are =ARG=-parameterized on multi-stage images
+- [[file:dockerfile.org::*DK-055 — Base-image versions on multi-stage images follow the project's form, =ARG=-parameterized by default][DK-055]] — Base-image versions on multi-stage images follow the project's form, =ARG=-parameterized by default
 
 * Helm chart house rules (HC)
 
@@ -416,10 +417,10 @@ section "The house-rules registry".
 - [[file:helm-chart.org::*HC-021 — Requests never exceed limits; limits imply requests][HC-021]] — Requests never exceed limits; limits imply requests
 - [[file:helm-chart.org::*HC-022 — Container ports are named][HC-022]] — Container ports are named
 - [[file:helm-chart.org::*HC-023 — Service =targetPort= references a port name][HC-023]] — Service =targetPort= references a port name
-- [[file:helm-chart.org::*HC-024 — Every resource sets =metadata.namespace: {{ .Release.Namespace }}=][HC-024]] — Every resource sets =metadata.namespace: {{ .Release.Namespace }}=
+- [[file:helm-chart.org::*HC-024 — Resource namespaces follow the project's convention, ={{ .Release.Namespace }}= by default][HC-024]] — Resource namespaces follow the project's convention, ={{ .Release.Namespace }}= by default
 - [[file:helm-chart.org::*HC-025 — Labels agree across metadata, selector, and pod template][HC-025]] — Labels agree across metadata, selector, and pod template
-- [[file:helm-chart.org::*HC-026 — Label key is =app: <service>-<workload>=][HC-026]] — Label key is =app: <service>-<workload>=
-- [[file:helm-chart.org::*HC-027 — =HTTPRoute=, not =Ingress=][HC-027]] — =HTTPRoute=, not =Ingress=
+- [[file:helm-chart.org::*HC-026 — Label key follows the project's convention, =app: <service>-<workload>= by default][HC-026]] — Label key follows the project's convention, =app: <service>-<workload>= by default
+- [[file:helm-chart.org::*HC-027 — Routes use the project's routing API, =HTTPRoute= by default][HC-027]] — Routes use the project's routing API, =HTTPRoute= by default
 - [[file:helm-chart.org::*HC-028 — =HTTPRoute= is =gateway.networking.k8s.io/v1=][HC-028]] — =HTTPRoute= is =gateway.networking.k8s.io/v1=
 - [[file:helm-chart.org::*HC-029 — =parentRefs= point at the repo's gateway][HC-029]] — =parentRefs= point at the repo's gateway
 - [[file:helm-chart.org::*HC-030 — =PathPrefix= matches, longer prefixes first][HC-030]] — =PathPrefix= matches, longer prefixes first
@@ -440,18 +441,19 @@ section "The house-rules registry".
 - [[file:helm-chart.org::*HC-045 — Image =repository= matches the images the build pushes][HC-045]] — Image =repository= matches the images the build pushes
 - [[file:helm-chart.org::*HC-046 — Deploy namespace matches what the chart expects][HC-046]] — Deploy namespace matches what the chart expects
 - [[file:helm-chart.org::*HC-047 — Mirror the reference chart's template rather than inlining a variant][HC-047]] — Mirror the reference chart's template rather than inlining a variant
-- [[file:helm-chart.org::*HC-048 — Template names follow =<workload>-<kind>.yaml=][HC-048]] — Template names follow =<workload>-<kind>.yaml=
+- [[file:helm-chart.org::*HC-048 — Template names follow the project's convention, =<workload>-<kind>.yaml= by default][HC-048]] — Template names follow the project's convention, =<workload>-<kind>.yaml= by default
 - [[file:helm-chart.org::*HC-049 — No cluster-scoped resources in a service chart][HC-049]] — No cluster-scoped resources in a service chart
 - [[file:helm-chart.org::*HC-050 — New hook shapes need explanation][HC-050]] — New hook shapes need explanation
 - [[file:helm-chart.org::*HC-051 — CRDs are confirmed installed out-of-band][HC-051]] — CRDs are confirmed installed out-of-band
 - [[file:helm-chart.org::*HC-052 — Whitespace control on helpers and partials][HC-052]] — Whitespace control on helpers and partials
 - [[file:helm-chart.org::*HC-053 — String values with special characters are =| quote=d][HC-053]] — String values with special characters are =| quote=d
 - [[file:helm-chart.org::*HC-054 — No hardcoded environment names in templates][HC-054]] — No hardcoded environment names in templates
+- [[file:helm-chart.org::*HC-060 — CM-003 in chart templates and chart YAML, tool directives excepted][HC-060]] — CM-003 in chart templates and chart YAML, tool directives excepted
 - [[file:helm-chart.org::*HC-055 — =values.yaml= ordering and =camelCase= keys][HC-055]] — =values.yaml= ordering and =camelCase= keys
-- [[file:helm-chart.org::*HC-056 — Env vars are =<APP>__<SECTION>__<KEY>=][HC-056]] — Env vars are =<APP>__<SECTION>__<KEY>=
+- [[file:helm-chart.org::*HC-056 — Env vars for .NET workloads are =<APP>__<SECTION>__<KEY>=][HC-056]] — Env vars for .NET workloads are =<APP>__<SECTION>__<KEY>=
 - [[file:helm-chart.org::*HC-057 — =envFrom= order: =configMapRef= then =secretRef=][HC-057]] — =envFrom= order: =configMapRef= then =secretRef=
 - [[file:helm-chart.org::*HC-058 — Probe shape: TCP by default, =httpGet= for a known static path][HC-058]] — Probe shape: TCP by default, =httpGet= for a known static path
-- [[file:helm-chart.org::*HC-059 — Resource names are =<service>-<workload>=][HC-059]] — Resource names are =<service>-<workload>=
+- [[file:helm-chart.org::*HC-059 — Resource names follow the project's convention, =<service>-<workload>= by default][HC-059]] — Resource names follow the project's convention, =<service>-<workload>= by default
 
 * Azure Pipelines house rules (PL)
 

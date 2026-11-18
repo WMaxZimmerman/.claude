@@ -55,8 +55,11 @@ Pydantic, SQLModel) and the shared Python packages they depend on (=*.py=, =pypr
   In an Alembic migration, the content Alembic generates stays exactly as Alembic writes it: a line
   added to its header, or a generated line removed or reworded, is the finding.
 - *Not a finding:* two carve-outs, and no others. First, a tooling directive — a =#= line that
-  instructs a tool, such as =# noqa=, =# type: ignore=, or =# pyright:= — is not a comment for this
-  rule; whether the warning it suppresses was justified is graded on its own, not under CM-003.
+  instructs a tool, such as =# noqa=, =# type: ignore=, or =# pyright:=, or an interpreter
+  directive: a module's first-line =#!/usr/bin/env python3=, or an encoding declaration on the
+  first or second line (=# -*- coding: utf-8 -*-=, =# coding: utf-8=,
+  ~# vim: set fileencoding=utf-8 :~) — is not a comment for this rule; whether the warning a
+  directive suppresses was justified is graded on its own, not under CM-003.
   Second, Alembic-generated migration content: the module docstring from the =script.py.mako=
   template (message, =Revision ID=, =Revises=, =Create Date=), the
   =# revision identifiers, used by Alembic.= comment, and the command-block marker comments

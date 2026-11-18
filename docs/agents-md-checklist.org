@@ -311,8 +311,12 @@ build, test, lint, and format commands, the directory each runs from, and where 
 
 ** containers
 
+Read by: mz-dockerfile-writer, mz-dockerfile-reviewer, mz-helm-chart-writer, mz-helm-chart-reviewer.
+
 - The Dockerfile paths for production, development, and test images, which file is canonical per
   image kind, and whether one file is parameterized per kind.
+- Any legacy Dockerfile, named, so the Dockerfile writer and the Dockerfile reviewer treat it as
+  legacy. With none named, no file is treated as legacy.
 - The build context, every build argument by name and what it selects, every build secret
   identifier with its mount target, and the target stage names the pipeline and compose build.
 - The image name and tag format pushed, the registry and project, and which pipeline owns build,
@@ -321,7 +325,11 @@ build, test, lint, and format commands, the directory each runs from, and where 
   chart consumes.
 - The listening ports and the chart or compose field each must match.
 - The non-root user convention on shipped stages, or that images run as root today.
-- The compose file paths, and whether compose authoring belongs to the Dockerfile writer.
+- The compose file paths, whether compose authoring belongs to the Dockerfile writer, and whether
+  compose review belongs to the Dockerfile reviewer. With neither stated, the Dockerfile writer
+  and reviewer surface compose impact and leave the compose files alone.
+- The Dockerfile linter and the chart linter the repo runs beyond =docker buildx build --check= and
+  =helm lint= (=hadolint=, =kubeconform=, or another), each with the form it runs in.
 - The ignore-file locations and which build context each governs.
 - Any test-gate stage's deliberate shell discipline, per file.
 - The chart tree paths, which resources belong in each, and whether a separate provisioning chart
@@ -337,11 +345,13 @@ build, test, lint, and format commands, the directory each runs from, and where 
 - Whether workload identity is the default for cloud-backed services, and where the federated
   credential lives.
 - The health-check paths and the resource request and limit defaults.
-- Which routing resource is the house standard, =HTTPRoute= or =Ingress=; the gateway the routes
-  attach to and the path-prefix convention.
+- The routing resource the project uses, =HTTPRoute= or =Ingress=; the gateway or ingress class the
+  routes attach to and the path-prefix convention.
 - The messaging-topic resource version, operator label, namespace, and defaults, if topics exist.
 - The deploy mechanism, chart name and version scheme, chart registry, and the
   branch-to-environment mapping with which environments are human-gated.
+- The release name and namespace the deploy installs under, per environment, so a local render
+  matches the deploy.
 - Any deploy flag the contract forbids, with the reason, and the wait timeout a cold rollout
   needs.
 
