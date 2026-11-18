@@ -267,6 +267,14 @@ build, test, lint, and format commands, the directory each runs from, and where 
 - The shared package for helpers that are not service-specific.
 - For a tool: the entry-point invocation other repos depend on.
 - The package manager, and that agents surface dependency commands rather than run them.
+- The interpreter or runner the test, lint, and type-check commands go through — a virtual
+  environment path, or a runner form that does not sync the environment as a side effect. Without
+  it the agents look for a =.venv= at the directory the command runs from; when there is none, the
+  writers ask, and the debugger says so and diagnoses from reading.
+- The type-check command, if the repo runs one. Without it the agents use the type checker the
+  repo configures, and with none there are no type-check rules.
+- The test stack the suite established — the test runner and its plugins and the mocking library —
+  where the test configuration and declared test dependencies do not already show it.
 - The test layout, whether split by tier or flat, and which tiers the pull-request gate runs.
 - The shared testing-fixtures package and the local re-export names for the engine and session.
 - The marker names for end-to-end and integration tests, the HTTP-mocking library already in use,
@@ -283,6 +291,9 @@ build, test, lint, and format commands, the directory each runs from, and where 
 - Per migration environment: the service, its configuration and environment files, its versions
   folder, its database and database engine, and how the connection resolves. The engine matters
   because enum handling, identifier casing, and error codes differ between them.
+- Per migration environment: which database counts as local, and how a reader can tell. Without
+  it the migration writer applies nothing unless the connection it reads names a host on the
+  machine or a SQLite file inside the repo, and halts to ask otherwise.
 - The recipe that starts the local database, the autogenerate recipe, the local upgrade and
   downgrade commands, and the integration-test command whose fixtures apply migrations.
 - Any migration recipe that applies through a deploy path or one-off migrator container, named so

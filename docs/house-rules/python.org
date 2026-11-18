@@ -38,7 +38,29 @@ Pydantic, SQLModel) and the shared Python packages they depend on (=*.py=, =pypr
 - *Rule:* =common.org= CM-010 (a local copy of something the shared layer already provides),
   in Python: a partial update is ~model_dump(exclude_unset=True)~ passed through the
   repo's shared partial-update helper. Hand-written field-by-field assignment in its place is a
-  local copy of that helper. =mz-python-reviewer= grades this Smell; the Bug here follows CM-010.
+  local copy of that helper. The Bug follows CM-010.
 - *Not a finding:* a local form the writer's plan records as put to Max, with Max choosing it. A
   PUT endpoint, which is strict replacement and takes no partial update at all.
+- *Precedent:* none yet
+
+* Comments
+
+** PY-003 — CM-003 in Python constructs, including docstrings
+
+- *Severity:* Smell
+- *Applies to:* new or touched code only, production and test code
+- *Rule:* CM-003 applies — explanatory =#= lines, and docstrings on a module, class, function, or
+  method, are both comments here. Recommend a more descriptive name or extracting a small
+  well-named function, with design rationale moved to the pull-request description or the issue.
+  In an Alembic migration, the content Alembic generates stays exactly as Alembic writes it: a line
+  added to its header, or a generated line removed or reworded, is the finding.
+- *Not a finding:* two carve-outs, and no others. First, a tooling directive — a =#= line that
+  instructs a tool, such as =# noqa=, =# type: ignore=, or =# pyright:= — is not a comment for this
+  rule; whether the warning it suppresses was justified is graded on its own, not under CM-003.
+  Second, Alembic-generated migration content: the module docstring from the =script.py.mako=
+  template (message, =Revision ID=, =Revises=, =Create Date=), the
+  =# revision identifiers, used by Alembic.= comment, and the command-block marker comments
+  autogenerate writes around the operations. A fact an operator needs goes in the pull-request
+  description, not the file. Every other docstring or comment hand-written into a migration,
+  inside =upgrade()= and =downgrade()= included, is a finding.
 - *Precedent:* none yet

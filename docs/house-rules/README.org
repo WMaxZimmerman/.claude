@@ -17,9 +17,9 @@ section "The house-rules registry".
 | [[file:dockerfile.org][dockerfile.org]] | Dockerfile house rules (DK) | 55 |
 | [[file:helm-chart.org][helm-chart.org]] | Helm chart house rules (HC) | 59 |
 | [[file:pipeline.org][pipeline.org]] | Azure Pipelines house rules (PL) | 58 |
-| [[file:python.org][python.org]] | Python house rules (PY) | 2 |
+| [[file:python.org][python.org]] | Python house rules (PY) | 3 |
 | [[file:terraform.org][terraform.org]] | Terraform house rules (TF) | 31 |
-| Total | | 498 |
+| Total | | 499 |
 
 * Agent and skill file house rules (AG)
 
@@ -517,6 +517,7 @@ section "The house-rules registry".
 
 - [[file:python.org::*PY-001 — A request or response model defined inside a =services/= package][PY-001]] — A request or response model defined inside a =services/= package
 - [[file:python.org::*PY-002 — A PATCH update written field by field instead of the shared update helper][PY-002]] — A PATCH update written field by field instead of the shared update helper
+- [[file:python.org::*PY-003 — CM-003 in Python constructs, including docstrings][PY-003]] — CM-003 in Python constructs, including docstrings
 
 * Terraform house rules (TF)
 
