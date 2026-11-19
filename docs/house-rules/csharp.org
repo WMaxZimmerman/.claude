@@ -900,6 +900,22 @@ severity on the other two.
   carry the intent.
 - *Precedent:* none yet
 
+** CS-109 — A =///= doc comment the change made false or stale, left on the member it modified
+
+- *Severity:* Smell
+- *Applies to:* touched members only, production and test code
+- *Rule:* A pre-existing =///= XML-doc comment (=<summary>=, =<remarks>=, =<param>=, =<returns>=) on
+  a member the change modifies, which the change makes false or stale — a parameter renamed or
+  removed but still documented, a summary describing behaviour the member no longer has. The
+  comment line predates the change, but the change made it false, so it is the change's finding,
+  not pre-existing drift. Fix: delete the comment (CM-003 applies; CS-027). Rewriting it to match
+  writes a new comment, which CS-027 flags.
+- *Not a finding:* A doc comment on a member the change does not modify — drift per CM-005. A doc
+  comment on a modified member that the change leaves true — CS-027's apply-to-new calibration
+  holds, and the change need not remove it. EF-generated =/// <inheritdoc />= lines in migration
+  content (Calibration).
+- *Precedent:* none yet
+
 ** CS-028 — Records are class-body, never positional
 
 - *Severity:* Smell

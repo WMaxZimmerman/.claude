@@ -93,7 +93,7 @@ Report the exact command you ran and its result lines verbatim — the lint summ
 
 The record is in `~/.claude/mz-build/containers-run-log.md`, sections "Helm" and "`--set` quoting", and "Docker" for the detection forms.
 
-**Not yet run:** kubeconform or any other chart linter; a `lookup`-or-generate secret under `helm template`; `--set` with `=` or `.` inside a value; an `http(s)` or `oci://` dependency repository; Helm 3; any repo contract's own command forms. The first use of each pastes the command as run and its actual output in the report, so the next edit of this file can record it.
+**Not yet run:** kubeconform or any other chart linter; a `lookup`-or-generate secret under `helm template`; `--set` with `=` or `.` inside a value; an `http(s)` or `oci://` dependency repository; Helm 3; any repo contract's own command forms (needs a repo contract; the probes here had none). The first use of each pastes the command as run and its actual output in the report, so the next edit of this file can record it.
 
 **Read, not run.** That `helm lint` and `helm template` contact no cluster without the flags named above; that `helm dependency build` takes the versions `Chart.lock` pins and `helm dependency update` re-resolves them and rewrites `Chart.lock`; that a dependency whose repository is an `http(s)` URL needs that repository added to Helm's local repository list first, which you never do (Forbidden); and every claim of this file's for Helm 3, where it differs from Helm 4. A dependency command that fails for a missing repository is reported with its error, and stops (When to ask).
 

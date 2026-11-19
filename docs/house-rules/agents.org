@@ -4,7 +4,8 @@
 Read with =~/.claude/docs/mz-suite.org=, which this file never overrides. Read only by
 =mz-agent-builder=, =mz-agent-auditor=, =mz-skill-builder=, and =mz-skill-auditor=. No stack
 writer or reviewer reads it, and =mz-devils-advocate= reads =angles.org= instead. Section id
-prefix: *=AG=*. Ids are never reused; the next free id is recorded in =README.org=.
+prefix: *=AG=*. Ids are never reused; the next free id is one above the highest =AG= id here and in
+=archive/=.
 
 * Scope
 
@@ -41,6 +42,9 @@ The rules for code in the repo being worked on are in =common.org= and the stack
 - *Not a finding:* A false claim the change did not write — pre-existing, file it. A statement
   explicitly framed as a plan, an intent, or a decision not yet carried out. A field carrying an
   =INCOMPLETE= marker. A claim about another repo that names what it was checked against and when.
+  A claim under a labelled "Read, not run" list in the same file that names its source —
+  documentation, general knowledge, or the suite the file was ported from — provided the file
+  states that claim as checked nowhere else.
 - *Precedent:* none yet
 
 ** AG-002 — A command written into documentation that was not run in the form written
@@ -53,7 +57,14 @@ The rules for code in the repo being worked on are in =common.org= and the stack
 - *Not a finding:* A command the contract says an agent surfaces and never runs — dependency,
   migration, deploy, schema-push — where the text says so. A command shown as an example of what
   /not/ to run, labelled as such. A command run against another repo's surface where the text
-  names the repo it was run in.
+  names the repo it was run in. A command under a labelled "Not yet run" list whose entry states
+  why it cannot be run here — the tool is not installed; its run would itself leave the machine
+  (=gh issue create=, =gh pr comment=); its run would mutate what it must not (infrastructure, a
+  database other than a local one); it needs a host, a test setup, or a remote state this machine
+  lacks (a non-Windows host, an issue or pull request the probe repository did not have); or Max
+  decided to skip the run — provided the file states it
+  as run nowhere else. An entry on that list with no such reason, whether or not the command could
+  be run here, is AG-016's finding (Smell), not this rule's.
 - *Precedent:* a validation command documented with a flag that turns warnings into errors, so
   that, as written, it fails on a warning every run emits.
 
@@ -88,7 +99,8 @@ The rules for code in the repo being worked on are in =common.org= and the stack
   native commands. An agent on Windows may have only PowerShell.
 - *Not a finding:* A command quoted from a repo's pipeline or workflow file, shown as that file's
   content rather than as an instruction to run. A shell-specific form where the text names the
-  shell it requires and why.
+  shell it requires and why. A command the file labels as the record of a past run, naming the
+  shell it ran in — unless the file also tells the reader to run that form.
 - *Precedent:* a local-reset step given as a Bash and PowerShell pair, where the Bash form used
   =&&= and the PowerShell form used =;=, so only the PowerShell form ran the second step after the
   first failed. Then a migration reset step whose PowerShell form chained with =if ($?)=: it ran
@@ -276,4 +288,17 @@ The rules for code in the repo being worked on are in =common.org= and the stack
   Never a Bug.
 - *Not a finding:* A step AG-013 grades. A step that hands the act to a named agent. The same step
   not stated plainly — AG-014 grades it.
+- *Precedent:* none yet
+
+** AG-016 — A "Not yet run" entry that states no reason
+
+- *Severity:* Smell
+- *Applies to:* new or touched lines only
+- *Rule:* An entry on a labelled "Not yet run" list states why the command cannot be run here,
+  using a reason AG-002's =Not a finding= names. An entry that states none is the finding, whether
+  or not the command could be run here. Fix: where it can be run here, run it and record what the
+  run showed; otherwise state the reason.
+- *Not a finding:* An entry that states one of those reasons — AG-002's carve-out. A listed
+  command the file also states as run elsewhere — AG-002 grades it, Bug. An entry the change did
+  not write — pre-existing, file it.
 - *Precedent:* none yet

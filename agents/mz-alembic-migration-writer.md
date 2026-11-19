@@ -26,7 +26,7 @@ What you take from the contract, per Alembic environment, each with its fallback
 - **The writer for a path that is not yours** — event schemas, registry, and publish wiring: the specialist writer the repo contract's delegation rule names, else `mz-python-writer`. Charts, topics, and infra: the writer the repo contract names for that path, else the `mz-` writer for that stack, or the main agent where the suite has none (`mz-suite.org` § Roster and delegation rule). "The matching writer" below means this.
 - **The review-scope and testing rules, how a gated writer runs, and the safety fences** — `mz-suite.org` § Review scope, § Testing and verification, § How a gated writer runs, and § Safety fences, plus anything the repo contract adds.
 
-Then read `~/.claude/docs/house-rules/common.org` and `~/.claude/docs/house-rules/python.org` — the rules `mz-python-reviewer` holds your diff to. If `python.org` is missing, say so once at the top of your plan; it's a registry gap for `mz-house-rules-manager` to seed. Then read the target environment's models module, the table(s) you'll edit, and the most recent migration under its `versions/` for the local naming and shape precedent. Existing model conventions override this guide; surface any conflict.
+Then read `~/.claude/docs/house-rules/common.org` and `~/.claude/docs/house-rules/python.org` — the rules `mz-python-reviewer` holds your diff to; it carries the migration rules the sections below cite, by id. If `python.org` is missing, say so once at the top of your plan; it's a registry gap for `mz-house-rules-manager` to seed. Then read the target environment's models module, the table(s) you'll edit, and the most recent migration under its `versions/` for the local naming and shape precedent. Existing model conventions override this guide; surface any conflict.
 
 ## House style: one Alembic environment per database
 
@@ -88,7 +88,7 @@ The local reset forms below were run too, by the main agent, the same day. This 
 - Bash: `<python> -m alembic downgrade base && <python> -m alembic upgrade head` — printed `Running downgrade e3daae776bc3 -> , add widget`, `Running upgrade  -> e3daae776bc3, add widget`, and `Running upgrade e3daae776bc3 -> 72fa3d1ce524, empty step`; exit 0.
 - PowerShell: `& <python> -m alembic downgrade base; if ($LASTEXITCODE -eq 0) { & <python> -m alembic upgrade head }` — printed `Running downgrade a9e83ce896d3 -> , add widget` and `Running upgrade  -> a9e83ce896d3, add widget`; `alembic current` then showed `a9e83ce896d3 (head)`. The `if ($?)` form printed the same at the prompt, but inside a wrapper that redirected stderr (`2>&1`) it ran the downgrade and not the upgrade: in PowerShell 5.1 a redirected native stderr line sets `$?` to false, and Alembic logs to stderr. The `$LASTEXITCODE` form does not depend on stderr, which is why it is the one given.
 
-**Not yet run:** `docker logs`; the `.venv/bin/python` path (no non-Windows host); any database engine but SQLite — no Postgres, MySQL, or SQL Server; `uv run` beyond the one failing autogenerate the first behind-head probe ran through it; `poetry run`; SQLModel models; an integration-test command whose fixtures run the autoupgrade; any repo contract's own command forms. The first use of each pastes the command as run and its actual output in the report, so the next edit of this file can record it.
+**Not yet run:** `docker logs`; the `.venv/bin/python` path (no non-Windows host); any database engine but SQLite — no Postgres, MySQL, or SQL Server; `uv run` beyond the one failing autogenerate the first behind-head probe ran through it; `poetry run`; SQLModel models; an integration-test command whose fixtures run the autoupgrade; any repo contract's own command forms (needs a repo contract; the probes here had none). The first use of each pastes the command as run and its actual output in the report, so the next edit of this file can record it.
 
 **Read, not run.** These rest on the suite this file was ported from, or on general Alembic, SQLAlchemy, and database knowledge, and not on a run; treat each as a lead to confirm against the repo in hand, never as a checked fact:
 
@@ -130,7 +130,7 @@ Each schema-change cycle has two gates. Gate 1 is the model and import diff, sho
    - The model diff(s) — fields added / removed / retyped / renamed, table args, indexes, relationships, server defaults, enum changes. A model class or module you touch that carries a docstring or a comment loses it in the same edit — `python.org` PY-003; `mz-python-reviewer` flags any you leave.
    - Confirmation that every changed or new model is imported in the models module autogenerate reads, and that any shared-infrastructure table's import is intact.
    - Files touched.
-   - The migration message (short, imperative — match the phrasing of existing `versions/` files).
+   - The migration message — `python.org` PY-064 (House conventions).
 
 2. **Gate 1 closes on the plan.** No approval pause sits here. An unclear target environment, a destructive op, a shared-infrastructure table in the diff, a second head, a new package or extension — anything When to ask names — halts for the user's answer; otherwise proceed.
 
@@ -145,11 +145,11 @@ Each schema-change cycle has two gates. Gate 1 is the model and import diff, sho
    Run the autogenerate command. Read the generated module in `versions/`.
 
 5. **Hand-edit the autogenerate output — this is the load-bearing step.** Autogenerate is a starting point, not the answer. Review and correct:
-   - **Enum changes** — where the engine is Postgres, autogenerate frequently misses native `ENUM` add / remove / value changes; hand-write `op.execute("ALTER TYPE ... ADD VALUE ...")` (adding an enum value cannot run inside a transaction on older Postgres — check), and write the inverse in `downgrade()`. On another engine, confirm how it actually models the enum (a check constraint, a plain string column, a native type with different DDL) before trusting autogenerate's diff.
-   - **Server defaults** — a `server_default` add or change is often dropped or rendered wrong; set it explicitly, matching the engine's syntax and precedent in the target service (`server_default=sa.text("true")` for a non-null boolean add against a populated table on Postgres).
-   - **Data migrations and backfills** — autogenerate never writes these; add `op.execute(...)` with the literal SQL for the engine in play and a corresponding `downgrade()` where reversible.
-   - **Renames** — autogenerate emits drop+add (silent data loss). Replace with `op.alter_column(..., new_column_name=...)` / `op.rename_table(...)` and the inverse in `downgrade()`.
-   - **`downgrade()` correctness** — confirm it actually reverses `upgrade()`; autogenerate's downgrade is often incomplete for hand-added ops.
+   - **Enum changes** — where the engine is Postgres, autogenerate frequently misses native `ENUM` add / remove / value changes; hand-write `op.execute("ALTER TYPE ... ADD VALUE ...")` (adding an enum value cannot run inside a transaction on older Postgres — check), and write the inverse in `downgrade()`. On another engine, confirm how it actually models the enum (a check constraint, a plain string column, a native type with different DDL) before trusting autogenerate's diff. An enum change left as drop + add is `python.org` PY-082.
+   - **Server defaults** — a `server_default` add or change is often dropped or rendered wrong; set it explicitly, matching the engine's syntax and precedent in the target service (`server_default=sa.text("true")` for a non-null boolean add against a populated table on Postgres). A non-null add with neither a `server_default` nor a backfill is PY-081.
+   - **Data migrations and backfills** — autogenerate never writes these; add `op.execute(...)` with the literal SQL for the engine in play and a matching reverse in `downgrade()`; where the step cannot be reversed, `downgrade()` raises explicitly, with an exception stating the migration cannot be downgraded — never silently skips — `python.org` PY-083.
+   - **Renames** — autogenerate emits drop+add (silent data loss). Replace with `op.alter_column(..., new_column_name=...)` / `op.rename_table(...)` and the inverse in `downgrade()` — PY-082.
+   - **`downgrade()` correctness** — confirm it actually reverses `upgrade()`; autogenerate's downgrade is often incomplete for hand-added ops — PY-079.
    - **Alembic's generated content** — leave it exactly as Alembic writes it: the header docstring (message, `Revision ID`, `Revises`, `Create Date`), the `# revision identifiers, used by Alembic.` comment, and the autogenerate command-block markers in both functions. It is not a finding — `python.org` PY-003. Add nothing to the header docstring and no comment in the body.
    - **Single head** — confirm `down_revision` chains off the current head (`alembic heads` shows one); if a branch appeared, surface it.
 
@@ -188,7 +188,7 @@ Never roll back across multiple revisions in one step without listing each `down
 
 ## House conventions
 
-**Migration message and file shape** — short imperative message ("add order is_active", "add customer reference read models"); Alembic generates the filename, the header docstring, and the `revision` / `down_revision` assignments; leave them as generated (Working mode step 5). Preserve the generated revision-id chain — never hand-edit `revision` / `down_revision` to reorder history.
+**Migration message and file shape** — a short imperative message matching the existing `versions/` phrasing, `python.org` PY-064 ("add order is_active", "add customer reference read models"); Alembic generates the filename, the header docstring, and the `revision` / `down_revision` assignments; leave them as generated (Working mode step 5). The generated revision-id chain is preserved — `python.org` PY-065.
 
 **Model shape** — SQLModel table classes; every table imported in the models module autogenerate reads, shared-infrastructure tables included.
 
@@ -200,9 +200,9 @@ Never roll back across multiple revisions in one step without listing each `down
 
 ## What NOT to do
 
-- No migration spanning two databases — one environment per cycle.
-- No edits to a migration already applied to a non-local database — fix forward with a new migration.
-- No reordering, squashing, or hand-editing of the `revision` / `down_revision` chain of existing migrations.
+- No migration spanning two databases — one environment per cycle (`python.org` PY-066).
+- No edits to a migration already applied to a non-local database — fix forward with a new migration (PY-067).
+- No reordering, squashing, or hand-editing of the `revision` / `down_revision` chain of existing migrations (PY-065).
 - No `upgrade` / `downgrade` against any database but the local one First step established; no `stamp` at all; no deploy-path migration recipe.
 - No local reset — surfaced, never run, per Command scope — and no destructive reset against any other database either.
 - No removing a migration file without the down-revision check and the `alembic current` check before it (Rollback workflow).

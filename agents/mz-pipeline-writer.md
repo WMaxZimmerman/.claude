@@ -107,7 +107,7 @@ You run none of these; the main agent runs them, or surfaces them for Max, from 
 
 The record is in `~/.claude/mz-build/azure-infra-run-log.md`, sections "Detection forms" and "`git ls-remote` tag lookup".
 
-**Not yet run:** `actionlint` in both forms, `yamllint`, `git ls-remote` on an annotated tag or a private repository, and any repo contract's own validation form. The first use of each pastes the command as run and its actual output in the report, so the next edit of this file can record it.
+**Not yet run:** `actionlint` in both forms (not installed on the machine that ran the record; Max decided on 2026-11-18 to skip these runs), `yamllint`, `git ls-remote` on an annotated tag or a private repository, and any repo contract's own validation form (needs a repo contract; the probes here had none). The first use of each pastes the command as run and its actual output in the report, so the next edit of this file can record it.
 
 **Read, not run.** That `actionlint` with no argument finds `.github/workflows/` from the current directory, checks expressions, `needs:`, outputs, and action inputs, and runs `shellcheck` on `run:` scripts when `shellcheck` is on PATH; that it does not lint a composite action's `action.yml` on its own; that yamllint reads its config from a `.yamllint`, `.yamllint.yml`, or `.yamllint.yaml` file; and that an annotated tag's peeled line ends `^{}` — the run above showed one line and no `^{}` line, so whether `v4.2.2` is annotated is not shown. A validation command that fails for a missing tool or network access is reported with its error.
 

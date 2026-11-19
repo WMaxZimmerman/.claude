@@ -341,6 +341,33 @@ Confirm path-filter findings by globbing the filtered path against the repo befo
   (=uses: ./.github/workflows/<file>.yml=), which needs no checkout.
 - *Precedent:* none yet
 
+** GA-043 — The BuildKit secret id a workflow passes matches the Dockerfile's secret id
+
+- *Severity:* Bug
+- *Applies to:* all workflows that pass a BuildKit secret to an image build
+- *Rule:* A BuildKit secret id a workflow passes — the key before ~=~ in an entry of
+  =docker/build-push-action='s =secrets:=, =secret-envs:=, or =secret-files:= input, or
+  ~--secret id=<id>~ on a =docker build= step —
+  other than the id the Dockerfile's ~--mount=type=secret,id=<id>~ expects, changed on one side
+  without the other — silent build failure (the secret won't mount; a private-feed restore breaks).
+  Renaming the id is a paired change with =mz-dockerfile-writer= (DK-003); =pipeline.org= PL-038 is
+  the Azure Pipelines counterpart.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** GA-044 — A build arg a workflow passes matches an =ARG= the Dockerfile declares
+
+- *Severity:* Bug
+- *Applies to:* all workflows that pass a build arg to an image build
+- *Rule:* A build arg a workflow passes — an entry of =docker/build-push-action='s =build-args:=
+  input, or ~--build-arg <name>=...~ on a =docker build= step — under a name the Dockerfile does
+  not declare with =ARG=; or a Dockerfile =ARG= renamed or removed without the matching workflow
+  change. The value the workflow means to set no longer takes effect and the build still succeeds
+  (=dockerfile.org= DK-036, the Dockerfile side). A rename is a paired change with
+  =mz-dockerfile-writer=.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
 * Reuse and structure
 
 ** GA-026 — Reuse reusable workflows and composite actions; don't copy

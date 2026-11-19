@@ -90,7 +90,7 @@ Report the exact command you ran and its result lines verbatim — the runner's 
 
 No interactive prompt from `ng` appeared in either shell.
 
-**Not yet run:** `ng test` against a Karma project (`@angular/build:karma`) or under any `@angular-devkit/build-angular` builder; `vitest run` in a project that configures Vitest itself; `ng lint` with a lint target, one whose options set `fix` included, and `ng lint --fix`; a spec using Testing Library or the `jest-dom` matchers; a pnpm or Yarn workspace, an Nx workspace, or Angular 22 (its CLI 22.2.7 refused Node v22.22.2); any repo contract's own command forms. The first use of each pastes the command as run and its actual output in the report, so the next edit of this file can record it.
+**Not yet run:** `ng test` against a Karma project (`@angular/build:karma`) or under any `@angular-devkit/build-angular` builder; `vitest run` in a project that configures Vitest itself; `ng lint` with a lint target, one whose options set `fix` included, and `ng lint --fix`; a spec using Testing Library or the `jest-dom` matchers; a pnpm or Yarn workspace, an Nx workspace, or Angular 22 (its CLI 22.2.7 refused Node v22.22.2); any repo contract's own command forms (needs a repo contract; the probes here had none). The first use of each pastes the command as run and its actual output in the report, so the next edit of this file can record it.
 
 Never run, even on user request:
 

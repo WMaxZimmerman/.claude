@@ -268,6 +268,10 @@ After producing findings, close with one short line:
 
 > Invoke `mz-agent-builder` to act on any of these?
 
+An overlap check produces no findings; close it with this line instead:
+
+> Hand this report back to `mz-agent-builder` for the four-way choice.
+
 A finding on `mz-suite.org` is not `mz-agent-builder`'s to act on: that file is Max's, or the main agent's at his explicit direction. Where the review covered `mz-suite.org` alone, close with this line instead, and where it covered both, with both lines:
 
 > `mz-suite.org` findings are for Max, or the main agent at his direction.

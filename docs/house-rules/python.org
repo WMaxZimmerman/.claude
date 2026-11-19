@@ -1,12 +1,14 @@
 #+title: Python house rules (PY)
 
-Read with =common.org=, which applies here as well. These are rules beyond what
-=mz-python-reviewer= already states. Ids are never reused.
+Read with =common.org=, which applies here as well. Most entries are lifted from what the =mz-=
+Python agents state, keeping the severity the agent states, or the one Max set where the agent
+states none. Ids are never reused.
 
 * Scope
 
-Python service code in any repo: API applications (routes, services, schemas, models — FastAPI,
-Pydantic, SQLModel) and the shared Python packages they depend on (=*.py=, =pyproject.toml=).
+Python code in any repo: a FastAPI/SQLModel service (routes, services, schemas, models — FastAPI,
+Pydantic, SQLModel), a shared Python package, or a plain Python tool or CLI (=*.py=,
+=pyproject.toml=); the tests for any of these; and Alembic migration modules.
 
 * Calibration
 
@@ -14,6 +16,15 @@ Pydantic, SQLModel) and the shared Python packages they depend on (=*.py=, =pypr
   pattern across an application is drift, surfaced once at the top of a review and filed as a
   =tech-debt= issue, not graded per file.
 - Severities here override =mz-python-reviewer='s default for the same pattern.
+- *Code shape.* An entry whose =Applies to= names a FastAPI/SQLModel service, or a tool or CLI,
+  applies only to code of that shape, as =mz-python-reviewer= settles it from the repo contract or
+  the code.
+- *Route and service shape.* The route and service entries under Layering (PY-004 to PY-012) state
+  the default — =schemas/<feature>.py=, a concrete =Sql<Thing>Repo= per feature with no =Protocol=
+  or ABC over it, services returning the response schema — for a service that established no
+  route/service shape of its own. Where the service's canonical route/service pair or its existing
+  features established another shape, grade against that one: a change that follows it is not a
+  finding, and a change that departs from it is, at the entry's severity.
 
 * Layering
 
@@ -29,6 +40,89 @@ Pydantic, SQLModel) and the shared Python packages they depend on (=*.py=, =pypr
   re-exports from the schemas package for backwards compatibility. Neither is the example to copy.
 - *Precedent:* none yet
 
+** PY-004 — A join, filtered list, subquery, or pagination written inline in a service or route
+
+- *Severity:* Smell
+- *Applies to:* new or touched code in a FastAPI/SQLModel service
+- *Rule:* A multi-table join, filtered list query, subquery, or pagination written inline in a
+  service or route. Fix: a named method on the feature's repository (=Sql<Thing>Repo= by default;
+  Calibration).
+- *Not a finding:* a plain =db.get(Model, id)= + mutate + =add= + commit in a service — the house
+  write path.
+- *Precedent:* none yet
+
+** PY-005 — A repository read returning raw ORM rows or a column tuple
+
+- *Severity:* Smell
+- *Applies to:* new or touched code in a FastAPI/SQLModel service
+- *Rule:* A repository read method returning raw ORM rows or a tuple of columns where a =schemas/=
+  model is the contract.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-006 — A =Protocol= or ABC over a concrete repository
+
+- *Severity:* Smell
+- *Applies to:* new or touched code in a FastAPI/SQLModel service
+- *Rule:* A =Protocol= or ABC introduced over a repository in a project whose repositories are
+  concrete classes, or in one that established none. The concrete class is the default.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-007 — A service returning a primitive tuple for the route to assemble
+
+- *Severity:* Smell
+- *Applies to:* new or touched code in a FastAPI/SQLModel service
+- *Rule:* A service returning a primitive tuple with the route assembling the response model — two
+  places knowing the response shape will drift. The service returns the response schema.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-008 — A service taking loose kwargs instead of the request context and schema
+
+- *Severity:* Smell
+- *Applies to:* new or touched code in a FastAPI/SQLModel service
+- *Rule:* A service taking loose kwargs where the request-context dependency plus the request
+  schema fits.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-009 — A route that commits, reaches into the context, or builds the response itself
+
+- *Severity:* Smell
+- *Applies to:* new or touched code in a FastAPI/SQLModel service
+- *Rule:* A route calling =db.commit()= after the service, reaching into the context's session or
+  event service directly, or building the response shape itself.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-010 — A route raising =HTTPException= inline for a business-logic condition
+
+- *Severity:* Smell
+- *Applies to:* new or touched code in a FastAPI/SQLModel service
+- *Rule:* A route raising =HTTPException= for a business-logic condition inline rather than
+  catching a domain exception the service raised.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-011 — A router file hosting unrelated route groups or inline models
+
+- *Severity:* Smell
+- *Applies to:* new or touched code in a FastAPI/SQLModel service
+- *Rule:* A router file hosting many unrelated route groups or defining models inline. Split per
+  concern into a thin route, a service, and =schemas/<feature>.py=.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-012 — Non-trivial logic or an inline query in a handler
+
+- *Severity:* Smell
+- *Applies to:* new or touched code in a FastAPI/SQLModel service
+- *Rule:* Non-trivial logic in a handler, or a query issued inline instead of through a
+  repository. The extraction is the expected default.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
 * Modeling
 
 ** PY-002 — A PATCH update written field by field instead of the shared update helper
@@ -41,6 +135,60 @@ Pydantic, SQLModel) and the shared Python packages they depend on (=*.py=, =pypr
   local copy of that helper. The Bug follows CM-010.
 - *Not a finding:* a local form the writer's plan records as put to Max, with Max choosing it. A
   PUT endpoint, which is strict replacement and takes no partial update at all.
+- *Precedent:* none yet
+
+** PY-013 — A loose =dict= or =tuple= crossing a boundary where a typed model fits
+
+- *Severity:* Smell
+- *Applies to:* new or touched code in a FastAPI/SQLModel service
+- *Rule:* Loose =dict= / =tuple= for data crossing a boundary where a typed model fits. For event
+  payloads, only a raw dict at the shallow call that records the event is this rule's finding.
+- *Not a finding:* an event payload model's own shape where the repo contract names a specialist
+  reviewer for the messaging and event surface — that reviewer's.
+- *Precedent:* none yet
+
+** PY-014 — A request schema off the house input base, or a response model without =from_attributes=
+
+- *Severity:* Smell
+- *Applies to:* new or touched code in a FastAPI/SQLModel service
+- *Rule:* A request schema not subclassing the house input base model, or a response model
+  missing ~model_config = {"from_attributes": True}~ where it serializes an ORM object.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-015 — A PUT schema carrying patch semantics
+
+- *Severity:* Bug
+- *Applies to:* new or touched code in a FastAPI/SQLModel service
+- *Rule:* A PUT request schema with nullable members meaning "leave unchanged", =exclude_unset=
+  patch semantics, or null-stripping validators. PUT is strict replacement.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-016 — A glue layer papering over model drift
+
+- *Severity:* Smell
+- *Applies to:* new or touched code in a FastAPI/SQLModel service
+- *Rule:* A glue layer papering over model drift, such as a validator stripping nulls to fake patch
+  semantics. Align the models.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-017 — A concern-specific attribute on a core entity
+
+- *Severity:* Smell
+- *Applies to:* new or touched code in a FastAPI/SQLModel service
+- *Rule:* A concern-specific attribute added to a core entity instead of that concern's 1:1 config
+  object.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-018 — A mutable default argument or mutable model default
+
+- *Severity:* Bug
+- *Applies to:* new or touched code in a FastAPI/SQLModel service
+- *Rule:* A mutable default argument, or a mutable class attribute as a model default.
+- *Not a finding:* none.
 - *Precedent:* none yet
 
 * Comments
@@ -66,4 +214,689 @@ Pydantic, SQLModel) and the shared Python packages they depend on (=*.py=, =pypr
   autogenerate writes around the operations. A fact an operator needs goes in the pull-request
   description, not the file. Every other docstring or comment hand-written into a migration,
   inside =upgrade()= and =downgrade()= included, is a finding.
+- *Precedent:* none yet
+
+** PY-084 — A docstring or comment the change made false or stale, left on the function or class it modified
+
+- *Severity:* Smell
+- *Applies to:* touched functions, methods, and classes only, production and test code
+- *Rule:* A pre-existing docstring or =#= comment on a function, method, or class the change
+  modifies, which the change makes false or stale — a parameter renamed or removed but still
+  described, a docstring describing behaviour the code no longer has. The line predates the change,
+  but the change made it false, so it is the change's finding, not pre-existing drift. Fix: delete
+  it (PY-003; CM-003). Rewriting it to match writes a new docstring or comment, which PY-003 flags.
+- *Not a finding:* A docstring or comment on a function, method, or class the change does not
+  modify — drift per CM-005. One on a modified function, method, or class that the change leaves
+  true — PY-003's apply-to-new calibration holds, and the change need not remove it. The content
+  PY-003 carves out: tooling directives and Alembic-generated migration content.
+- *Precedent:* none yet
+
+* Config and module scope
+
+** PY-019 — Side effects at import time
+
+- *Severity:* Smell for env reads; Bug for network calls, file I/O, or subprocess invocations
+- *Applies to:* new or touched code
+- *Rule:* Env reads, network calls, file I/O, or subprocess invocations at import time. An env read
+  there blocks unit testing — move it into =main()= or a config function.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-020 — Shared mutable state on a singleton mutated per request without synchronization
+
+- *Severity:* Bug
+- *Applies to:* new or touched code
+- *Rule:* Shared mutable state on a module- or app-level singleton mutated per request without
+  synchronization.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Error handling
+
+** PY-021 — A broad =except= that swallows and returns a default
+
+- *Severity:* Smell; Bug when it silently flips behavior
+- *Applies to:* new or touched code
+- *Rule:* A bare =except:= or =except Exception= that swallows the failure and returns a defaulted
+  or =None= value where the failure should surface — especially when the result drives a
+  downstream branch.
+- *Not a finding:* decorative or optional data that may degrade gracefully — ask the intent rather
+  than condemn it.
+- *Precedent:* none yet
+
+** PY-022 — An exception caught and re-raised with the original lost
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* Catching an exception only to re-raise it with the original lost — no =from=, no
+  structured log.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-023 — A client-library exception caught and ignored
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* Catching a client-library exception (=requests.exceptions.RequestException=) and
+  continuing silently.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-024 — A router raising a bare =Exception= or returning an error dict
+
+- *Severity:* Smell
+- *Applies to:* new or touched code in a FastAPI/SQLModel service with no middleware translation
+  layer for typed exceptions
+- *Rule:* Raising a bare =Exception=, or returning an error dict, from a router instead of
+  =HTTPException= with =status.HTTP_*= constants.
+- *Not a finding:* a direct ~HTTPException(status_code=..., detail=...)~ from a router where the
+  repo has no middleware translation layer — the house pattern.
+- *Precedent:* none yet
+
+* HTTP clients
+
+** PY-025 — A response body read before the status is checked
+
+- *Severity:* Bug
+- *Applies to:* new or touched code
+- *Rule:* A response body read (=response.json()["id"]=) before =raise_for_status()= or a status
+  check. Error payloads don't carry the success-shape keys.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-026 — =response.json()= on a body that may be HTML or empty
+
+- *Severity:* Bug
+- *Applies to:* new or touched code
+- *Rule:* =response.json()= where the body may be HTML (a proxy error page) or empty, with no
+  content-type or status check.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-027 — A lookup by display name alone that can overwrite the wrong resource
+
+- *Severity:* Bug
+- *Applies to:* new or touched code
+- *Rule:* A lookup by display name alone (a page title) with no check that the result belongs to
+  the expected scope (space, parent, tenant), where a collision would overwrite the wrong resource.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-028 — A version bump that assumes =+1=
+
+- *Severity:* Bug
+- *Applies to:* new or touched code
+- *Rule:* A version bump that assumes =+1= without reading the server's current value.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-029 — Credentials in logs, output, or error messages
+
+- *Severity:* Bug
+- *Applies to:* new or touched code
+- *Rule:* Credentials logged, printed, or interpolated into error messages; full request bodies
+  carrying auth logged on error.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-030 — Base URLs, tenant keys, or auth values hardcoded in a function body
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* Base URLs, tenant or space keys, or auth values hardcoded in function bodies instead of
+  config.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-031 — Two versions of one remote API mixed
+
+- *Severity:* Bug
+- *Applies to:* new or touched code
+- *Rule:* Mixing two versions of a remote API (v1 and v2 paths, or a v2 call with a v1-shaped body)
+  where the repo has standardized on one.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Subprocess and filesystem
+
+** PY-032 — ~shell=True~ with interpolated input
+
+- *Severity:* Bug
+- *Applies to:* new or touched code
+- *Rule:* ~shell=True~ with any interpolated path or input.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-033 — ~check=True~ inside a batch loop
+
+- *Severity:* Bug when the blast radius is the whole run; Smell in narrower scopes
+- *Applies to:* new or touched code
+- *Rule:* ~subprocess.run(..., check=True)~ inside a loop where one bad input should not abort the
+  whole batch. Catch =CalledProcessError=, log, continue.
+- *Not a finding:* a loop where fail-fast is the intent.
+- *Precedent:* none yet
+
+** PY-034 — A parsed subprocess output with no explicit =encoding=
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* Missing explicit =encoding= on a subprocess call whose output is parsed. The platform
+  default encoding differs between machines.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-035 — An external binary called with no clean error when it is missing
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* Calling an external binary without surfacing a clean error when it's missing from PATH.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-036 — Unguarded tree walks and string-built paths
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* ~os.walk(followlinks=True)~ with no justification; recursion over an untrusted tree with
+  no depth guard; path concatenation via =+= / =%= instead of =pathlib= / =os.path.join=.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Readability and testability
+
+** PY-037 — Functions doing multiple things
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* A function doing multiple things or spanning many logical steps. Split into
+  single-purpose functions.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-038 — Non-trivial helpers nested or repeated inline
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* Non-trivial helpers buried as nested functions or repeated inline. Extract to module
+  level.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-039 — A function name that doesn't predict behavior
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* A function whose name doesn't predict its behavior.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-040 — Terse local or parameter abbreviations
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* Terse local or parameter abbreviations (=dets=, =gv=, =b=) where a descriptive name would
+  read without surrounding context.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-041 — A shared helper or a family's type placed in the wrong module
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* A helper not specific to one service written as a private function in a route file
+  instead of going to the shared package the repo uses for such helpers (the repo contract's, else
+  the one sibling modules already import shared helpers from); a type used by one family placed
+  away from that family's module.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-042 — Missing or over-broad type hints in a hinted module
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* New code added to an otherwise hinted module without hints; =Any= where a concrete type
+  is obvious; over-broad or missing annotations on a public signature (where the repo configures a
+  type checker, ones it would infer poorly).
+- *Not a finding:* untouched un-hinted code — no retrofit is asked for.
+- *Precedent:* none yet
+
+* Code quality
+
+** PY-043 — A closed set of string constants where a =StrEnum= fits
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* A closed set of related string constants where a =StrEnum= fits.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-044 — A =str= field whose valid values live in a comment
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* A field typed =str= with a comment enumerating its valid values. Encode the set in the
+  type: the owning shared =Literal=, never a parallel one; or a =StrEnum=.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-045 — =print= for logging
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* =print= for logging, including dev-only paths. Use the repo's logger.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-046 — Unstructured logging where the repo uses =structlog=
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* Unstructured logging where the repo uses =structlog= — an f-string message instead of an
+  event name plus kwargs.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-047 — An exception logged as ~str(exc)~ or without =exc_info=
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* An exception logged with ~error=str(exc)~ and / or without ~exc_info=True~. =repr(exc)=
+  keeps the exception class; ~exc_info=True~ attaches the frames.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-048 — Internal names, jargon, or a stiff tone in user-facing messages
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* Internal service names or engineering jargon in user-facing message strings; a
+  prescriptive or stiff tone where the house style is friendly.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-049 — Lint or type-check violations visible on inspection
+
+- *Severity:* Smell
+- *Applies to:* new or touched code
+- *Rule:* Violations of the repo's lint or type-check rules visible on inspection — unused or
+  unsorted imports, an undefined name, line length, a deprecated =typing= form. The repo's lint
+  configuration decides which lint rules apply; its type-check configuration decides which
+  type-check rules apply. Clean before review.
+- *Not a finding:* a type-check rule in a repo that configures no type checker. A
+  =# type: ignore[...]= or =# noqa= suppressing a known false positive from SQLModel or the repo's
+  type checker (=.is_(True)= on a column) that matches the surrounding file — only a suppression
+  hiding a real type bug is a finding.
+- *Precedent:* none yet
+
+* Async and threading
+
+** PY-050 — Blocking I/O inside =async def=
+
+- *Severity:* Bug
+- *Applies to:* new or touched code in a FastAPI/SQLModel service
+- *Rule:* Blocking or sync I/O inside an =async def= — a sync DB session, =requests=, =time.sleep=,
+  sync file or network I/O — stalls the event loop.
+- *Not a finding:* plain =def= route handlers using the sync =Session= — the house pattern.
+- *Precedent:* none yet
+
+** PY-051 — A coroutine never awaited
+
+- *Severity:* Bug
+- *Applies to:* new or touched code in a FastAPI/SQLModel service
+- *Rule:* =await= missing on a coroutine.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-052 — An =async def= handler that never awaits
+
+- *Severity:* Smell
+- *Applies to:* new or touched code in a FastAPI/SQLModel service
+- *Rule:* A handler marked =async def= that never =await=s anything and only touches the sync
+  session. Make it sync, or surface why it's async.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-053 — An =async def= handler kept async only for a file read
+
+- *Severity:* Smell
+- *Applies to:* new or touched code in a FastAPI/SQLModel service
+- *Rule:* A handler that is =async def= only for =await file.read()= (or similar) and wraps its
+  other blocking work in =run_in_threadpool=. The sync form — =file.file.read()=, plain =def=,
+  FastAPI's own threadpool — is simpler.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-054 — An ad-hoc threadpool hop inline in feature code
+
+- *Severity:* Smell; Bug when a blocking call sits unwrapped on the loop in the same =async def=
+- *Applies to:* new or touched code in a FastAPI/SQLModel service
+- *Rule:* =run_in_threadpool= / =anyio.to_thread.run_sync= inline in feature code — an =async def=
+  handler with ad-hoc threadpool wrappers around its blocking steps. Where the async need has a
+  sync equivalent, the handler is plain =def=. Where the dependency is irreducibly async (a
+  loop-bound =AsyncClient= with an asyncio rate limiter), the handler stays =async def=, and every
+  blocking section hops through the one named blocking-hop helper the repo contract or the
+  existing code names: a bare inline hop there is a Smell, an unhopped blocking call a Bug.
+- *Not a finding:* a general async facade over a sync service, inside the service in one audited
+  place, where the repo has adopted an async direction (the repo contract says so, or names where
+  that decision is recorded).
+- *Precedent:* none yet
+
+* Session and DB lifetime
+
+** PY-055 — A session held across an =await= or shared across tasks
+
+- *Severity:* Bug
+- *Applies to:* new or touched code in a FastAPI/SQLModel service
+- *Rule:* A session held or reused across an =await= boundary, or shared across concurrent tasks.
+  SQLAlchemy sessions are not concurrency-safe.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-056 — A mutation returning a stale object without =refresh()=
+
+- *Severity:* Smell
+- *Applies to:* new or touched code in a FastAPI/SQLModel service
+- *Rule:* A mutation that flushes or commits but never =db.refresh()=es before returning a stale
+  object, where the caller reads server-defaulted fields.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-057 — =db.commit()= inside a loop meant as one transaction
+
+- *Severity:* Smell; Bug if it breaks outbox atomicity
+- *Applies to:* new or touched code in a FastAPI/SQLModel service
+- *Rule:* =db.commit()= inside a loop where one transaction was intended — a partial write on
+  failure.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Messaging and outbox
+
+** PY-058 — An event emitted outside the domain write's transaction
+
+- *Severity:* Bug
+- *Applies to:* new or touched code in a FastAPI/SQLModel service that has a transactional outbox
+- *Rule:* A domain write that emits an event but does not write the outbox row in the same
+  transaction as the domain change, or publishes to the broker directly from feature code. It
+  breaks the transactional-outbox guarantee.
+- *Not a finding:* event-schema versioning, registry correctness, envelope shape, upgrader logic,
+  and consumer retry / dead-letter semantics where the repo contract names a specialist reviewer
+  for that surface — that reviewer's; note the boundary and defer.
+- *Precedent:* none yet
+
+* Dependency injection
+
+** PY-059 — A dependency constructed inline in a handler
+
+- *Severity:* Smell
+- *Applies to:* new or touched code in a FastAPI/SQLModel service
+- *Rule:* A dependency constructed inline in a handler instead of injected via =Depends(...)= /
+  the repo's annotated dependency types — it defeats the override seam tests rely on.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-060 — A =Depends= provider with the wrong scope
+
+- *Severity:* Bug
+- *Applies to:* new or touched code in a FastAPI/SQLModel service
+- *Rule:* A =Depends= provider with the wrong scope — a per-request object cached at module scope.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Migrations
+
+** PY-061 — A table-shape change with no migration, or a model autogenerate cannot see
+
+- *Severity:* Bug
+- *Applies to:* new or touched code in a FastAPI/SQLModel service
+- *Rule:* A SQLModel table-shape change in the diff with no corresponding migration, or a model not
+  imported in the models module autogenerate reads. Authoring the migration is
+  =mz-alembic-migration-writer='s.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-079 — A =downgrade()= that does not reverse its =upgrade()=
+
+- *Severity:* Smell
+- *Applies to:* new or touched migrations
+- *Rule:* A migration whose =downgrade()= does not truly reverse its =upgrade()=. Autogenerate's
+  =downgrade()= is often incomplete for hand-added operations; each one gets its inverse.
+- *Not a finding:* a hand-written =op.execute= with no reverse — PY-083 grades it.
+- *Precedent:* none yet
+
+** PY-080 — A destructive operation with no data plan
+
+- *Severity:* Bug
+- *Applies to:* new or touched migrations
+- *Rule:* A destructive operation — =op.drop_column=, =op.drop_table=, or a type narrowing — with no
+  data plan for the rows it removes or truncates.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-081 — A non-null column added with no =server_default= or backfill
+
+- *Severity:* Bug
+- *Applies to:* new or touched migrations
+- *Rule:* A non-nullable column added to a populated table with no =server_default= and no
+  backfill — inserts fail on the existing rows.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-082 — A rename or enum change rendered as drop + add
+
+- *Severity:* Bug
+- *Applies to:* new or touched migrations
+- *Rule:* A column or table rename, or an enum change, rendered as a drop plus an add, which loses
+  the data in it. Fix: a true rename (~op.alter_column(..., new_column_name=...)~,
+  =op.rename_table(...)=), or the enum change written by hand, each with its inverse in
+  =downgrade()=.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-083 — A hand-written =op.execute= with no matching reverse in =downgrade()=
+
+- *Severity:* Smell
+- *Applies to:* new or touched migrations
+- *Rule:* A hand-written =op.execute(...)= — a backfill or DDL — in =upgrade()= with no matching
+  reverse in =downgrade()=.
+- *Not a finding:* a hand-written step that cannot be reversed — a backfill that overwrites values,
+  a merge of duplicate rows — where =downgrade()= raises explicitly, with an exception stating that
+  the migration cannot be downgraded. A =downgrade()= that silently omits the reverse stays the
+  finding.
+- *Precedent:* none yet
+
+* Tools and CLIs
+
+** PY-062 — A change to an entry-point invocation other repos depend on
+
+- *Severity:* Bug
+- *Applies to:* new or touched code in a tool or CLI
+- *Rule:* A change to the entry-point invocation other repos depend on, without the user asking.
+  Whether other repos depend on it is the repo contract's to say.
+- *Not a finding:* a change where nothing says whether other repos depend on the entry point — ask
+  before grading it.
+- *Precedent:* none yet
+
+** PY-063 — Tests placed beside the script
+
+- *Severity:* Smell
+- *Applies to:* new or touched tests of a tool or CLI
+- *Rule:* Tests placed beside the script instead of under the =tests/= layout the repo uses.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Alembic migration files (from =mz-alembic-migration-writer= and =mz-python-reviewer=)
+
+Scope: revision modules under an Alembic environment's =versions/= folder. Entries come from
+=mz-alembic-migration-writer='s file conventions, at the severity Max set, and =mz-python-reviewer=
+grades them. The quality of =upgrade()= and =downgrade()= is under Migrations (PY-061,
+PY-079 to PY-083). Alembic's generated
+content — the filename, the header docstring, the =revision= / =down_revision= assignments, the
+=# revision identifiers, used by Alembic.= comment, and the command-block markers — stays as
+Alembic writes it (PY-003). Production rules that already reach a migration file — no comments
+(PY-003), no =TODO= / =FIXME= (CM-001), lint-clean (PY-049) — are not restated here.
+
+** PY-064 — A migration message that is not short and imperative
+
+- *Severity:* Suggestion
+- *Applies to:* new migration files
+- *Rule:* The migration message is short and imperative ("add order is_active"), matching the
+  phrasing of the existing =versions/= files. The message carries the intent.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-065 — The revision chain hand-edited
+
+- *Severity:* Bug
+- *Applies to:* all migration files
+- *Rule:* =revision= / =down_revision= hand-edited to reorder history, or existing migrations
+  reordered or squashed. The generated revision-id chain is preserved.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-066 — One migration spanning two databases
+
+- *Severity:* Bug
+- *Applies to:* new migration files
+- *Rule:* A migration that spans two databases. Each service and database has its own Alembic
+  environment; split the change per environment.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-067 — An edit to a migration already applied beyond the local database
+
+- *Severity:* Bug
+- *Applies to:* all migration files
+- *Rule:* An edit to a migration already applied to a non-local database. Fix forward with a new
+  migration.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+* Test style (from =mz-python-test-writer= and =mz-python-reviewer=)
+
+Scope: the tests for any code in this file's Scope. Entries lifted from =mz-python-reviewer='s
+Tests group keep the severity it states; the rest come from =mz-python-test-writer= alone, at the
+severity Max set. Production rules that already reach test code — no
+comments or docstrings (PY-003), no assertion the fixture already satisfies (CM-008), an untested
+load-bearing path (CM-007) — are not restated here.
+
+** PY-068 — A test that reaches a live host or a real binary without a mock or marker
+
+- *Severity:* Bug
+- *Applies to:* new or touched test code
+- *Rule:* A test that would issue a real HTTP request or shell out to a real binary without a mock
+  or the repo's integration marker. HTTP is mocked by default with the library the suite already
+  uses; =subprocess.run= is mocked by default, and the real binary runs only under the integration
+  marker. A unit test does not silently require a container or an external binary.
+- *Not a finding:* a test under the repo's integration marker that shells out to the real binary.
+- *Precedent:* none yet
+
+** PY-069 — A test asserting on =print= output
+
+- *Severity:* Smell
+- *Applies to:* new or touched test code
+- *Rule:* A test asserting on =print= output instead of return values, mock-call shape, or =caplog=
+  records.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-070 — A test skipped, xfailed, or weakened to make a suite green
+
+- *Severity:* Bug
+- *Applies to:* new or touched test code
+- *Rule:* =@pytest.mark.skip=, =@pytest.mark.xfail=, =pytest.skip()= in a test body, or
+  =@pytest.mark.skipif= with no real environment reason; an assertion weakened to make a suite
+  green. A failing or flaky test is fixed, or deleted only on Max's explicit per-test decision with
+  a =tech-debt= issue filed.
+- *Not a finding:* =@pytest.mark.skipif= with a real environment reason — a container runtime the
+  tier needs and the machine lacks, a platform the test cannot run on.
+- *Precedent:* none yet
+
+** PY-071 — Inline seed data or a helper standing in for a fixture
+
+- *Severity:* Smell
+- *Applies to:* new or touched test code
+- *Rule:* Inline seed data, a helper function, or a module constant standing in for setup the
+  suite's conventions put in a =conftest.py= fixture. Data setup is a named fixture, or a factory
+  fixture where tests need many variations, in the =conftest.py= closest to its consumers. Every
+  name in a test signature is a fixture that exists in the =conftest.py= hierarchy or one the same
+  change adds with its full body.
+- *Not a finding:* a module-level payload constant in a shape-snapshot test that deliberately
+  freezes a wire format.
+- *Precedent:* none yet
+
+** PY-072 — =parametrize= introduced where the module doesn't use it
+
+- *Severity:* Smell
+- *Applies to:* new or touched test code
+- *Rule:* =@pytest.mark.parametrize= introduced in a module that doesn't already use it. Each
+  scenario is its own named test function; a function per scenario wherever arrange or assertions
+  diverge.
+- *Not a finding:* =parametrize= for a truly homogeneous input sweep in a module that already uses
+  it.
+- *Precedent:* none yet
+
+** PY-073 — Test stack is the project's own, pytest + plain =assert= + =unittest.mock= by default
+
+- *Severity:* Smell
+- *Applies to:* new or touched test code
+- *Rule:* A second mocking, assertion, or HTTP-mocking library introduced into a suite standardized
+  on one. The runner, plugins, async mode, and mocking, assertion, and HTTP-mocking libraries the
+  project established are the stack; a project that established none takes pytest, plain =assert=,
+  and =unittest.mock= (=MagicMock=, =AsyncMock=) or =monkeypatch=. A new test dependency is
+  surfaced and asked, never added.
+- *Not a finding:* fresh tests that use the project's established tool rather than this default.
+- *Precedent:* none yet
+
+** PY-074 — A stale test in a tier the pull-request gate runs
+
+- *Severity:* Bug
+- *Applies to:* all test code in a tier the pull-request gate runs
+- *Rule:* A stale test in a tier the pull-request gate runs — one referencing a removed field or
+  endpoint.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-075 — A test name that does not state the current behavior
+
+- *Severity:* Smell
+- *Applies to:* new or touched test code
+- *Rule:* Test modules are =test_*.py=; functions are =test_<behavior>= in snake_case, describing
+  the asserted outcome (=test_<outcome>_when_<condition>= where the module uses that shape); =Test*=
+  classes only where the module already groups that way. A test name describes current semantics:
+  when a behavior inverts, the test is renamed, never left with flipped assertions under a stale
+  name.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-076 — Test body layout: fixtures to arrange, one-line act, asserts last
+
+- *Severity:* Suggestion
+- *Applies to:* new or touched test code
+- *Rule:* Arrange via fixtures plus a few lines of per-test setup; a one-line act; the =assert=
+  block last; =expected= / =actual= where two values are compared.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-077 — A test bound to a private module path
+
+- *Severity:* Smell
+- *Applies to:* new or touched test code
+- *Rule:* A test binds new names through the package's public surface — its top-level exports —
+  never through a private module path, which forces the implementation into that module. Where a
+  test must touch a private seam (a monkeypatched constant, an internal registry), it binds to the
+  seam's intended final home and the placement is surfaced as a decision for Max.
+- *Not a finding:* none.
+- *Precedent:* none yet
+
+** PY-078 — A consumer test that bypasses the message-handler entry point
+
+- *Severity:* Smell
+- *Applies to:* new or touched test code in a repo with a message bus
+- *Rule:* Consumer guard tests dispatch through the repo's message-handler entry point, which pins
+  topic routing along with the handler behavior; they don't call handlers directly. Dead-letter and
+  permanence classification branches are covered in every consumer that has them, not one
+  exemplar.
+- *Not a finding:* a test that must observe the test's own rollback session, using a local
+  envelope helper with the handler's =(db, envelope)= contract.
 - *Precedent:* none yet

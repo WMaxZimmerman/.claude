@@ -104,7 +104,10 @@ unless the entry states otherwise.
 - *Applies to:* fresh components
 - *Rule:* New =NgModule= declarations or =imports: [SomeModule]= plumbing for a fresh component.
   Standalone is the rule; =imports: []= on the component itself for what it needs.
-- *Not a finding:* none.
+- *Not a finding:* A fresh component declared in an =NgModule= in an app that is =NgModule=-based
+  throughout, with no standalone components — it follows the project's established shape. Moving
+  such an app to standalone is a separate migration asked for explicitly, never a review finding.
+  NG-004 is unaffected: =inject()= still applies to fresh code there.
 - *Precedent:* none yet
 
 ** NG-004 — =inject()=, not constructor DI

@@ -163,7 +163,8 @@ The baseline the registry sharpens. Where a bullet names an id, that entry's sev
 - Runtime or tool versions drifting across workflows or from the repo's version file. **Smell**, `GA-040` — surface the drift; don't pick a side.
 
 **Image build contract** — flag mismatches; don't review the Dockerfile's shape.
-- A build arg or secret id passed under a name the Dockerfile does not declare. **Bug** — `Grep` the Dockerfile to confirm.
+- A build arg passed under a name the Dockerfile does not declare. **Bug**, `GA-044` — `Grep` the Dockerfile to confirm.
+- A BuildKit secret id passed other than the id the Dockerfile's secret mount expects. **Bug**, `GA-043` — `Grep` the Dockerfile to confirm.
 - A Dockerfile path or context that does not exist, or a target stage the Dockerfile does not define. **Bug** — `Glob` to confirm.
 - A build that never pushes where a deploy expects the image, or an image name or tag format the deploy does not reference. **Bug.**
 

@@ -118,7 +118,7 @@ Either way, repeat it in `### Registry gaps` for the main agent to route to `mz-
 Where the registry has a rule, its id, severity, and carve-outs win. These are the findings that hold in every Angular repo; the registry never contradicts them.
 
 **Components and templates**
-- Fresh component not standalone, or using decorator `@Input()` / `@Output()` where the app is signal-based → **Smell** (fresh code only; a file in a legacy subtree the repo contract names is not drift). Outside such a subtree, `angular.org` NG-003 and NG-004 apply to a fresh component as written, in an NgModule-based app too.
+- Fresh component not standalone, or using decorator `@Input()` / `@Output()` where the app is signal-based → **Smell** (fresh code only; a file in a legacy subtree the repo contract names is not drift). Outside such a subtree, `angular.org` NG-003 and NG-004 apply to a fresh component as written — NG-003's `Not a finding` covers a fresh component declared in an `NgModule` in an app that is `NgModule`-based throughout, and NG-004 still applies there.
 - `*ngIf` / `*ngFor` in a fresh template where the app uses the new control flow; `@if` mixed with `*ngIf` in one template → **Smell**.
 - In an NgModule-based app or subtree: component declared but not registered in a module's `declarations` (or declared in two) → **Bug**; a module the template's components need — a UI component library module included — missing from the owning module's `imports` → **Bug**.
 - A list without `track` / `trackBy` that re-renders → **Smell**.

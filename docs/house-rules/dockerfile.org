@@ -119,8 +119,8 @@ severity unless the entry states otherwise.
   package-feed credential-provider auth, with the feed-endpoints variable (for Azure Artifacts,
   =VSS_NUGET_EXTERNAL_FEED_ENDPOINTS=) inlined reading from =/run/secrets/<id>=. A rename is a
   paired change with the CI writer for the repo's CI system. On Azure Pipelines, PL-038 in
-  =pipeline.org= grades the CI side. On GitHub Actions the writer is =mz-pipeline-writer=, and no
-  =github-actions.org= rule grades the CI side of the secret id yet — a registry gap.
+  =pipeline.org= grades the CI side. On GitHub Actions the writer is =mz-pipeline-writer=, and
+  GA-043 in =github-actions.org= grades the CI side.
 - *Not a finding:* more than one mount block for the same id in one Dockerfile (restore and EF
   bundle steps both need it). The credential-provider shape in a project that restores no NuGet
   packages from an authenticated feed — no subject (Calibration).
@@ -315,19 +315,20 @@ severity unless the entry states otherwise.
 
 ** DK-023 — A =# syntax= directive whenever mounts are used, =docker/dockerfile:1.7= by default
 
-- *Severity:* Bug
-- *Applies to:* all code
+- *Severity:* Smell
+- *Applies to:* new or touched Dockerfiles only
 - *Rule:* =# syntax= directive missing from a Dockerfile that uses ~--mount=type=secret~ or
   ~--mount=type=cache~. The directive pins the Dockerfile frontend version, so the file builds the
   same on every builder rather than on whichever frontend a builder ships with, and it supplies the
   mount syntax on a builder whose built-in frontend lacks it. A recent builder accepts and builds
   =--mount= without the directive; that an older builder rejects the file without it is not
   verified here. The directive carries the pin the project's existing Dockerfiles use; in a project
-  that has established none, it is ~# syntax=docker/dockerfile:1.7~ and is required on every
-  production Dockerfile.
+  that has established none, it is ~# syntax=docker/dockerfile:1.7~ and is required on every new
+  or touched Dockerfile.
 - *Not a finding:* legacy files (no BuildKit features). A =# syntax= pin other than =1.7= that the
   project's existing Dockerfiles use — matching the project, not drift (Calibration; DK-025 grades
-  the pin's age). The directive under CM-003 — a parser directive is not a comment (DK-056).
+  the pin's age). The directive under CM-003 — a parser directive is not a comment (DK-056). An
+  untouched Dockerfile that uses mounts without the directive — drift, surfaced once (CM-005).
 - *Precedent:* none yet
 
 ** DK-024 — No unused =# syntax= directive

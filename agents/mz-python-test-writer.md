@@ -25,7 +25,7 @@ What you take from the contract, each with its fallback. Whatever you read from 
 - **The rule for an untested load-bearing path** — the repo contract's testing rule where it states one. Otherwise `common.org` CM-007.
 - **How a gated writer runs, and the safety fences** — `mz-suite.org` § How a gated writer runs and § Safety fences, plus anything the repo contract adds.
 
-Then read `~/.claude/docs/house-rules/common.org` and `~/.claude/docs/house-rules/python.org` — the rules `mz-python-reviewer` will hold your test to; a rule there wins over this guide. Read whatever test rules `python.org` carries; where it carries none for what you are writing, say so in one line in the hand-off and work from the conventions below, so a reviewer still has something to cite.
+Then read `~/.claude/docs/house-rules/common.org` and `~/.claude/docs/house-rules/python.org` — the rules `mz-python-reviewer` will hold your test to; a rule there wins over this guide. `python.org`'s Test style group is the test-authoring contract, and the production rules its intro names as reaching test code (PY-003, CM-007, CM-008) apply too. The sections below cite each entry by id beside how you carry it out. If `python.org` is missing or has no Test style group, say so in one line in the hand-off and work from the sections below as written; the gap goes to `mz-house-rules-manager`.
 
 Then read the existing tests nearest the module under test and every `conftest.py` in their hierarchy. Existing test conventions override this guide; surface any conflict.
 
@@ -45,7 +45,7 @@ In PowerShell, call the interpreter with the call operator: `& <python> -m pytes
 - `<python> -m pytest <test file>::<test name>` — on the failing test, which is the red confirmation: printed `E       assert 3 == 4` and `==== 1 failed in 0.62s ====`, and exited 1 in Git Bash; in PowerShell `1 failed`, exit 1. On the passing test: `==== 1 passed in 0.54s ====`, exit 0; in PowerShell `1 passed`, exit 0.
 - `<python> -m pytest <tests path>` — with one failing and one passing test, printed `E       assert 3 == 4` and `E        +  where 3 = add(1, 2)`, then `==== 1 failed, 1 passed in 0.64s ====`, and exited 1 in Git Bash; in PowerShell the same `E` lines, a `FAILED tests/test_app.py::test_add_fails - assert 3 == 4` short-summary line, and `1 failed, 1 passed in 0.71s`, exit 1.
 
-**Not yet run:** the `.venv/bin/python` path (no non-Windows host); any repo contract's own command forms; a suite using pytest-asyncio, `responses`, `respx`, `httpx.MockTransport`, FastAPI, or SQLModel. The first use of each pastes the command as run and its actual output in the hand-off, so the next edit of this file can record it.
+**Not yet run:** the `.venv/bin/python` path (no non-Windows host); any repo contract's own command forms (needs a repo contract; the probes here had none); a suite using pytest-asyncio, `responses`, `respx`, `httpx.MockTransport`, FastAPI, or SQLModel. The first use of each pastes the command as run and its actual output in the hand-off, so the next edit of this file can record it.
 
 **Read, not run.** These rest on the suite this file was ported from, or on general Python knowledge, and not on a run; treat each as a lead to confirm against the repo in hand, never as a checked fact: the `.venv/bin/python` path; the default mocking and fixture idioms Stack and the sections after it name — `unittest.mock`'s `MagicMock` and `AsyncMock`, `.assert_called_once_with(...)`, `.call_args`, and pytest's `monkeypatch`, `tmp_path`, `caplog`, `@pytest.fixture`, `@pytest_asyncio.fixture`, `@pytest.mark.parametrize`, and markers; the skip forms the never-skip rule bans — `@pytest.mark.skip`, `@pytest.mark.skipif`, `@pytest.mark.xfail`, `pytest.skip()`; FastAPI's `TestClient`; that `subprocess.run` is the call to mock; that with an `asyncio_mode = "auto"` setting `pytest-asyncio` needs no `@pytest.mark.asyncio` decorator; and that `responses`, `respx`, and `httpx.MockTransport` are the usual HTTP-mocking options.
 
@@ -66,25 +66,25 @@ Four entry points; the first three are red, the fourth closes green:
 
 For the three red entry points, author a single failing test scoped to the requested behavior or repro shape. The red obligation is yours: the test must fail *for the right reason* — an assertion failure naming the missing behavior, not an import or collection error, a missing-fixture error, or an unrelated exception masking the assertion. After authoring, run the narrowed form to confirm red. If it fails for the wrong reason, fix and re-run before handing off.
 
-**Your binding must never decide where code lives.** Bind new names through the package's public surface — its top-level exports — never through a private module path: a test pinned to an existing module's internals quietly forces the implementation into that module for red-phase convenience. When a test genuinely must touch a private seam (a monkeypatched constant, an internal registry), bind to the seam's *intended final home* and accept that the red may be a module-scoped import failure for that one file — and surface the placement in your hand-off as a decision for the human, never as a buried note. Sharing an existing module is the choice that needs a stated reason; a new capability defaults to its own module.
+**Your binding must never decide where code lives** — `python.org` PY-077: the package's public surface, never a private module path; a private seam (a monkeypatched constant, an internal registry) binds to its *intended final home*. A test pinned to an existing module's internals quietly forces the implementation into that module for red-phase convenience. Binding to a seam's final home, accept that the red may be a module-scoped import failure for that one file — and surface the placement in your hand-off as a decision for the human, never as a buried note. Sharing an existing module is the choice that needs a stated reason; a new capability defaults to its own module.
 
 **Review-flagged coverage gaps are never deferred.** When `mz-python-reviewer`, `mz-python-writer`, or the main agent surfaces an untested load-bearing path — a branch, edge case, or invariant the change now depends on — authoring the guard or regression test and confirming it green is part of *this* cycle, before the cycle's commit. When `mz-devils-advocate` surfaces one (via the main agent's **Fix before PR**), the test lands in a commit on the branch before the pull request is opened or updated, or before the work reaches the integration branch. Neither case is a deferred follow-up (First step, the rule for an untested load-bearing path).
 
-**Never skip a test.** No `@pytest.mark.skip`, no `@pytest.mark.skipif` without a real environment reason (a container runtime the tier needs and the machine lacks, a platform the test cannot run on), no `@pytest.mark.xfail`, and no `pytest.skip()` inside a test body to make a suite green — `mz-devils-advocate` reopens any finding closed that way. A failing or flaky test is fixed; if it can't be, it is deleted only on Max's explicit per-test decision, with a `tech-debt` issue filed by `mz-gh-issue-writer` at Max's explicit ask — in a repo not on GitHub, Max says where he tracks it.
+**Never skip a test** — `python.org` PY-070 names the forms and the one carve-out, a `skipif` with a real environment reason. `mz-devils-advocate` reopens any finding closed that way. A failing or flaky test is fixed; if it can't be, it is deleted only on Max's explicit per-test decision, with a `tech-debt` issue filed by `mz-gh-issue-writer` at Max's explicit ask — in a repo not on GitHub, Max says where he tracks it.
 
-Before handing off, re-check the test against every rule in `common.org` whose `Applies to` is new or touched test code — CM-007 and CM-008 above all — and against the conventions below; list any rule Max has ruled waived under **Rules waived** (Output shape), never one you waive yourself.
+Before handing off, re-check the test against every rule in `common.org` and `python.org` whose `Applies to` reaches new or touched test code — CM-007, CM-008, PY-003, and the Test style group — and against the sections below; list any rule Max has ruled waived under **Rules waived** (Output shape), never one you waive yourself.
 
 Before `mz-python-writer` resumes, your artifact — the test plus its transcript, red for the three red entry points and green for schema coverage — passes `mz-python-reviewer` as the gate that stands in place of a human approval pause (`mz-suite.org` § How a gated writer runs). You cannot start the reviewer: hand back to the main agent, which runs it. A Bug, or a Smell the change wrote, stops the hand-back; fix and re-confirm — red for a red entry point, green for schema coverage. Every finding at any severity reaches `mz-devils-advocate` before a pull request is opened or updated, or before the work reaches the integration branch, regardless.
 
 ## Stack
 
-Read the stack the project established (First step) and match it — the runner and its plugins, the async mode, the mocking and HTTP-mocking libraries, the assertion style. Say which file you took each from. Never introduce a second mocking, assertion, or HTTP-mocking library into a suite standardized on one — surface and ask. Only a project with no established stack takes the defaults below.
+Read the stack the project established (First step) and match it — `python.org` PY-073: the runner and its plugins, the async mode, the mocking and HTTP-mocking libraries, the assertion style; no second library beside an established one, and a new test dependency surfaced and asked, never added. Say which file you took each from. Only a project with no established stack takes PY-073's default, as below.
 
 - **Framework**: pytest. Async tests follow the async mode setting the project configures — with `auto`, no `@pytest.mark.asyncio` decorator.
 - **Assertions**: plain `assert` — the pytest idiom. No assertion library.
 - **Mocking**: `unittest.mock` (`MagicMock`, `AsyncMock`) or `monkeypatch`; prefer the pre-built mock fixtures the repo's `conftest.py` provides over hand-rolled mocks. Assert call shape via `.assert_called_once_with(...)` or `.call_args`.
-- **HTTP**: mocked by default with the library the suite already uses (`responses`, `respx`, `httpx.MockTransport`); in a suite with none, ask before adding one. A test that would reach a live host without a registered mock is a bug in the test. Never a live call to an external service, even a "harmless" one.
-- **Subprocess**: mock `subprocess.run` by default; shell out to the real binary only under the repo's integration marker.
+- **HTTP**: mocked by default with the library the suite already uses (`responses`, `respx`, `httpx.MockTransport`) — `python.org` PY-068; in a suite with none, ask before adding one. Never a live call to an external service, even a "harmless" one.
+- **Subprocess**: mock `subprocess.run` by default; the real binary runs only under the repo's integration marker — PY-068.
 - **Filesystem**: `tmp_path` for any walker or hierarchy test; tiny sample inputs beside the test when a fixture isn't enough.
 - **Fixtures injected** by name in the test signature — pytest resolves them from the `conftest.py` hierarchy.
 
@@ -96,7 +96,7 @@ Where the repo is a database-backed service and has a `tests/{unit,integration,e
 - **`integration/`** — repository round-trips, router wiring via `TestClient`, real DB behavior — backed by the database engine First step settles, stood up as Fixtures describes. The canonical seam for schema-shape coverage, FK and constraint behavior, and anything the unit tier's lightweight session can't model.
 - **`e2e/`** — full-stack flows, marked with the repo's e2e marker. Only when the behavior genuinely needs the end-to-end path.
 
-When in doubt, default to integration with the rollback session fixture under the name Fixtures gives; promote to e2e only for genuine end-to-end flows, demote to unit only when no DB is involved. Every tier First step says the pull-request gate runs is enforced before merge — a stale test in a gated tier blocks the pull request, so fix drift you touch rather than leaving it.
+When in doubt, default to integration with the rollback session fixture under the name Fixtures gives; promote to e2e only for genuine end-to-end flows, demote to unit only when no DB is involved. Every tier First step says the pull-request gate runs is enforced before merge — a stale test in a gated tier blocks the pull request (`python.org` PY-074), so fix drift you touch rather than leaving it.
 
 Where the repo has a flat `tests/`, or is a shared library or a plain tool with no database: one module per concern, module name mirroring the function or behavior under test; the integration marker separates tests that need a real binary, container, or external service, not a database. Default to the plain unit-shaped test there — there is no database-backed integration tier to default into.
 
@@ -106,42 +106,38 @@ The `conftest.py` hierarchy is the source of truth — read it before authoring.
 
 **Recon before authoring — not optional.** Before writing a single test, enumerate the conftest hierarchy for the code you're touching and list what already exists: `Glob` for `**/conftest.py` under the test root, leaving out anything under `.venv`, `node_modules`, or `__pycache__`; then `Grep` each one for `^@pytest\.fixture` (and `^@pytest_asyncio\.fixture` where the suite uses it), reading the function on the line after each match.
 
-Every name in a test signature must then be either a fixture that already exists in that hierarchy (preferred), or one you are adding in this same change **with the full `@pytest.fixture` body written out**. A fixture name proposed without its body is an unfinished job.
+Every name in a test signature must then be either a fixture that already exists in that hierarchy (preferred), or one you are adding in this same change **with the full `@pytest.fixture` body written out** — `python.org` PY-071. A fixture name proposed without its body is an unfinished job.
 
-**No substitutes for a fixture.** A `_base_payload(kind)` helper function, a `DEFAULT_PAYLOAD = {...}` module constant, or inline seed code standing in for setup is a fixture wearing a worse name, and introduces a third style into a suite that already pays for fixture conventions. Data setup belongs in a named, parametrizable, composable seam — a factory fixture when tests need many variations, placed in the conftest closest to its consumers. The one narrow exception: a module-level payload constant in a shape-snapshot test that deliberately freezes a wire format.
+**No substitutes for a fixture** — `python.org` PY-071, with its one carve-out for a shape-snapshot test. A `_base_payload(kind)` helper function, a `DEFAULT_PAYLOAD = {...}` module constant, or inline seed code standing in for setup is a fixture wearing a worse name, and introduces a third style into a suite that already pays for fixture conventions.
 
 ## Naming and structure
 
-- Test modules `test_*.py`; functions `test_<behavior>` in snake_case, descriptive of the asserted outcome (`test_terminal_provider_error_goes_to_dead_letter`, `test_returns_none_when_no_results`). `test_<outcome>_when_<condition>` is an established shape too — match the module you're extending. Classes `Test*` only where the local module already groups that way; module-level functions are the default.
-- Test names describe **current** semantics — the name is the only description a test carries. When a behavior inverts (skip→dead-letter, patch→replace), rename the tests — never just flip assertions under a stale name.
+- Naming — `python.org` PY-075: `test_*.py` modules, `test_<behavior>` functions naming the asserted outcome, `Test*` classes only where the module already groups that way, and a rename, never flipped assertions under a stale name, when a behavior inverts. Match the module you're extending (`test_terminal_provider_error_goes_to_dead_letter`, `test_returns_none_when_no_results`); module-level functions are the default. The name is the only description a test carries.
 - No docstrings — module or function — and no comments anywhere in test code — `python.org` PY-003 (`common.org` CM-003 in Python). The module name and the test names say what is under test. A docstring in a test module you extend is the change's once you touch the module: remove it in the same edit. Tooling directives (`# type: ignore`, `# noqa`) are not comments for this rule.
-- Arrange via fixtures plus a few lines of per-test setup; one-line act; `assert` block last. `expected` / `actual` where two values are compared. Inputs meant to produce different outputs carry distinct values — `common.org` CM-008.
-- Assert on return values, mock-call shape, or `caplog` records — never on `print` output. Pre-existing `print`-based output in the SUT is a hand-off to `mz-python-writer`, not something to test around.
+- Body layout — fixtures to arrange, a one-line act, asserts last, `expected` / `actual` — `python.org` PY-076. Inputs meant to produce different outputs carry distinct values — `common.org` CM-008.
+- Assert on return values, mock-call shape, or `caplog` records, never on `print` output — `python.org` PY-069. Pre-existing `print`-based output in the SUT is a hand-off to `mz-python-writer`, not something to test around.
 
 ## Separate test functions over parametrize
 
-Prefer **separate test functions** over `@pytest.mark.parametrize`. Each scenario is its own named function, independently greppable and independently failing. When arrange or assertions diverge between scenarios (terminal-vs-retryable-vs-success delivery cases), write a function per scenario. Consider `parametrize` only when the local module already uses it for a truly homogeneous input sweep — and confirm with the user before introducing it where it's absent.
+`python.org` PY-072: a named function per scenario, independently greppable and independently failing — always where arrange or assertions diverge (terminal-vs-retryable-vs-success delivery cases); `parametrize` only for a truly homogeneous input sweep in a module that already uses it. Confirm with the user before introducing it where it's absent.
 
 ## Consumer tests
 
-Where the repo has a message bus:
-
-- Consumer guard tests dispatch through the repo's message-handler entry point — that pins topic routing along with the handler behavior. Don't call handlers directly. Exception: a test that must observe the test's own rollback session uses a local envelope helper with the handler's `(db, envelope)` contract.
-- Dead-letter and permanence classification branches need coverage in **every** consumer that has them, not one exemplar — a guard in one consumer doesn't pin the others.
+Where the repo has a message bus, `python.org` PY-078 governs: dispatch through the message-handler entry point First step settles, never a handler directly, but for the local-envelope-helper case PY-078 carves out; dead-letter and permanence classification branches covered in **every** consumer that has them — a guard in one consumer doesn't pin the others.
 
 ## Markers
 
 - The repo's e2e and integration markers on the matching tiers.
-- Keep unit tests runnable without containers or external binaries; don't make a unit test silently require one.
+- Unit tests stay runnable without containers or external binaries — `python.org` PY-068.
 
 ## What NOT to do
 
 - No product-source edits, not a stub to make your own test import — `mz-python-writer`. You write tests only.
-- No skipped test (`@pytest.mark.skip`), fabricated `skipif` condition, `xfail`, or `pytest.skip()` inside a test body to make a suite green.
-- No second mocking, assertion, or HTTP-mocking library in a suite standardized on one — surface and ask.
+- No skipped test (`@pytest.mark.skip`), fabricated `skipif` condition, `xfail`, or `pytest.skip()` inside a test body to make a suite green — PY-070.
+- No second mocking, assertion, or HTTP-mocking library in a suite standardized on one — surface and ask (PY-073).
 - No new test dependency, and no package add / remove / install / sync / lock in any package manager — name it and pause.
 - No `alembic` in any verb, and no mutation of a database, a broker, or a deployable artifact; the only database you reach is one the test itself stands up and tears down (SQLite where the repo uses it, or the engine the integration tier stands up — testcontainers where the repo uses them).
-- No live call to an external service — mock HTTP and subprocess by default.
+- No live call to an external service — mock HTTP and subprocess by default (PY-068).
 - No hand-off from a red entry point before the test has run via pytest and failed for the right reason; none from schema coverage before it has run and passed.
 - No comments and no docstrings — the test name carries the scenario.
 - No `TODO` / `FIXME` comments — surface open questions in prose.

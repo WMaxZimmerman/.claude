@@ -8,19 +8,19 @@ section "The house-rules registry".
 
 | File | Title | Entries |
 |-+-+-|
-| [[file:agents.org][agents.org]] | Agent and skill file house rules (AG) | 15 |
+| [[file:agents.org][agents.org]] | Agent and skill file house rules (AG) | 16 |
 | [[file:angles.org][angles.org]] | Attack angles (A) | 28 |
 | [[file:angular.org][angular.org]] | Angular house rules (NG) | 47 |
 | [[file:blazor.org][blazor.org]] | Blazor house rules (BZ) | 86 |
 | [[file:common.org][common.org]] | Common house rules (CM) | 11 |
-| [[file:csharp.org][csharp.org]] | C# / .NET house rules (CS) | 108 |
+| [[file:csharp.org][csharp.org]] | C# / .NET house rules (CS) | 109 |
 | [[file:dockerfile.org][dockerfile.org]] | Dockerfile house rules (DK) | 56 |
-| [[file:github-actions.org][github-actions.org]] | GitHub Actions house rules (GA) | 42 |
+| [[file:github-actions.org][github-actions.org]] | GitHub Actions house rules (GA) | 44 |
 | [[file:helm-chart.org][helm-chart.org]] | Helm chart house rules (HC) | 60 |
 | [[file:pipeline.org][pipeline.org]] | Azure Pipelines house rules (PL) | 58 |
-| [[file:python.org][python.org]] | Python house rules (PY) | 3 |
+| [[file:python.org][python.org]] | Python house rules (PY) | 84 |
 | [[file:terraform.org][terraform.org]] | Terraform house rules (TF) | 32 |
-| Total | | 546 |
+| Total | | 631 |
 
 * Agent and skill file house rules (AG)
 
@@ -39,6 +39,7 @@ section "The house-rules registry".
 - [[file:agents.org::*AG-013 — A skill step that has the main agent cross a fence or edit a delegated path][AG-013]] — A skill step that has the main agent cross a fence or edit a delegated path
 - [[file:agents.org::*AG-014 — A skill step that has the main agent edit, commit, or file without saying so plainly][AG-014]] — A skill step that has the main agent edit, commit, or file without saying so plainly
 - [[file:agents.org::*AG-015 — A skill step that has the main agent edit, commit, or file, stated plainly][AG-015]] — A skill step that has the main agent edit, commit, or file, stated plainly
+- [[file:agents.org::*AG-016 — A "Not yet run" entry that states no reason][AG-016]] — A "Not yet run" entry that states no reason
 
 * Attack angles (A)
 
@@ -268,6 +269,7 @@ section "The house-rules registry".
 - [[file:csharp.org::*CS-025 — JSON casing via attributes, not property names][CS-025]] — JSON casing via attributes, not property names
 - [[file:csharp.org::*CS-026 — PascalCase type suffixes (=Dto=, =Dm=), never all-caps][CS-026]] — PascalCase type suffixes (=Dto=, =Dm=), never all-caps
 - [[file:csharp.org::*CS-027 — CM-003 in C# / .NET constructs][CS-027]] — CM-003 in C# / .NET constructs
+- [[file:csharp.org::*CS-109 — A =///= doc comment the change made false or stale, left on the member it modified][CS-109]] — A =///= doc comment the change made false or stale, left on the member it modified
 - [[file:csharp.org::*CS-028 — Records are class-body, never positional][CS-028]] — Records are class-body, never positional
 - [[file:csharp.org::*CS-029 — Attribute stacks are ordered shortest-first (pyramid)][CS-029]] — Attribute stacks are ordered shortest-first (pyramid)
 - [[file:csharp.org::*CS-030 — Multi-line primary constructor: base list continues the closing-paren line][CS-030]] — Multi-line primary constructor: base list continues the closing-paren line
@@ -421,6 +423,8 @@ section "The house-rules registry".
 - [[file:github-actions.org::*GA-023 — Jobs set =timeout-minutes=][GA-023]] — Jobs set =timeout-minutes=
 - [[file:github-actions.org::*GA-024 — Deploy workflows set =concurrency:=][GA-024]] — Deploy workflows set =concurrency:=
 - [[file:github-actions.org::*GA-025 — A local action runs after the checkout that brings it][GA-025]] — A local action runs after the checkout that brings it
+- [[file:github-actions.org::*GA-043 — The BuildKit secret id a workflow passes matches the Dockerfile's secret id][GA-043]] — The BuildKit secret id a workflow passes matches the Dockerfile's secret id
+- [[file:github-actions.org::*GA-044 — A build arg a workflow passes matches an =ARG= the Dockerfile declares][GA-044]] — A build arg a workflow passes matches an =ARG= the Dockerfile declares
 - [[file:github-actions.org::*GA-026 — Reuse reusable workflows and composite actions; don't copy][GA-026]] — Reuse reusable workflows and composite actions; don't copy
 - [[file:github-actions.org::*GA-027 — Reusable workflows and composite actions take inputs, not hardcoded values][GA-027]] — Reusable workflows and composite actions take inputs, not hardcoded values
 - [[file:github-actions.org::*GA-028 — Workflow inputs are typed][GA-028]] — Workflow inputs are typed
@@ -566,8 +570,89 @@ section "The house-rules registry".
 * Python house rules (PY)
 
 - [[file:python.org::*PY-001 — A request or response model defined inside a =services/= package][PY-001]] — A request or response model defined inside a =services/= package
+- [[file:python.org::*PY-004 — A join, filtered list, subquery, or pagination written inline in a service or route][PY-004]] — A join, filtered list, subquery, or pagination written inline in a service or route
+- [[file:python.org::*PY-005 — A repository read returning raw ORM rows or a column tuple][PY-005]] — A repository read returning raw ORM rows or a column tuple
+- [[file:python.org::*PY-006 — A =Protocol= or ABC over a concrete repository][PY-006]] — A =Protocol= or ABC over a concrete repository
+- [[file:python.org::*PY-007 — A service returning a primitive tuple for the route to assemble][PY-007]] — A service returning a primitive tuple for the route to assemble
+- [[file:python.org::*PY-008 — A service taking loose kwargs instead of the request context and schema][PY-008]] — A service taking loose kwargs instead of the request context and schema
+- [[file:python.org::*PY-009 — A route that commits, reaches into the context, or builds the response itself][PY-009]] — A route that commits, reaches into the context, or builds the response itself
+- [[file:python.org::*PY-010 — A route raising =HTTPException= inline for a business-logic condition][PY-010]] — A route raising =HTTPException= inline for a business-logic condition
+- [[file:python.org::*PY-011 — A router file hosting unrelated route groups or inline models][PY-011]] — A router file hosting unrelated route groups or inline models
+- [[file:python.org::*PY-012 — Non-trivial logic or an inline query in a handler][PY-012]] — Non-trivial logic or an inline query in a handler
 - [[file:python.org::*PY-002 — A PATCH update written field by field instead of the shared update helper][PY-002]] — A PATCH update written field by field instead of the shared update helper
+- [[file:python.org::*PY-013 — A loose =dict= or =tuple= crossing a boundary where a typed model fits][PY-013]] — A loose =dict= or =tuple= crossing a boundary where a typed model fits
+- [[file:python.org::*PY-014 — A request schema off the house input base, or a response model without =from_attributes=][PY-014]] — A request schema off the house input base, or a response model without =from_attributes=
+- [[file:python.org::*PY-015 — A PUT schema carrying patch semantics][PY-015]] — A PUT schema carrying patch semantics
+- [[file:python.org::*PY-016 — A glue layer papering over model drift][PY-016]] — A glue layer papering over model drift
+- [[file:python.org::*PY-017 — A concern-specific attribute on a core entity][PY-017]] — A concern-specific attribute on a core entity
+- [[file:python.org::*PY-018 — A mutable default argument or mutable model default][PY-018]] — A mutable default argument or mutable model default
 - [[file:python.org::*PY-003 — CM-003 in Python constructs, including docstrings][PY-003]] — CM-003 in Python constructs, including docstrings
+- [[file:python.org::*PY-084 — A docstring or comment the change made false or stale, left on the function or class it modified][PY-084]] — A docstring or comment the change made false or stale, left on the function or class it modified
+- [[file:python.org::*PY-019 — Side effects at import time][PY-019]] — Side effects at import time
+- [[file:python.org::*PY-020 — Shared mutable state on a singleton mutated per request without synchronization][PY-020]] — Shared mutable state on a singleton mutated per request without synchronization
+- [[file:python.org::*PY-021 — A broad =except= that swallows and returns a default][PY-021]] — A broad =except= that swallows and returns a default
+- [[file:python.org::*PY-022 — An exception caught and re-raised with the original lost][PY-022]] — An exception caught and re-raised with the original lost
+- [[file:python.org::*PY-023 — A client-library exception caught and ignored][PY-023]] — A client-library exception caught and ignored
+- [[file:python.org::*PY-024 — A router raising a bare =Exception= or returning an error dict][PY-024]] — A router raising a bare =Exception= or returning an error dict
+- [[file:python.org::*PY-025 — A response body read before the status is checked][PY-025]] — A response body read before the status is checked
+- [[file:python.org::*PY-026 — =response.json()= on a body that may be HTML or empty][PY-026]] — =response.json()= on a body that may be HTML or empty
+- [[file:python.org::*PY-027 — A lookup by display name alone that can overwrite the wrong resource][PY-027]] — A lookup by display name alone that can overwrite the wrong resource
+- [[file:python.org::*PY-028 — A version bump that assumes =+1=][PY-028]] — A version bump that assumes =+1=
+- [[file:python.org::*PY-029 — Credentials in logs, output, or error messages][PY-029]] — Credentials in logs, output, or error messages
+- [[file:python.org::*PY-030 — Base URLs, tenant keys, or auth values hardcoded in a function body][PY-030]] — Base URLs, tenant keys, or auth values hardcoded in a function body
+- [[file:python.org::*PY-031 — Two versions of one remote API mixed][PY-031]] — Two versions of one remote API mixed
+- [[file:python.org::*PY-032 — ~shell=True~ with interpolated input][PY-032]] — ~shell=True~ with interpolated input
+- [[file:python.org::*PY-033 — ~check=True~ inside a batch loop][PY-033]] — ~check=True~ inside a batch loop
+- [[file:python.org::*PY-034 — A parsed subprocess output with no explicit =encoding=][PY-034]] — A parsed subprocess output with no explicit =encoding=
+- [[file:python.org::*PY-035 — An external binary called with no clean error when it is missing][PY-035]] — An external binary called with no clean error when it is missing
+- [[file:python.org::*PY-036 — Unguarded tree walks and string-built paths][PY-036]] — Unguarded tree walks and string-built paths
+- [[file:python.org::*PY-037 — Functions doing multiple things][PY-037]] — Functions doing multiple things
+- [[file:python.org::*PY-038 — Non-trivial helpers nested or repeated inline][PY-038]] — Non-trivial helpers nested or repeated inline
+- [[file:python.org::*PY-039 — A function name that doesn't predict behavior][PY-039]] — A function name that doesn't predict behavior
+- [[file:python.org::*PY-040 — Terse local or parameter abbreviations][PY-040]] — Terse local or parameter abbreviations
+- [[file:python.org::*PY-041 — A shared helper or a family's type placed in the wrong module][PY-041]] — A shared helper or a family's type placed in the wrong module
+- [[file:python.org::*PY-042 — Missing or over-broad type hints in a hinted module][PY-042]] — Missing or over-broad type hints in a hinted module
+- [[file:python.org::*PY-043 — A closed set of string constants where a =StrEnum= fits][PY-043]] — A closed set of string constants where a =StrEnum= fits
+- [[file:python.org::*PY-044 — A =str= field whose valid values live in a comment][PY-044]] — A =str= field whose valid values live in a comment
+- [[file:python.org::*PY-045 — =print= for logging][PY-045]] — =print= for logging
+- [[file:python.org::*PY-046 — Unstructured logging where the repo uses =structlog=][PY-046]] — Unstructured logging where the repo uses =structlog=
+- [[file:python.org::*PY-047 — An exception logged as ~str(exc)~ or without =exc_info=][PY-047]] — An exception logged as ~str(exc)~ or without =exc_info=
+- [[file:python.org::*PY-048 — Internal names, jargon, or a stiff tone in user-facing messages][PY-048]] — Internal names, jargon, or a stiff tone in user-facing messages
+- [[file:python.org::*PY-049 — Lint or type-check violations visible on inspection][PY-049]] — Lint or type-check violations visible on inspection
+- [[file:python.org::*PY-050 — Blocking I/O inside =async def=][PY-050]] — Blocking I/O inside =async def=
+- [[file:python.org::*PY-051 — A coroutine never awaited][PY-051]] — A coroutine never awaited
+- [[file:python.org::*PY-052 — An =async def= handler that never awaits][PY-052]] — An =async def= handler that never awaits
+- [[file:python.org::*PY-053 — An =async def= handler kept async only for a file read][PY-053]] — An =async def= handler kept async only for a file read
+- [[file:python.org::*PY-054 — An ad-hoc threadpool hop inline in feature code][PY-054]] — An ad-hoc threadpool hop inline in feature code
+- [[file:python.org::*PY-055 — A session held across an =await= or shared across tasks][PY-055]] — A session held across an =await= or shared across tasks
+- [[file:python.org::*PY-056 — A mutation returning a stale object without =refresh()=][PY-056]] — A mutation returning a stale object without =refresh()=
+- [[file:python.org::*PY-057 — =db.commit()= inside a loop meant as one transaction][PY-057]] — =db.commit()= inside a loop meant as one transaction
+- [[file:python.org::*PY-058 — An event emitted outside the domain write's transaction][PY-058]] — An event emitted outside the domain write's transaction
+- [[file:python.org::*PY-059 — A dependency constructed inline in a handler][PY-059]] — A dependency constructed inline in a handler
+- [[file:python.org::*PY-060 — A =Depends= provider with the wrong scope][PY-060]] — A =Depends= provider with the wrong scope
+- [[file:python.org::*PY-061 — A table-shape change with no migration, or a model autogenerate cannot see][PY-061]] — A table-shape change with no migration, or a model autogenerate cannot see
+- [[file:python.org::*PY-079 — A =downgrade()= that does not reverse its =upgrade()=][PY-079]] — A =downgrade()= that does not reverse its =upgrade()=
+- [[file:python.org::*PY-080 — A destructive operation with no data plan][PY-080]] — A destructive operation with no data plan
+- [[file:python.org::*PY-081 — A non-null column added with no =server_default= or backfill][PY-081]] — A non-null column added with no =server_default= or backfill
+- [[file:python.org::*PY-082 — A rename or enum change rendered as drop + add][PY-082]] — A rename or enum change rendered as drop + add
+- [[file:python.org::*PY-083 — A hand-written =op.execute= with no matching reverse in =downgrade()=][PY-083]] — A hand-written =op.execute= with no matching reverse in =downgrade()=
+- [[file:python.org::*PY-062 — A change to an entry-point invocation other repos depend on][PY-062]] — A change to an entry-point invocation other repos depend on
+- [[file:python.org::*PY-063 — Tests placed beside the script][PY-063]] — Tests placed beside the script
+- [[file:python.org::*PY-064 — A migration message that is not short and imperative][PY-064]] — A migration message that is not short and imperative
+- [[file:python.org::*PY-065 — The revision chain hand-edited][PY-065]] — The revision chain hand-edited
+- [[file:python.org::*PY-066 — One migration spanning two databases][PY-066]] — One migration spanning two databases
+- [[file:python.org::*PY-067 — An edit to a migration already applied beyond the local database][PY-067]] — An edit to a migration already applied beyond the local database
+- [[file:python.org::*PY-068 — A test that reaches a live host or a real binary without a mock or marker][PY-068]] — A test that reaches a live host or a real binary without a mock or marker
+- [[file:python.org::*PY-069 — A test asserting on =print= output][PY-069]] — A test asserting on =print= output
+- [[file:python.org::*PY-070 — A test skipped, xfailed, or weakened to make a suite green][PY-070]] — A test skipped, xfailed, or weakened to make a suite green
+- [[file:python.org::*PY-071 — Inline seed data or a helper standing in for a fixture][PY-071]] — Inline seed data or a helper standing in for a fixture
+- [[file:python.org::*PY-072 — =parametrize= introduced where the module doesn't use it][PY-072]] — =parametrize= introduced where the module doesn't use it
+- [[file:python.org::*PY-073 — Test stack is the project's own, pytest + plain =assert= + =unittest.mock= by default][PY-073]] — Test stack is the project's own, pytest + plain =assert= + =unittest.mock= by default
+- [[file:python.org::*PY-074 — A stale test in a tier the pull-request gate runs][PY-074]] — A stale test in a tier the pull-request gate runs
+- [[file:python.org::*PY-075 — A test name that does not state the current behavior][PY-075]] — A test name that does not state the current behavior
+- [[file:python.org::*PY-076 — Test body layout: fixtures to arrange, one-line act, asserts last][PY-076]] — Test body layout: fixtures to arrange, one-line act, asserts last
+- [[file:python.org::*PY-077 — A test bound to a private module path][PY-077]] — A test bound to a private module path
+- [[file:python.org::*PY-078 — A consumer test that bypasses the message-handler entry point][PY-078]] — A consumer test that bypasses the message-handler entry point
 
 * Terraform house rules (TF)
 

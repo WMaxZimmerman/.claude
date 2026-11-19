@@ -74,7 +74,7 @@ The list below is commands, not shell syntax — both `Bash` and `PowerShell` ar
 
 - `gh issue list --assignee @me --json number`, with `@me` unquoted — exited 1 with `unknown argument "number"; please quote all values that have spaces`.
 
-Not yet run in the form written, in either shell, because each needs something that repository did not have — an issue, a pull request, a CI run, a workflow, or a review thread: `gh issue view`; `gh pr view`, `gh pr checks`, and `gh pr diff`; `gh run view` and its log forms; `gh workflow view`, `gh workflow list` where a workflow exists, and the `--workflow` filter of `gh run list`; the `gh api` reads of a pull request's review comments, of its conversation comments, and of one comment by id (How to answer, Filing read-back); and the `gh api graphql` query. The first use of each pastes the command as run and its actual output in the report, so the next edit of this file can record it.
+Not yet run in the form written, in either shell, because each needs a remote state that repository did not have — an issue, a pull request, a CI run, a workflow, or a review thread: `gh issue view`; `gh pr view`, `gh pr checks`, and `gh pr diff`; `gh run view` and its log forms; `gh workflow view`, `gh workflow list` where a workflow exists, and the `--workflow` filter of `gh run list`; the `gh api` reads of a pull request's review comments, of its conversation comments, and of one comment by id (How to answer, Filing read-back); and the `gh api graphql` query. The first use of each pastes the command as run and its actual output in the report, so the next edit of this file can record it.
 
 Whitelist:
 
