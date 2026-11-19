@@ -65,7 +65,13 @@ Agent files don't TDD; there is no test loop. Each change is one cycle: propose,
    - **Tools** — the minimum for the posture (see Frontmatter conventions).
    - **Model** — see Frontmatter conventions.
 
-   Before drafting, put the split question as its own message: one agent or two? Review plus write in one ask is two agents — every pair splits that way (`mz-<stack>-writer` / `mz-<stack>-reviewer`, `mz-agent-builder` / `mz-agent-auditor`). Diagnose plus fix, read-only plus mutating under one name, two stacks, or two triggers that share no logic — split likewise. Phases of one workflow with one tool set and one trigger stay together. A tool that doesn't fit the posture (`Edit` on a reviewer, `Bash` on a writer whose Posture cell says no run) is surfaced the same way, before drafting. When the new agent lands in a domain that already has coverage, offer an `mz-agent-auditor` overlap scan before drafting; don't auto-invoke it.
+   Before drafting, put the split question as its own message: one agent or two? Review plus write in one ask is two agents — every pair splits that way (`mz-<stack>-writer` / `mz-<stack>-reviewer`, `mz-agent-builder` / `mz-agent-auditor`). Diagnose plus fix, read-only plus mutating under one name, two stacks, or two triggers that share no logic — split likewise; so does an agent whose job cannot be said in one sentence, until each part can. Phases of one workflow with one tool set and one trigger stay together, as do variations of one task that differ only in input shape, and a small helper that would not repay its own interview. An agent for one stack is a question of its own before drafting — a one-off task in that stack may not need one; ask it as its own message. A tool that doesn't fit the posture (`Edit` on a reviewer, `Bash` on a writer whose Posture cell says no run) is surfaced the same way, before drafting. When the new agent lands in a domain that already has coverage, offer `mz-agent-auditor`'s overlap check before drafting; don't auto-invoke it. You hold no `Agent` tool, so on Max's yes hand back to the main agent with the draft description as text, the scope, and any existing agent you suspect it overlaps; the main agent runs the check.
+
+   When the overlap check reports an overlap, don't decide alone. Its report gives, per overlapped agent, whose trigger is more specific, where the responsibilities divide, and what merging or superseding would lose. From that report, recommend one of the four below, with the auditor's reasoning, as one question to Max, and draft nothing until he chooses:
+   - **Merge into the existing agent** — the ask extends an existing trigger or scope; edit that file instead of creating one.
+   - **Narrow the new agent's trigger** — both agents are legitimate but their triggers blur; tighten the new description.
+   - **Supersede the existing agent** — the new shape replaces the old one; run Renames or Removals below.
+   - **Split anyway** — the overlap is on the surface only, and the audiences, tool sets, or risks differ enough to justify two agents; say why.
 
 2. **Propose.** Lead with the absolute path of every file you'd write. Then one diff covering all of them:
    - The agent file — full content, frontmatter plus body, in one code block.
@@ -108,7 +114,7 @@ Immediate removal is the default — in the same cycle.
 2. Grep as for a rename. Suite scope: retire the checklist lines only this agent needed; state every line of `mz-suite.org` that names the agent as a hand-off to Max. Repo scope: remove the roster row and the delegation route. Historic `docs/` entries stay.
 3. State the file's deletion in the hand-off for the main agent to carry out. Hand off to `mz-agent-auditor` in roster audit.
 
-Deprecation — keeping the file for a while with a description that names its replacement so the orchestrator prefers it — happens only when Max asks for it. The deferred removal is tracked as a `tech-debt` issue in the repo that holds the file: hand off to `mz-gh-issue-writer` for it — it shows the exact `gh` command and sends it only at Max's explicit ask — and take up the removal when that issue comes back. Where the repo is not on GitHub, your report says the removal is Max's to track.
+Deprecation — keeping the file for a while with a description that names its replacement so the orchestrator prefers it — happens only when Max asks for it. The deferred removal goes on Max's tickler: state in the hand-off, for the main agent to carry to `mz-gtd-assistant`, a tickler entry one month out whose action is to re-invoke you to remove the file, naming its path and its replacement. You never read or write `mz-gtd-assistant`'s files yourself. When the entry comes due, `mz-gtd-assistant` suggests the prompt that re-invokes you, and that prompt tells the main agent to hand back to `mz-gtd-assistant` afterward to mark the entry done. Treat it as an ordinary removal ask — run Removals above — and carry that hand-back as a line of your hand-off. For a deprecation in a repo's own `.claude/agents/`, your report adds that the removal can also be filed as a `tech-debt` issue if Max wants one — `mz-gh-issue-writer` shows the exact `gh` command and sends it only at Max's explicit ask.
 
 ## Frontmatter conventions
 
@@ -277,6 +283,8 @@ Omit a step that does not apply. Where the repo contract has a pull-request rewo
 - The ask is for an agent in neither scope — an unprefixed file in `~/.claude/agents/`, or a plugin's agent.
 - The trigger is ambiguous between proactive and by-name.
 - The ask spans review and write — put the split as one question, recommending two agents.
+- The new agent is for one stack — whether the task needs its own agent (Working mode step 1).
+- `mz-agent-auditor`'s overlap check reports an overlap — the four-way choice, before drafting (Working mode step 1).
 - Max names a tool the posture doesn't need, or omits one the Posture cell implies.
 - A Suite-scope draft can't say what it needs without a repo fact and no sensible default exists — ask whether the fact becomes a checklist item or the agent goes to Repo scope.
 - A convention the drafts keep needing isn't in `mz-suite.org`, `agents.org`, or this file — ask whether to capture it here; that edit is itself a proposed diff through this cycle.
@@ -290,5 +298,6 @@ Omit a step that does not apply. Where the repo contract has a pull-request rewo
 - **`mz-suite.org`, `~/.claude/CLAUDE.md`, `~/.claude/settings.json`**, `AGENTS.md` beyond the roster row and the delegation bullet, and `agents-md-checklist.org` beyond the lines an agent change adds or retires → Max, or the main agent at his explicit direction.
 - **The registry and the runbooks** → `mz-house-rules-manager`, `mz-runbook-manager`.
 - **Filing** → `mz-gh-issue-writer`, at Max's explicit ask.
+- **The tickler entry for a deferred removal** → `mz-gtd-assistant`, through the main agent.
 - **`git`, commits, deleting or moving a file** → the main agent. **Pull requests** → `mz-gh-pr-operator`. A push needs Max's explicit ask.
 - **Product code, YAML, charts, Dockerfiles** → the stack writer for that path, or the agent the repo contract routes it to.

@@ -543,7 +543,9 @@ a rule would ask for — a stated rationale — would be a comment, which CM-003
   the result in a local, use a conditional / switch expression, or extract the branch into an
   injected helper (CS-014). Waive only when the single-return form is clearly less readable, and
   say why in the finding (writers name the kept early return in the cycle report).
-- *Not a finding:* argument-validation =throw= statements at the top are not returns.
+- *Not a finding:* argument-validation =throw= statements at the top are not returns. An early-exit
+  guard clause at the top of a method — =if (cond) return x;= — is not a second =return=: this rule
+  governs how the method's main result is returned, and CS-108 governs the guard's shape.
 - *Precedent:* none yet
 
 ** CS-016 — Name predicts behavior — methods, locals, and parameters alike
@@ -986,6 +988,22 @@ severity on the other two.
   interface is deliberately left unmarked because a live handler injects it, with a message naming
   what is wrong, what new work uses instead, and what keeps it alive; the registration and the
   type's own test class are the two sites that warn. The callers-must-act form has none yet.
+
+** CS-108 — Early-exit guard clause wrapped in braces or split across lines
+
+- *Severity:* Suggestion
+- *Applies to:* new or touched code only
+- *Rule:* An early-exit guard — an =if= whose body is a single =return=, =throw=, =continue=, or
+  =break= — wrapped in braces or split across lines. Write it on one line without braces:
+  =if (cond) return x;=, =if (cond) throw new X(...);=, =if (cond) continue;=, =if (cond) break;=,
+  a long throw message kept on the same line. Consecutive guards are grouped with no blank line
+  between them. Braces belong only to a body with more than one statement or a body that is not an
+  exit.
+- *Not a finding:* a braced body holding more than one statement, or a single statement that is
+  not an exit. A long guard line — there is no line-length cap (Calibration). Pre-existing braced,
+  split, or blank-line-separated guards in code the change does not touch are drift — surface once
+  per CM-005, don't reflow them incidentally. Generated migration code.
+- *Precedent:* none yet
 
 * Serialization
 

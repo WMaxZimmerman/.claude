@@ -899,7 +899,8 @@ reaches the stub handler; neither question reaches or defers the other.
 - *Rule:* CS-015 applies — one =return= at the end via a local, a conditional / switch expression,
   or an extracted injected service. Waive only when the single-return form is clearly worse, and
   say why (writers name it in the hand-off).
-- *Not a finding:* argument-validation =throw=s.
+- *Not a finding:* argument-validation =throw=s. An early-exit guard clause at the top of a method
+  (=if (cond) return x;=), as CS-015 states; CS-108 governs its shape.
 - *Precedent:* none yet
 
 ** BZ-061 — CS-017 for =IXService= / =IXClient=

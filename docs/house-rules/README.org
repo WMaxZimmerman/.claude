@@ -13,14 +13,14 @@ section "The house-rules registry".
 | [[file:angular.org][angular.org]] | Angular house rules (NG) | 47 |
 | [[file:blazor.org][blazor.org]] | Blazor house rules (BZ) | 86 |
 | [[file:common.org][common.org]] | Common house rules (CM) | 11 |
-| [[file:csharp.org][csharp.org]] | C# / .NET house rules (CS) | 107 |
+| [[file:csharp.org][csharp.org]] | C# / .NET house rules (CS) | 108 |
 | [[file:dockerfile.org][dockerfile.org]] | Dockerfile house rules (DK) | 56 |
 | [[file:github-actions.org][github-actions.org]] | GitHub Actions house rules (GA) | 42 |
 | [[file:helm-chart.org][helm-chart.org]] | Helm chart house rules (HC) | 60 |
 | [[file:pipeline.org][pipeline.org]] | Azure Pipelines house rules (PL) | 58 |
 | [[file:python.org][python.org]] | Python house rules (PY) | 3 |
 | [[file:terraform.org][terraform.org]] | Terraform house rules (TF) | 32 |
-| Total | | 545 |
+| Total | | 546 |
 
 * Agent and skill file house rules (AG)
 
@@ -273,6 +273,7 @@ section "The house-rules registry".
 - [[file:csharp.org::*CS-030 — Multi-line primary constructor: base list continues the closing-paren line][CS-030]] — Multi-line primary constructor: base list continues the closing-paren line
 - [[file:csharp.org::*CS-031 — Multi-line parameter lists align under the first parameter][CS-031]] — Multi-line parameter lists align under the first parameter
 - [[file:csharp.org::*CS-093 — =[Obsolete]= goes where the warning is wanted, and its message says which deprecation it is][CS-093]] — =[Obsolete]= goes where the warning is wanted, and its message says which deprecation it is
+- [[file:csharp.org::*CS-108 — Early-exit guard clause wrapped in braces or split across lines][CS-108]] — Early-exit guard clause wrapped in braces or split across lines
 - [[file:csharp.org::*CS-032 — STJ for new code; Newtonsoft only in documented islands][CS-032]] — STJ for new code; Newtonsoft only in documented islands
 - [[file:csharp.org::*CS-078 — Third-party payload strings parse with =CultureInfo.InvariantCulture=][CS-078]] — Third-party payload strings parse with =CultureInfo.InvariantCulture=
 - [[file:csharp.org::*CS-033 — Every controller endpoint carries a registered ~[Authorize(Policy = "...")]~][CS-033]] — Every controller endpoint carries a registered ~[Authorize(Policy = "...")]~

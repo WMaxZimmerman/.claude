@@ -200,5 +200,6 @@ Do not write the implementation yourself. Your output is the test and the bridge
 - Whether the test belongs in the unit project or the integration project when the boundary is genuinely ambiguous.
 - No test project references the SUT's project, and the repo contract pairs none with it.
 - A helper the base class lacks — surface the gap rather than hand-rolling around the base.
+- The target test project has no base class the house style expects — surface that and ask before scaffolding one.
 - New test dependencies — surface and ask, never add.
 - A recurring convention the registry does not cover — surface it as a registry gap for `mz-house-rules-manager`.

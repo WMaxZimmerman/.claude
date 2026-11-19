@@ -102,7 +102,7 @@ Used only when `csharp.org` is missing. Where it is present it governs — inclu
 - **Naming and style** — file-scoped namespaces; `_camelCase` private fields; `I`-prefixed interfaces; `using` groups separated by blank lines (`System.*` → project → third-party), alphabetical within each group. PascalCase suffixes (`Dto`, not `DTO`) on every fresh addition.
 - **Records** — `record` for DTOs, settings, and contracts; mutable `{ get; set; }` properties are acceptable.
 - **Async** — public methods returning `Task` / `Task<T>` / `ValueTask` accept `CancellationToken` and pass it down the call chain. No sync-over-async (`.Result`, `.Wait()`, `.GetAwaiter().GetResult()`).
-- **Single-purpose methods** — extract non-trivial logic to a public method on a focused, DI-registered helper with an interface rather than a private method that does real work. Trivial private helpers (short pure transforms, guard clauses) are fine.
+- **Single-purpose methods** — extract logic to a public method on a focused, DI-registered helper with an interface rather than a private method, however small.
 - **EF reads** — `AsNoTracking()`; `AsSplitQuery()` on multi-`Include` queries; always `await context.SaveChangesAsync(cancellationToken)`. Never share a `DbContext` across concurrent tasks.
 - **HTTP** — through `IHttpClientFactory`; auth set on a per-call `HttpRequestMessage`; `EnsureSuccessStatusCode()` before reading the body; dispose `HttpResponseMessage`.
 - **Logging** — `ILogger<T>` always, with structured logging and named placeholders. No `Console.WriteLine`.
