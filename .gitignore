@@ -33,6 +33,8 @@ skills/synced/
 .caveman-sessions/
 .caveman-active
 .caveman-nudge-shown
+.caveman-history.jsonl
+.caveman-mode-log.jsonl
 
 # ── Per-machine logs and history ────────────────────────
 history.jsonl
