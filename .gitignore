@@ -23,6 +23,16 @@ policy-limits.json
 .last-update-result.json
 chrome/
 remote-settings.json
+*.doctor-bak-*
+
+# ── Skills downloaded from the claude.ai account ────────
+# Each machine downloads its own copy.
+skills/synced/
+
+# ── Caveman per-session runtime state ───────────────────
+.caveman-sessions/
+.caveman-active
+.caveman-nudge-shown
 
 # ── Per-machine logs and history ────────────────────────
 history.jsonl
