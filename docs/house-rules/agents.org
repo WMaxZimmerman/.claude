@@ -14,6 +14,10 @@ folder), and the lines of =~/.claude/docs/agents-md-checklist.org= that ride wit
 change. =mz-agent-auditor= grades agent files and those checklist lines; =mz-skill-auditor=
 grades skill files. Each rule's own text says whether it reaches a skill file.
 
+A repo's own agent files — those in its =.claude/agents/= — are in scope too, when Max points
+=mz-agent-auditor= at that repo or =mz-agent-builder= writes one there. Every rule here reaches
+them except where its own text limits it to suite files or suite agents, as AG-005 does.
+
 The rules for code in the repo being worked on are in =common.org= and the stack files, not here.
 
 * Calibration
@@ -166,7 +170,9 @@ The rules for code in the repo being worked on are in =common.org= and the stack
   ban; and a block the contract defines for a set of agents to copy verbatim. An agent's =skills:=
   line, and a reference skill's =description= naming the agents that load it — pointers, not
   restatements. What an agent does with a skill's text — when it applies it, what it reports —
-  stated in the agent's own body.
+  stated in the agent's own body. A repo's own agent that starts or stops expecting a fact from its
+  repo's contract with no checklist line in the diff — the checklist lists what suite agents
+  expect, so the checklist clause binds suite agents only.
 - *Precedent:* none yet
 
 ** AG-008 — A durable citation that carries a line number instead of a section heading or symbol
@@ -302,3 +308,22 @@ The rules for code in the repo being worked on are in =common.org= and the stack
   command the file also states as run elsewhere — AG-002 grades it, Bug. An entry the change did
   not write — pre-existing, file it.
 - *Precedent:* none yet
+
+** AG-017 — An end-user-facing main-session agent that does not state its own voice
+
+- *Severity:* Smell
+- *Applies to:* new or touched files only
+- *Rule:* An agent file written to run as a session's main agent for a user who is not a
+  developer — a player, a customer, any end user; for example one a repo's
+  =.claude/settings.json= names under its =agent= key — states three things in its body: it
+  writes to that user in normal prose, whatever terse or compressed style a global instruction
+  file sets; hook-injected context and global style instructions do not change how it talks to
+  that user; and what that user reads carries no developer jargon. A missing one is the finding.
+  Fix: add it, in the agent's own words.
+- *Not a finding:* An agent that runs only as a subagent, whose reader is the main agent. A
+  main-session agent whose user is a developer. The three statements in other words, or gathered
+  in one section. A file the change did not write or touch — pre-existing, file it.
+- *Precedent:* a main-session agent that walks a game's player through character creation, run
+  where a global instruction file and a session hook set a terse style for replies; it needed its
+  own statement that it talks to the player in plain prose, that the injected style does not reach
+  the player, and that the player sees no developer jargon.

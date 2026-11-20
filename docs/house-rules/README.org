@@ -8,7 +8,7 @@ section "The house-rules registry".
 
 | File | Title | Entries |
 |-+-+-|
-| [[file:agents.org][agents.org]] | Agent and skill file house rules (AG) | 16 |
+| [[file:agents.org][agents.org]] | Agent and skill file house rules (AG) | 17 |
 | [[file:angles.org][angles.org]] | Attack angles (A) | 28 |
 | [[file:angular.org][angular.org]] | Angular house rules (NG) | 47 |
 | [[file:blazor.org][blazor.org]] | Blazor house rules (BZ) | 86 |
@@ -20,7 +20,7 @@ section "The house-rules registry".
 | [[file:pipeline.org][pipeline.org]] | Azure Pipelines house rules (PL) | 58 |
 | [[file:python.org][python.org]] | Python house rules (PY) | 84 |
 | [[file:terraform.org][terraform.org]] | Terraform house rules (TF) | 32 |
-| Total | | 631 |
+| Total | | 632 |
 
 * Agent and skill file house rules (AG)
 
@@ -40,6 +40,7 @@ section "The house-rules registry".
 - [[file:agents.org::*AG-014 — A skill step that has the main agent edit, commit, or file without saying so plainly][AG-014]] — A skill step that has the main agent edit, commit, or file without saying so plainly
 - [[file:agents.org::*AG-015 — A skill step that has the main agent edit, commit, or file, stated plainly][AG-015]] — A skill step that has the main agent edit, commit, or file, stated plainly
 - [[file:agents.org::*AG-016 — A "Not yet run" entry that states no reason][AG-016]] — A "Not yet run" entry that states no reason
+- [[file:agents.org::*AG-017 — An end-user-facing main-session agent that does not state its own voice][AG-017]] — An end-user-facing main-session agent that does not state its own voice
 
 * Attack angles (A)
 
