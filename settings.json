@@ -12,13 +12,20 @@
   },
   "enabledPlugins": {
     "csharp-lsp@claude-plugins-official": true,
-    "caveman@caveman": true
+    "caveman@caveman": true,
+    "dungeon-system-ai@dungeon-system-ai-marketplace": true
   },
   "extraKnownMarketplaces": {
     "caveman": {
       "source": {
         "source": "github",
         "repo": "JuliusBrussee/caveman"
+      }
+    },
+    "dungeon-system-ai-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "WMaxZimmerman/dcc-ai"
       }
     }
   },
